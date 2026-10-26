@@ -19,6 +19,9 @@ customElements.define(
     #mounted = false;
     set hass(hass) {
       setHass(hass);
+      // HA's own light/dark, which can differ from the OS's; the iframe's document is the page's alone
+      const dark = hass.themes?.darkMode ?? matchMedia("(prefers-color-scheme: dark)").matches;
+      document.documentElement.dataset.theme = dark ? "dark" : "light";
       if (this.#mounted) return;
       this.#mounted = true;
       this.style.display = "block";

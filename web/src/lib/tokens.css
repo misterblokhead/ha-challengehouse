@@ -1,6 +1,10 @@
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
   --bg: #F2F2F7;
+  /* soft colour behind the glass tiles, so their blur has something to show */
+  --bg-glow-1: rgba(52, 199, 89, 0.28);
+  --bg-glow-2: rgba(255, 149, 0, 0.22);
+  --bg-glow-3: rgba(50, 173, 230, 0.26);
   --card: #FFFFFF;
   --fill: rgba(120, 120, 128, 0.12);
   --fg: #000000;
@@ -8,15 +12,25 @@
   --line: rgba(60, 60, 67, 0.29);
   --chrome: rgba(249, 249, 249, 0.78);
   --chrome-filter: saturate(180%) blur(20px);
+  /* the person tiles and the Together card: a lighter, thicker glass than the header */
+  --tile: rgba(255, 255, 255, 0.62);
+  --tile-edge: rgba(255, 255, 255, 0.85);
+  --tile-filter: saturate(170%) blur(24px);
+  --shadow-tile: 0 10px 30px rgba(0, 0, 0, 0.10);
   --marker: var(--card); /* the selected segment */
   --edge: 0; /* the border of cards and bars: none, a visible one under more contrast */
   --accent: #0A84FF;
   --good: #34C759;
+  /* one colour per ring, nowhere else: runs, gym, bonus */
+  --run: #28B84C;
+  --gym: #FF8A00;
+  --bonus: #1AA3DC;
   /* text and icon variants of the colours above: the bright ones are under 4.5:1 as text on a white card */
   --accent-text: #0062C4;
   --good-text: #1E7B34;
   --warn-text: #C40018;
   --radius-card: 14px;
+  --radius-tile: 24px;
   --radius-ctl: 10px;
   --radius-seg: 12px; /* the track of a segmented control; its marker uses --radius-ctl */
   --radius-pill: 22px;
@@ -31,27 +45,38 @@
   --fs-small: 0.75rem;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #000000;
-    --card: #1C1C1E;
-    --fill: rgba(120, 120, 128, 0.24);
-    --fg: #FFFFFF;
-    --muted: rgba(235, 235, 245, 0.6);
-    --line: rgba(84, 84, 88, 0.65);
-    --chrome: rgba(30, 30, 30, 0.72);
-    --marker: rgba(255, 255, 255, 0.18);
-    --good: #30D158;
-    --accent-text: #4DA3FF;
-    --good-text: #30D158;
-    --warn-text: #FF6961;
-  }
+/* data-theme is HA's own light/dark (panel.js) or, without HA, the OS's (demo.js); same specificity as :root, so the media blocks below still win */
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #07090D;
+  --bg-glow-1: rgba(48, 209, 88, 0.22);
+  --bg-glow-2: rgba(255, 159, 10, 0.16);
+  --bg-glow-3: rgba(100, 210, 255, 0.20);
+  --tile: rgba(255, 255, 255, 0.09);
+  --tile-edge: rgba(255, 255, 255, 0.16);
+  --shadow-tile: 0 10px 30px rgba(0, 0, 0, 0.35);
+  --run: #30D158;
+  --gym: #FF9F0A;
+  --bonus: #64D2FF;
+  --card: #1C1C1E;
+  --fill: rgba(120, 120, 128, 0.24);
+  --fg: #FFFFFF;
+  --muted: rgba(235, 235, 245, 0.6);
+  --line: rgba(84, 84, 88, 0.65);
+  --chrome: rgba(30, 30, 30, 0.72);
+  --marker: rgba(255, 255, 255, 0.18);
+  --good: #30D158;
+  --accent-text: #4DA3FF;
+  --good-text: #30D158;
+  --warn-text: #FF6961;
 }
 
 @media (prefers-reduced-transparency: reduce) {
   :root {
     --chrome: var(--card);
     --chrome-filter: none;
+    --tile: var(--card);
+    --tile-filter: none;
   }
 }
 
@@ -61,6 +86,9 @@
     --line: var(--fg);
     --chrome: var(--card);
     --chrome-filter: none;
+    --tile: var(--card);
+    --tile-filter: none;
+    --tile-edge: var(--line);
     --edge: 1px solid var(--line);
   }
 }
@@ -73,7 +101,13 @@
 
 body {
   margin: 0;
-  background: var(--bg);
+  background:
+    radial-gradient(60% 50% at 12% 18%, var(--bg-glow-1), transparent 70%),
+    radial-gradient(55% 45% at 88% 12%, var(--bg-glow-2), transparent 70%),
+    radial-gradient(70% 60% at 60% 100%, var(--bg-glow-3), transparent 70%),
+    var(--bg);
+  background-attachment: fixed;
+  min-height: 100dvh;
   color: var(--fg);
   font-family: var(--font);
   font-size: var(--fs-body);
