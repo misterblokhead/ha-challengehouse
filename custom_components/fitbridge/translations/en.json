@@ -1,0 +1,24 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Fitness (fitbridge)",
+        "description": "Adds the Fitness page to the sidebar. It reads fitbridge's scores through the MQTT integration, which must be set up first."
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Fitness is already set up."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Who is who",
+        "description": "Pick the fitbridge person for each Home Assistant user. Users set to Nobody see the household read-only."
+      }
+    },
+    "abort": {
+      "waiting_for_fitbridge": "Waiting for fitbridge: no scores have arrived over MQTT yet. Try again once fitbridge has published."
+    }
+  }
+}

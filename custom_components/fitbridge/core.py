@@ -13,7 +13,8 @@ def parse_scores(raw: str | bytes) -> dict | None:
     people = data.get("people") if isinstance(data, dict) else None
     if not isinstance(people, dict):
         return None
-    if not all(isinstance(p, dict) and isinstance(p.get("feed"), list) for p in people.values()):
+    if not all(isinstance(p, dict) and isinstance(p.get("feed"), list) and all(isinstance(w, dict) for w in p["feed"])
+               for p in people.values()):
         return None
     return data
 

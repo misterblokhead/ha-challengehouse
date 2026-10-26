@@ -20,6 +20,7 @@ def test_parse_scores_valid_str_and_bytes():
     json.dumps({"people": {"p1": {}}}),
     json.dumps({"people": {"p1": {"feed": "x"}}}),
     json.dumps({"people": {"p1": []}}),
+    json.dumps({"people": {"p1": {"feed": [{"key": "k1"}, "k2"]}}}),
 ])
 def test_parse_scores_invalid(raw):
     assert core.parse_scores(raw) is None
