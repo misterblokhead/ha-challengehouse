@@ -1,0 +1,81 @@
+:root {
+  color-scheme: light dark;
+  --bg: #F2F2F7;
+  --card: #FFFFFF;
+  --fill: rgba(120, 120, 128, 0.12);
+  --fg: #000000;
+  --muted: rgba(60, 60, 67, 0.78);
+  --line: rgba(60, 60, 67, 0.29);
+  --chrome: rgba(249, 249, 249, 0.78);
+  --chrome-filter: saturate(180%) blur(20px);
+  --marker: var(--card); /* the selected segment */
+  --edge: 0; /* the border of cards and bars: none, a visible one under more contrast */
+  --accent: #0A84FF;
+  --good: #34C759;
+  /* text and icon variants of the colours above: the bright ones are under 4.5:1 as text on a white card */
+  --accent-text: #0062C4;
+  --good-text: #1E7B34;
+  --warn-text: #C40018;
+  --radius-card: 14px;
+  --radius-ctl: 10px;
+  --radius-seg: 12px; /* the track of a segmented control; its marker uses --radius-ctl */
+  --radius-pill: 22px;
+  --radius-chip: 999px;
+  --shadow-marker: 0 1px 3px rgba(0, 0, 0, 0.18);
+  --shadow-menu: 0 8px 28px rgba(0, 0, 0, 0.18);
+  --press-scale: 0.97;
+  --fade: 150ms;
+  --font: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --fs-title: 28px;
+  --fs-body: 15px;
+  --fs-small: 12px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #000000;
+    --card: #1C1C1E;
+    --fill: rgba(120, 120, 128, 0.24);
+    --fg: #FFFFFF;
+    --muted: rgba(235, 235, 245, 0.6);
+    --line: rgba(84, 84, 88, 0.65);
+    --chrome: rgba(30, 30, 30, 0.72);
+    --marker: rgba(255, 255, 255, 0.18);
+    --good: #30D158;
+    --accent-text: #4DA3FF;
+    --good-text: #30D158;
+    --warn-text: #FF6961;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --chrome: var(--card);
+    --chrome-filter: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --muted: var(--fg);
+    --line: var(--fg);
+    --chrome: var(--card);
+    --chrome-filter: none;
+    --edge: 1px solid var(--line);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --press-scale: 1;
+  }
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font);
+  font-size: var(--fs-body);
+  font-variant-numeric: tabular-nums;
+}

@@ -1,0 +1,537 @@
+{
+  "people": {
+    "alex": {
+      "name": "Alex",
+      "xp": 1480,
+      "level": 5,
+      "level_floor": 1200,
+      "next_level_xp": 1800,
+      "week": {
+        "week": 44,
+        "runs": 1,
+        "gym": 2,
+        "bonus": 1,
+        "goal_met": false,
+        "paused": false,
+        "days_left": 3,
+        "progress": 0.75,
+        "goal": {
+          "runs": 2,
+          "gym": 2
+        },
+        "last_week": {
+          "runs": 2,
+          "gym": 2,
+          "goal_met": true
+        }
+      },
+      "streak": 6,
+      "best_streak": 9,
+      "plan": {
+        "state": "active",
+        "plan": "c25k",
+        "completed": 1,
+        "week": 1,
+        "day": 2,
+        "target": "5 km",
+        "intervals": [
+          [
+            "run",
+            60
+          ],
+          [
+            "walk",
+            90
+          ],
+          [
+            "run",
+            60
+          ],
+          [
+            "walk",
+            90
+          ],
+          [
+            "run",
+            60
+          ],
+          [
+            "walk",
+            90
+          ],
+          [
+            "run",
+            60
+          ],
+          [
+            "walk",
+            90
+          ],
+          [
+            "run",
+            60
+          ],
+          [
+            "walk",
+            90
+          ],
+          [
+            "run",
+            60
+          ],
+          [
+            "walk",
+            90
+          ],
+          [
+            "run",
+            60
+          ],
+          [
+            "walk",
+            90
+          ],
+          [
+            "run",
+            60
+          ],
+          [
+            "walk",
+            90
+          ]
+        ],
+        "warmup_s": 300,
+        "due_today": true
+      },
+      "badges": {
+        "count": 7,
+        "recent": [
+          {
+            "id": "runs_10",
+            "title": "Ten runs",
+            "icon": "run",
+            "category": "runs",
+            "unlocked_at": "2026-10-23"
+          }
+        ],
+        "next": [
+          {
+            "id": "km_50",
+            "title": "50 km runner",
+            "icon": "road",
+            "category": "distance",
+            "current": 38.4,
+            "target": 50
+          },
+          {
+            "id": "gym_20",
+            "title": "Twenty gym sessions",
+            "icon": "dumbbell",
+            "category": "gym",
+            "current": 14,
+            "target": 20
+          },
+          {
+            "id": "streak_8",
+            "title": "Eight week streak",
+            "icon": "flame",
+            "category": "streak",
+            "current": 6,
+            "target": 8
+          }
+        ],
+        "unlocked": [
+          {
+            "id": "runs_10",
+            "title": "Ten runs",
+            "icon": "run",
+            "category": "runs",
+            "unlocked_at": "2026-10-23"
+          }
+        ]
+      },
+      "pbs": {
+        "longest_session_km": 6.2,
+        "prs": 2,
+        "gym_tonnes": 0
+      },
+      "recent": [
+        {
+          "key": "endurain:101",
+          "kind": "run",
+          "name": "Morning Run",
+          "source": "endurain",
+          "indoor": false,
+          "start": "2026-10-26T07:30:00+01:00",
+          "minutes": 28,
+          "km": 3.1,
+          "avg_hr": 151,
+          "plan": "W1D2",
+          "joint": true,
+          "excluded": false,
+          "url": "https://endurain.example/activity/101",
+          "xp": 24
+        },
+        {
+          "key": "opengym:55",
+          "kind": "gym",
+          "name": "Gym",
+          "source": "opengym",
+          "indoor": true,
+          "start": "2026-10-25T18:05:00+01:00",
+          "minutes": 65,
+          "km": null,
+          "avg_hr": null,
+          "plan": null,
+          "joint": false,
+          "excluded": false,
+          "url": null,
+          "xp": 30
+        },
+        {
+          "key": "manual:1792000000-ab12cd",
+          "kind": "gym",
+          "name": "Gym",
+          "source": "manual",
+          "indoor": true,
+          "start": "2026-10-24T17:40:00+01:00",
+          "minutes": 45,
+          "km": null,
+          "avg_hr": null,
+          "plan": null,
+          "joint": false,
+          "excluded": false,
+          "url": null,
+          "xp": 22
+        },
+        {
+          "key": "endurain:98",
+          "kind": "run",
+          "name": "Evening Run",
+          "source": "endurain",
+          "indoor": false,
+          "start": "2026-10-23T19:10:00+01:00",
+          "minutes": 35,
+          "km": 4.6,
+          "avg_hr": 158,
+          "plan": "W1D1",
+          "joint": false,
+          "excluded": false,
+          "url": "https://endurain.example/activity/98",
+          "xp": 28
+        },
+        {
+          "key": "endurain:97",
+          "kind": "walk",
+          "name": "Lunch Walk",
+          "source": "endurain",
+          "indoor": false,
+          "start": "2026-10-22T12:20:00+01:00",
+          "minutes": 40,
+          "km": 3.2,
+          "avg_hr": 104,
+          "plan": null,
+          "joint": false,
+          "excluded": false,
+          "url": null,
+          "xp": 8
+        },
+        {
+          "key": "endurain:95",
+          "kind": "run",
+          "name": "Treadmill Run",
+          "source": "endurain",
+          "indoor": true,
+          "start": "2026-10-20T06:50:00+01:00",
+          "minutes": 20,
+          "km": 2.0,
+          "avg_hr": 149,
+          "plan": null,
+          "joint": false,
+          "excluded": true,
+          "url": null,
+          "xp": 0
+        }
+      ],
+      "feed": [
+        {
+          "key": "endurain:101",
+          "kind": "run",
+          "name": "Morning Run",
+          "source": "endurain",
+          "indoor": false,
+          "start": "2026-10-26T07:30:00+01:00",
+          "minutes": 28,
+          "km": 3.1,
+          "avg_hr": 151,
+          "plan": "W1D2",
+          "joint": true,
+          "excluded": false,
+          "url": "https://endurain.example/activity/101",
+          "xp": 24
+        },
+        {
+          "key": "opengym:55",
+          "kind": "gym",
+          "name": "Gym",
+          "source": "opengym",
+          "indoor": true,
+          "start": "2026-10-25T18:05:00+01:00",
+          "minutes": 65,
+          "km": null,
+          "avg_hr": null,
+          "plan": null,
+          "joint": false,
+          "excluded": false,
+          "url": null,
+          "xp": 30
+        },
+        {
+          "key": "manual:1792000000-ab12cd",
+          "kind": "gym",
+          "name": "Gym",
+          "source": "manual",
+          "indoor": true,
+          "start": "2026-10-24T17:40:00+01:00",
+          "minutes": 45,
+          "km": null,
+          "avg_hr": null,
+          "plan": null,
+          "joint": false,
+          "excluded": false,
+          "url": null,
+          "xp": 22
+        },
+        {
+          "key": "endurain:98",
+          "kind": "run",
+          "name": "Evening Run",
+          "source": "endurain",
+          "indoor": false,
+          "start": "2026-10-23T19:10:00+01:00",
+          "minutes": 35,
+          "km": 4.6,
+          "avg_hr": 158,
+          "plan": "W1D1",
+          "joint": false,
+          "excluded": false,
+          "url": "https://endurain.example/activity/98",
+          "xp": 28
+        },
+        {
+          "key": "endurain:97",
+          "kind": "walk",
+          "name": "Lunch Walk",
+          "source": "endurain",
+          "indoor": false,
+          "start": "2026-10-22T12:20:00+01:00",
+          "minutes": 40,
+          "km": 3.2,
+          "avg_hr": 104,
+          "plan": null,
+          "joint": false,
+          "excluded": false,
+          "url": null,
+          "xp": 8
+        },
+        {
+          "key": "endurain:95",
+          "kind": "run",
+          "name": "Treadmill Run",
+          "source": "endurain",
+          "indoor": true,
+          "start": "2026-10-20T06:50:00+01:00",
+          "minutes": 20,
+          "km": 2.0,
+          "avg_hr": 149,
+          "plan": null,
+          "joint": false,
+          "excluded": true,
+          "url": null,
+          "xp": 0
+        }
+      ]
+    },
+    "sam": {
+      "name": "Sam",
+      "xp": 910,
+      "level": 3,
+      "level_floor": 700,
+      "next_level_xp": 1000,
+      "week": {
+        "week": 44,
+        "runs": 0,
+        "gym": 1,
+        "bonus": 0,
+        "goal_met": false,
+        "paused": false,
+        "days_left": 3,
+        "progress": 0.25,
+        "goal": {
+          "runs": 2,
+          "gym": 2
+        },
+        "last_week": {
+          "runs": 1,
+          "gym": 2,
+          "goal_met": false
+        }
+      },
+      "streak": 2,
+      "best_streak": 4,
+      "plan": {
+        "state": "graduated",
+        "plan": "c25k",
+        "completed": 27,
+        "week": null,
+        "day": null,
+        "target": "5 km",
+        "intervals": [],
+        "warmup_s": null,
+        "due_today": false
+      },
+      "badges": {
+        "count": 3,
+        "recent": [],
+        "next": [
+          {
+            "id": "runs_10",
+            "title": "Ten runs",
+            "icon": "run",
+            "category": "runs",
+            "current": 6,
+            "target": 10
+          }
+        ],
+        "unlocked": []
+      },
+      "pbs": {
+        "longest_session_km": 5.0,
+        "prs": 1,
+        "gym_tonnes": 0
+      },
+      "recent": [
+        {
+          "key": "endurain:201",
+          "kind": "run",
+          "name": "Morning Run",
+          "source": "endurain",
+          "indoor": false,
+          "start": "2026-10-26T07:30:00+01:00",
+          "minutes": 28,
+          "km": 3.1,
+          "avg_hr": 147,
+          "plan": null,
+          "joint": true,
+          "excluded": false,
+          "url": "https://endurain.example/activity/201",
+          "xp": 24
+        },
+        {
+          "key": "opengym:61",
+          "kind": "gym",
+          "name": "Gym",
+          "source": "opengym",
+          "indoor": true,
+          "start": "2026-10-24T19:00:00+01:00",
+          "minutes": 50,
+          "km": null,
+          "avg_hr": null,
+          "plan": null,
+          "joint": false,
+          "excluded": false,
+          "url": null,
+          "xp": 24
+        },
+        {
+          "key": "endurain:199",
+          "kind": "walk",
+          "name": "Park Walk",
+          "source": "endurain",
+          "indoor": false,
+          "start": "2026-10-21T16:30:00+01:00",
+          "minutes": 55,
+          "km": 4.4,
+          "avg_hr": 99,
+          "plan": null,
+          "joint": false,
+          "excluded": false,
+          "url": null,
+          "xp": 10
+        }
+      ],
+      "feed": [
+        {
+          "key": "endurain:201",
+          "kind": "run",
+          "name": "Morning Run",
+          "source": "endurain",
+          "indoor": false,
+          "start": "2026-10-26T07:30:00+01:00",
+          "minutes": 28,
+          "km": 3.1,
+          "avg_hr": 147,
+          "plan": null,
+          "joint": true,
+          "excluded": false,
+          "url": "https://endurain.example/activity/201",
+          "xp": 24
+        },
+        {
+          "key": "opengym:61",
+          "kind": "gym",
+          "name": "Gym",
+          "source": "opengym",
+          "indoor": true,
+          "start": "2026-10-24T19:00:00+01:00",
+          "minutes": 50,
+          "km": null,
+          "avg_hr": null,
+          "plan": null,
+          "joint": false,
+          "excluded": false,
+          "url": null,
+          "xp": 24
+        },
+        {
+          "key": "endurain:199",
+          "kind": "walk",
+          "name": "Park Walk",
+          "source": "endurain",
+          "indoor": false,
+          "start": "2026-10-21T16:30:00+01:00",
+          "minutes": 55,
+          "km": 4.4,
+          "avg_hr": 99,
+          "plan": null,
+          "joint": false,
+          "excluded": false,
+          "url": null,
+          "xp": 10
+        }
+      ]
+    }
+  },
+  "group": {
+    "id": "alex-sam",
+    "name": "Alex & Sam",
+    "members": [
+      "alex",
+      "sam"
+    ],
+    "streak": 2,
+    "best_streak": 3,
+    "month_joint": 3,
+    "km_together": 12.4
+  },
+  "config_error": null,
+  "gym_data_as_of": "2026-10-26T06:00:00+01:00",
+  "pauses_as_of": "2026-10-26T06:00:00+01:00",
+  "scored_at": "2026-10-26T22:10:00+01:00",
+  "viewer": {
+    "person": "alex",
+    "can_edit": [
+      "alex"
+    ]
+  }
+}
