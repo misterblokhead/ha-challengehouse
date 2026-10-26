@@ -31,9 +31,9 @@ class FitbridgeOptionsFlow(config_entries.OptionsFlowWithReload):
         if data is None or data.scores is None:
             return self.async_abort(reason="waiting_for_fitbridge")
         users = [u for u in await self.hass.auth.async_get_users() if u.is_active and not u.system_generated]
-        names = [u.name for u in users]
+        names = {u.id: u.name or u.id[:6] for u in users}  # a user may have no name
         # a field's label is its key: the user's name, made unique by the id when two users share one
-        labels = {u.id: u.name if names.count(u.name) == 1 else f"{u.name} ({u.id[:6]})" for u in users}
+        labels = {uid: n if list(names.values()).count(n) == 1 else f"{n} ({uid[:6]})" for uid, n in names.items()}
         if user_input is not None:
             return self.async_create_entry(data={OPT_VIEWERS: {
                 uid: user_input[label] for uid, label in labels.items() if user_input.get(label)}})

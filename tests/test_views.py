@@ -1,5 +1,6 @@
 import json
 import re
+import time
 
 import pytest
 from conftest import SCORES
@@ -52,7 +53,8 @@ async def test_own_workout_publishes_retained_manual_message(hass, client, send,
     assert resp.status == 202 and await resp.json() == {"ok": True}
     mqtt_mock.async_publish.assert_called_once()
     topic, payload, qos, retain = mqtt_mock.async_publish.call_args.args
-    assert re.fullmatch(r"fitbridge/manual/\d+-[0-9a-f]{6}", topic)
+    assert re.fullmatch(r"fitbridge/manual/\d{13}-[0-9a-f]{6}", topic)  # ms: an Undo sorts after its Remove
+    assert abs(int(topic.rsplit("/", 1)[1][:13]) - time.time() * 1000) < 60000
     assert payload == json.dumps({"action": action, "person": "p1", "key": key}) and qos == 1 and retain is True
 
 

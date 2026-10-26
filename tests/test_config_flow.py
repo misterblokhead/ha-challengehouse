@@ -26,12 +26,13 @@ async def test_options_map_users_to_people(hass, entry, send):
     await send(SCORES)
     alex, sam = MockUser(name="Alex").add_to_hass(hass), MockUser(name="Sam").add_to_hass(hass)
     twins = MockUser(id="aaaaaa01", name="Robin").add_to_hass(hass), MockUser(id="bbbbbb02", name="Robin").add_to_hass(hass)
+    MockUser(id="cccccc03", name=None).add_to_hass(hass)  # a user without a name is labelled by its id
     MockUser(name="Gone", is_active=False).add_to_hass(hass)
     MockUser(name="Bot", system_generated=True).add_to_hass(hass)
     result = await hass.config_entries.options.async_init(entry.entry_id)
     assert result["type"] is FlowResultType.FORM
     fields = [str(k) for k in result["data_schema"].schema]
-    assert sorted(fields) == ["Alex", "Robin (aaaaaa)", "Robin (bbbbbb)", "Sam"]
+    assert sorted(fields) == ["Alex", "Robin (aaaaaa)", "Robin (bbbbbb)", "Sam", "cccccc"]
     result = await hass.config_entries.options.async_configure(
         result["flow_id"], {"Alex": "p1", "Sam": "", "Robin (bbbbbb)": "p2"})
     assert result["type"] is FlowResultType.CREATE_ENTRY

@@ -71,6 +71,8 @@ class UiView(HomeAssistantView):
             return _detail(self, "not allowed", HTTPStatus.FORBIDDEN)
         if find_workout(data.scores, person, key) is None:
             return _detail(self, "not found", HTTPStatus.NOT_FOUND)
-        topic, payload = manual_message(body["action"], person, key, f"{int(time.time())}-{secrets.token_hex(3)}")
+        # ms, zero-padded: fitbridge applies messages in id-time order, so an Undo a second later follows its Remove
+        msg_id = f"{time.time_ns() // 1_000_000:013d}-{secrets.token_hex(3)}"
+        topic, payload = manual_message(body["action"], person, key, msg_id)
         await mqtt.async_publish(hass, topic, payload, qos=1, retain=True)
         return self.json({"ok": True}, status_code=HTTPStatus.ACCEPTED)
