@@ -1,5 +1,5 @@
 import { send } from "./api.js";
-import { pendingDone } from "./model.js";
+import { pendingDone, serial } from "./model.js";
 
 // Remove / Restore / Delete from the activity feed. The row changes at once (pending) and settles when a payload shows the change.
 // `pending`: by "person/key", {person, key, want, at, n}; see pendingDone. `toast`: the one message at the bottom, with an optional Undo.
@@ -8,6 +8,7 @@ export const pending = $state({});
 export const toast = $state({ on: false, text: "", undo: null });
 
 let hide, seq = 0;
+const sending = {}; // by "person/key": the last send, so an Undo is sent only after its Remove
 export function say(text, undo = null) {
   clearTimeout(hide);
   Object.assign(toast, { on: true, text, undo });
@@ -26,7 +27,7 @@ export async function act(person, key, action) {
   pending[id] = { person, key, want: manual && action === "remove" ? null : action === "remove", at: Date.now(), n };
   if (action === "remove" && !manual) say("Removed", () => act(person, key, "restore"));
   try {
-    await send("POST", "workouts", { person, key, action });
+    await serial(sending, id, () => send("POST", "workouts", { person, key, action }));
   } catch (e) {
     if (pending[id]?.n === n) { // unless a later tap (Undo) already replaced it
       if (prev) pending[id] = prev;

@@ -75,9 +75,10 @@
   const split = $derived(layout(data?.viewer ?? {}, people));
   const week = $derived(people[split.self ?? ids[0]]?.week);
   const canEdit = (id) => !!data?.viewer?.can_edit?.includes(id);
+  const sheetShown = $derived(!!sheet && Object.hasOwn(people, sheet.id)); // the page is inert exactly while the sheet is there
 </script>
 
-<div inert={!!sheet}>
+<div inert={sheetShown}>
 <Header title="Training" subtitle={week ? weekLabel(week) : ""} onback={goBack} />
 
 <main>
@@ -113,7 +114,7 @@
 </main>
 </div>
 
-{#if sheet && people[sheet.id]}
+{#if sheetShown}
   <Sheet label="{people[sheet.id].name}'s details" from={sheet.from} onclose={closeSheet} onback={goBack}>
     <PersonTile person={people[sheet.id]} index={ids.indexOf(sheet.id)} />
     <Details id={sheet.id} person={people[sheet.id]} canEdit={canEdit(sheet.id)} />

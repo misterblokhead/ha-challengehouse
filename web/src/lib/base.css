@@ -2,34 +2,25 @@
 
 /* surfaces */
 .card { background: var(--card); border: var(--edge); border-radius: var(--radius-card); }
-.chrome { background: var(--chrome); -webkit-backdrop-filter: var(--chrome-filter); backdrop-filter: var(--chrome-filter); }
 .glass {
   background: var(--tile); -webkit-backdrop-filter: var(--tile-filter); backdrop-filter: var(--tile-filter);
   border: 1px solid var(--tile-edge); border-radius: var(--radius-tile); box-shadow: var(--shadow-tile);
 }
 
 /* controls: pointer, disabled, press feedback (.press) and the focus ring; a place that needs another offset or radius says so in its own CSS */
-button, select, input[type="checkbox"] { cursor: pointer; }
-:is(button, select, input):disabled { opacity: 0.35; cursor: default; }
+button { cursor: pointer; }
+button:disabled { opacity: 0.35; cursor: default; }
 :is(.press, .btn) { transition: transform 100ms; }
 :is(.press, .btn):active:not(:disabled) { transform: scale(var(--press-scale)); }
-:is(a, button, input, select):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+:is(a, button):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .btn {
   min-height: 44px; min-width: 44px; padding: 0 20px; border: 0; border-radius: var(--radius-ctl); background: var(--fill);
   color: var(--accent-text); font: inherit; font-weight: 600;
 }
 
-/* text: .muted is the colour; .caption (and .field, the label of an input) the 0.8125rem size with it */
-.muted, .caption, .field { color: var(--muted); }
-.caption, .field { font-size: 0.8125rem; }
-.page-title { margin: 0 0 12px; font-size: var(--fs-title); font-weight: 700; letter-spacing: -0.01em; }
+/* text */
+.caption { color: var(--muted); font-size: 0.8125rem; }
 .big { font-size: 1.75rem; font-weight: 600; line-height: 1.1; letter-spacing: -0.01em; white-space: nowrap; }
 .big small { font-size: 0.9375rem; font-weight: 500; color: var(--muted); letter-spacing: 0; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-.icon { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; } /* the size is the component's */
 .msg { text-align: center; color: var(--muted); padding: 24px 0; }
-.msg p { margin: 0 0 8px; }
-
-/* a labelled input of an edit form */
-.field { display: flex; flex: 1 1 6.5em; flex-direction: column; gap: 4px; min-width: 0; }
-.field.wide { flex-basis: 12em; }

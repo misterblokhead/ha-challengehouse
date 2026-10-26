@@ -47,7 +47,7 @@
   const drop = driver((v) => (y = v));
 
   function close() {
-    if (closing) return;
+    if (closing || drag) return; // Esc mid-drag: the release decides, else a spring-back would leave `closing` stuck
     closing = true;
     if (still) {
       shown = false;

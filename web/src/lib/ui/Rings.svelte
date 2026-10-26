@@ -5,13 +5,12 @@
   import { createSpring } from "../spring.js";
 
   // Three concentric rings, outer to inner: runs, gym, bonus. `size` in CSS px at the default text size; the rings scale with it.
-  // `animate`: fill from empty once, when the component first appears; later fractions show as they are.
-  let { fractions, size = 88, animate = true } = $props();
+  // They fill from empty once, when the component first appears; later fractions show as they are.
+  let { fractions, size = 88 } = $props();
 
   const KINDS = ["run", "gym", "bonus"];
   const FULL = 1000; // the spring settles to within 0.5, so it runs in thousandths
-  // svelte-ignore state_referenced_locally
-  let shown = $state(animate && !screen.reducedMotion ? 0 : FULL);
+  let shown = $state(screen.reducedMotion ? FULL : 0);
 
   const stroke = $derived(size * 0.11);
   const rings = $derived(

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { ringFractions, levelProgress, weekLabel, staleSince, feedRow, planBar, layout, shortDate, pendingDone, PENDING_MS } from "./model.js";
+import { ringFractions, levelProgress, weekLabel, staleSince, feedRow, planBar, layout, shortDate, pendingDone, PENDING_MS, serial } from "./model.js";
 
 const week = { runs: 1, gym: 2, bonus: 1, goal: { runs: 2, gym: 2 }, days_left: 3, week: "2026-W44" };
 
@@ -102,16 +102,33 @@ test("shortDate: day and month", () => {
   assert.equal(shortDate("2027-01-05"), "5 Jan");
 });
 
-test("pendingDone: settles when the payload shows the asked state, the workout is gone, or 6 min pass", () => {
+test("pendingDone: settles when the payload shows the asked state, the workout is gone, or 10 min pass", () => {
   const feed = [{ key: "e:1", excluded: false }, { key: "manual:2", excluded: false }];
   const at = 1_000_000;
   const remove = { key: "e:1", want: true, at };
   assert.equal(pendingDone(remove, feed, at + 60000), false);
   assert.equal(pendingDone(remove, [{ key: "e:1", excluded: true }], at + 60000), true);
+  assert.equal(pendingDone(remove, feed, at + 7 * 60000), false); // a scoring cycle (~5-6 min) plus a poll can pass first
   assert.equal(pendingDone(remove, feed, at + PENDING_MS + 1), true);
   assert.equal(pendingDone({ key: "e:1", want: false, at }, feed, at), true); // an Undo before fitbridge applied the remove
   const del = { key: "manual:2", want: null, at };
   assert.equal(pendingDone(del, feed, at + 60000), false);
   assert.equal(pendingDone(del, feed.slice(0, 1), at + 60000), true);
   assert.equal(pendingDone(remove, [], at), true);
+});
+
+test("serial: a call for the same id waits until the previous one settled, even a failed one", async () => {
+  const tails = {}, log = [];
+  let release;
+  const first = serial(tails, "p/k", () => new Promise((_, reject) => (release = () => reject(new Error("503")))).finally(() => log.push("remove")));
+  const second = serial(tails, "p/k", async () => log.push("restore"));
+  const other = serial(tails, "p/x", async () => log.push("other"));
+  await other;
+  assert.deepEqual(log, ["other"]); // another workout does not wait; the Undo waits for its Remove
+  release();
+  await assert.rejects(first);
+  await second;
+  assert.deepEqual(log, ["other", "remove", "restore"]);
+  await new Promise((r) => setTimeout(r));
+  assert.deepEqual(tails, {}); // nothing kept once idle
 });

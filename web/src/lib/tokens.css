@@ -22,7 +22,6 @@
   --sheet-filter: saturate(180%) blur(44px);
   --sheet-shadow: 0 -12px 50px rgba(0, 0, 0, 0.18);
   --scrim: rgba(0, 0, 0, 0.32);
-  --marker: var(--card); /* the selected segment */
   --edge: 0; /* the border of cards and bars: none, a visible one under more contrast */
   --accent: #0A84FF;
   --good: #34C759;
@@ -37,17 +36,13 @@
   --radius-card: 14px;
   --radius-tile: 24px;
   --radius-ctl: 10px;
-  --radius-seg: 12px; /* the track of a segmented control; its marker uses --radius-ctl */
   --radius-pill: 22px;
   --radius-chip: 999px;
-  --shadow-marker: 0 1px 3px rgba(0, 0, 0, 0.18);
   --shadow-menu: 0 8px 28px rgba(0, 0, 0, 0.18);
   --press-scale: 0.97;
   --fade: 150ms;
   --font: system-ui, -apple-system, "Segoe UI", sans-serif;
-  --fs-title: 1.75rem;
   --fs-body: 0.9375rem;
-  --fs-small: 0.75rem;
 }
 
 /* data-theme is HA's own light/dark (panel.js) or, without HA, the OS's (demo.js); same specificity as :root, so the media blocks below still win */
@@ -72,7 +67,6 @@
   --muted: rgba(235, 235, 245, 0.6);
   --line: rgba(84, 84, 88, 0.65);
   --chrome: rgba(30, 30, 30, 0.72);
-  --marker: rgba(255, 255, 255, 0.18);
   --good: #30D158;
   --accent-text: #4DA3FF;
   --good-text: #30D158;

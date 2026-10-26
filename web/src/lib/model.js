@@ -70,8 +70,17 @@ export const shortDate = (iso) => `${Number(iso.slice(8, 10))} ${MONTHS[Number(i
 // A Remove, Restore or Delete the page sent stays pending until a payload shows it, or until PENDING_MS pass (then the payload wins).
 // `entry.want`: the `excluded` value asked for, or null for a deleted manual entry (gone from the feed). A workout no longer in the
 // feed has nothing left to show either way.
-export const PENDING_MS = 6 * 60000;
+export const PENDING_MS = 10 * 60000; // fitbridge scores every ~305-365 s, the page polls every 60 s
 export function pendingDone(entry, feed, now) {
   const item = feed.find((w) => w.key === entry.key);
   return now - entry.at > PENDING_MS || !item || (entry.want !== null && item.excluded === entry.want);
+}
+
+// Runs `fn` once the previous call for the same `id` has settled (failed or not), so an Undo never overtakes its Remove.
+// `tails`: the caller's {id: promise} map; an id is dropped from it again once idle.
+export function serial(tails, id, fn) {
+  const run = (tails[id] ?? Promise.resolve()).then(fn);
+  const tail = (tails[id] = run.catch(() => {}));
+  tail.then(() => tails[id] === tail && delete tails[id]);
+  return run;
 }
