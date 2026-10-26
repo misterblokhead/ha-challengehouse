@@ -21,6 +21,9 @@ People, the optional two-person group, plans, XP values and badges all live in `
 | `fitbridge/scoring_config.py`, `scoring.toml` | Rule file loader/validator and the default rules |
 | `fitbridge/mqtt.py`, `opengym.py`, `publish.py` | Minimal MQTT client, openGym client, HA discovery payloads |
 | `fitbridge/deploy.sh`, `fitbridge.service`, `env.example`, `opengym-pair.sh` | Install on a Debian host/LXC with systemd |
+| `custom_components/fitbridge/` | Home Assistant integration: the Fitness page in the sidebar, its per-user API and Remove/Restore; `frontend/` is the built page (committed) |
+| `web/` | Source of the Fitness page (Svelte + Vite); builds into `custom_components/fitbridge/frontend/` |
+| `tests/` | Integration tests (pytest-homeassistant-custom-component) |
 | `specs/` | Scoring design and implementation plan |
 | `mockups/` | Dashboard mockup |
 
@@ -31,13 +34,20 @@ People, the optional two-person group, plans, XP values and badges all live in `
 3. Edit `/opt/fitbridge/scoring.toml` (people, group, plans) and `.env` (per person: `ENDURAIN_KEY_<ID>`, `SYNC_DIR_<ID>`, `TAILSCALE_LOGIN_<ID>`, `OPENGYM_UID_<ID>`; MQTT broker and user).
 4. openGym: `bash /root/opengym-pair.sh` with a pairing code from openGym's settings.
 5. Home Assistant: an MQTT user for fitbridge, plus the pause-feed automation and the log/remove/restore scripts described in `specs/2026-10-26-scoring-design.md` §7.
+6. Fitness page (optional): needs the MQTT integration. Add this repository to HACS as a custom repository (type Integration) and install it, or copy `custom_components/fitbridge` into HA's `custom_components/`; restart HA, then add the "Fitness (fitbridge)" integration. Once fitbridge has published scores, its options map each HA user to a fitbridge person; unmapped users see the household read-only.
 
 Check the result with `curl -s http://127.0.0.1:8091/scores`; a broken `scoring.toml` keeps the last good one and shows up as `config_error`.
+
+## Changing the page
+
+Edit `web/`, then `cd web && npm run build` and commit the rebuilt `custom_components/fitbridge/frontend/` with it (HA serves the built files; there is no build step on install).
 
 ## Tests
 
 ```bash
-cd fitbridge && python -m unittest -v
+cd fitbridge && python -m unittest -v      # fitbridge, stdlib only
+cd web && npm test                          # the page's pure logic (node:test)
+python -m pytest tests -q                   # the integration: Linux or WSL, with tests/requirements.txt installed
 ```
 
 Synthetic data only. Python 3.13+.
