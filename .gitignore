@@ -2,3 +2,5 @@ __pycache__/
 *.pyc
 .superpowers/
 .worktrees/
+tests/.venv/
+web/node_modules/
