@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { ringFractions, levelProgress, weekLabel, staleSince, feedRow, planBar, layout } from "./model.js";
 
-const week = { runs: 1, gym: 2, bonus: 1, goal: { runs: 2, gym: 2 }, days_left: 3, week: 44 };
+const week = { runs: 1, gym: 2, bonus: 1, goal: { runs: 2, gym: 2 }, days_left: 3, week: "2026-W44" };
 
 test("ringFractions: against the goals, clamped to 0..1", () => {
   assert.deepEqual(ringFractions(week), [0.5, 1, 1]);
@@ -10,7 +10,7 @@ test("ringFractions: against the goals, clamped to 0..1", () => {
   assert.deepEqual(ringFractions({ ...week, runs: 0, gym: 1, bonus: 3 }), [0, 0.5, 1]);
 });
 
-test("ringFractions: goal 0 is full when met, else empty", () => {
+test("ringFractions: goal 0 is always full", () => {
   const zero = { runs: 0, gym: 0, bonus: 0, goal: { runs: 0, gym: 0 } };
   assert.deepEqual(ringFractions(zero), [1, 1, 0]);
   assert.deepEqual(ringFractions({ ...zero, gym: 1 }), [1, 1, 0]);
@@ -24,9 +24,10 @@ test("levelProgress: xp inside the current level", () => {
 });
 
 test("weekLabel: week number and days left, singular at 1", () => {
-  assert.equal(weekLabel({ week: 44, days_left: 3 }), "Week 44 · 3 days left");
-  assert.equal(weekLabel({ week: 44, days_left: 1 }), "Week 44 · 1 day left");
-  assert.equal(weekLabel({ week: 1, days_left: 0 }), "Week 1 · 0 days left");
+  assert.equal(weekLabel({ week: "2026-W44", days_left: 3 }), "Week 44 · 3 days left");
+  assert.equal(weekLabel({ week: "2026-W44", days_left: 1 }), "Week 44 · 1 day left");
+  assert.equal(weekLabel({ week: "2027-W01", days_left: 0 }), "Week 1 · 0 days left");
+  assert.equal(weekLabel({ week: "2026-W05", days_left: 2 }), "Week 5 · 2 days left");
 });
 
 test("staleSince: local HH:MM once older than the limit, else null", () => {
@@ -66,6 +67,10 @@ test("feedRow: pace only for run and walk with a distance", () => {
   assert.equal(feedRow({ ...run, km: null }).detail.km, null);
 });
 
+test("feedRow: a malformed start gives an empty date, not a throw", () => {
+  assert.equal(feedRow({ ...run, start: "yesterday" }).when, "");
+});
+
 test("feedRow: removable is restore when excluded, delete for manual keys, else remove", () => {
   assert.equal(feedRow({ ...run, excluded: true }).removable, "restore");
   assert.equal(feedRow({ ...run, key: "manual:12-ab" }).removable, "delete");
@@ -74,15 +79,15 @@ test("feedRow: removable is restore when excluded, delete for manual keys, else 
 });
 
 test("planBar: warm-up walk then intervals as fractions of the total", () => {
-  const plan = { state: "active", warmup_s: 300, intervals: [["run", 60], ["walk", 90], ["run", 60], ["walk", 90]] };
+  const plan = { state: "W1D2", plan: "c25k", completed: 1, week: 1, day: 2, target: "5 km", due_today: true, warmup_s: 300, intervals: [["run", 60], ["walk", 90], ["run", 60], ["walk", 90]] };
   assert.deepEqual(planBar(plan), [
     { kind: "walk", frac: 0.5 }, { kind: "run", frac: 0.1 }, { kind: "walk", frac: 0.15 }, { kind: "run", frac: 0.1 }, { kind: "walk", frac: 0.15 },
   ]);
-  assert.deepEqual(planBar({ state: "active", warmup_s: 0, intervals: [["run", 30], ["walk", 30]] }), [{ kind: "run", frac: 0.5 }, { kind: "walk", frac: 0.5 }]);
+  assert.deepEqual(planBar({ state: "W1D2", warmup_s: 0, intervals: [["run", 30], ["walk", 30]] }), [{ kind: "run", frac: 0.5 }, { kind: "walk", frac: 0.5 }]);
 });
 
 test("planBar: graduated plan has no bar", () => {
-  assert.deepEqual(planBar({ state: "graduated", warmup_s: null, intervals: [] }), []);
+  assert.deepEqual(planBar({ state: "Graduated", plan: "c25k", completed: 27, week: null, day: null, target: null, due_today: false, warmup_s: null, intervals: [] }), []);
 });
 
 test("layout: the viewer's own tile first, the rest after", () => {

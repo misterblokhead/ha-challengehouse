@@ -15,16 +15,15 @@ button, select, input[type="checkbox"] { cursor: pointer; }
   color: var(--accent-text); font: inherit; font-weight: 600;
 }
 
-/* text: .muted is the colour; .caption (and .field, the label of an input) the 13 px size with it */
+/* text: .muted is the colour; .caption (and .field, the label of an input) the 0.8125rem size with it */
 .muted, .caption, .field { color: var(--muted); }
-.caption, .field { font-size: 13px; }
+.caption, .field { font-size: 0.8125rem; }
 .page-title { margin: 0 0 12px; font-size: var(--fs-title); font-weight: 700; letter-spacing: -0.01em; }
-.big { font-size: 28px; font-weight: 600; line-height: 1.1; letter-spacing: -0.01em; white-space: nowrap; }
-.big small { font-size: 15px; font-weight: 500; color: var(--muted); letter-spacing: 0; }
+.big { font-size: 1.75rem; font-weight: 600; line-height: 1.1; letter-spacing: -0.01em; white-space: nowrap; }
+.big small { font-size: 0.9375rem; font-weight: 500; color: var(--muted); letter-spacing: 0; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .icon { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; } /* the size is the component's */
-.msg { text-align: center; color: var(--muted); }
-.msg { padding: 24px 0; }
+.msg { text-align: center; color: var(--muted); padding: 24px 0; }
 .msg p { margin: 0 0 8px; }
 
 /* a labelled input of an edit form */

@@ -11,7 +11,8 @@ export function levelProgress(p) {
   return { level: p.level, into, span, frac: span > 0 ? clamp(into / span) : 1 };
 }
 
-export const weekLabel = (w) => `Week ${w.week} · ${w.days_left} ${w.days_left === 1 ? "day" : "days"} left`;
+// `w.week` is the ISO week string, e.g. "2026-W05"
+export const weekLabel = (w) => `Week ${Number(w.week.split("-W")[1])} · ${w.days_left} ${w.days_left === 1 ? "day" : "days"} left`;
 
 export function staleSince(scoredAt, now, minutes = 15) {
   const at = new Date(scoredAt);
@@ -23,7 +24,9 @@ const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "
 
 // The feed's `start` is ISO with the household's offset; its own wall-clock fields are what people recognise, whatever the device's zone.
 function when(start) {
-  const [, y, mo, d, hm] = /^(\d+)-(\d+)-(\d+)T(\d+:\d+)/.exec(start);
+  const m = /^(\d+)-(\d+)-(\d+)T(\d+:\d+)/.exec(start);
+  if (!m) return "";
+  const [, y, mo, d, hm] = m;
   return `${DAYS[new Date(Date.UTC(y, mo - 1, d)).getUTCDay()]} ${Number(d)} ${MONTHS[mo - 1]}, ${hm}`;
 }
 

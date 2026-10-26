@@ -7,28 +7,30 @@
       "level_floor": 1200,
       "next_level_xp": 1800,
       "week": {
-        "week": 44,
+        "week": "2026-W44",
         "runs": 1,
         "gym": 2,
         "bonus": 1,
         "goal_met": false,
         "paused": false,
         "days_left": 3,
-        "progress": 0.75,
+        "progress": 75,
         "goal": {
           "runs": 2,
           "gym": 2
         },
         "last_week": {
+          "week": "2026-W43",
           "runs": 2,
           "gym": 2,
-          "goal_met": true
+          "goal_met": true,
+          "paused": false
         }
       },
       "streak": 6,
       "best_streak": 9,
       "plan": {
-        "state": "active",
+        "state": "W1D2",
         "plan": "c25k",
         "completed": 1,
         "week": 1,
@@ -359,28 +361,30 @@
       "level_floor": 700,
       "next_level_xp": 1000,
       "week": {
-        "week": 44,
+        "week": "2026-W44",
         "runs": 0,
         "gym": 1,
         "bonus": 0,
         "goal_met": false,
         "paused": false,
         "days_left": 3,
-        "progress": 0.25,
+        "progress": 25,
         "goal": {
           "runs": 2,
           "gym": 2
         },
         "last_week": {
+          "week": "2026-W43",
           "runs": 1,
           "gym": 2,
-          "goal_met": false
+          "goal_met": false,
+          "paused": false
         }
       },
       "streak": 2,
       "best_streak": 4,
       "plan": {
-        "state": "graduated",
+        "state": "Graduated",
         "plan": "c25k",
         "completed": 27,
         "week": null,
