@@ -111,8 +111,8 @@
           {
             "id": "runs_10",
             "title": "Ten runs",
-            "icon": "run",
-            "category": "runs",
+            "icon": "mdi:run",
+            "category": "running",
             "unlocked_at": "2026-10-23"
           }
         ],
@@ -120,15 +120,15 @@
           {
             "id": "km_50",
             "title": "50 km runner",
-            "icon": "road",
-            "category": "distance",
+            "icon": "mdi:map-marker-distance",
+            "category": "running",
             "current": 38.4,
             "target": 50
           },
           {
             "id": "gym_20",
             "title": "Twenty gym sessions",
-            "icon": "dumbbell",
+            "icon": "mdi:dumbbell",
             "category": "gym",
             "current": 14,
             "target": 20
@@ -136,8 +136,8 @@
           {
             "id": "streak_8",
             "title": "Eight week streak",
-            "icon": "flame",
-            "category": "streak",
+            "icon": "mdi:fire",
+            "category": "consistency",
             "current": 6,
             "target": 8
           }
@@ -146,8 +146,8 @@
           {
             "id": "runs_10",
             "title": "Ten runs",
-            "icon": "run",
-            "category": "runs",
+            "icon": "mdi:run",
+            "category": "running",
             "unlocked_at": "2026-10-23"
           }
         ]
@@ -401,8 +401,8 @@
           {
             "id": "runs_10",
             "title": "Ten runs",
-            "icon": "run",
-            "category": "runs",
+            "icon": "mdi:run",
+            "category": "running",
             "current": 6,
             "target": 10
           }

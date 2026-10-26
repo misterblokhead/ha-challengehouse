@@ -17,6 +17,11 @@
   --tile-edge: rgba(255, 255, 255, 0.85);
   --tile-filter: saturate(170%) blur(24px);
   --shadow-tile: 0 10px 30px rgba(0, 0, 0, 0.10);
+  /* the details sheet: a thicker glass than the tiles, over a dimming scrim */
+  --sheet: rgba(242, 242, 247, 0.86);
+  --sheet-filter: saturate(180%) blur(44px);
+  --sheet-shadow: 0 -12px 50px rgba(0, 0, 0, 0.18);
+  --scrim: rgba(0, 0, 0, 0.32);
   --marker: var(--card); /* the selected segment */
   --edge: 0; /* the border of cards and bars: none, a visible one under more contrast */
   --accent: #0A84FF;
@@ -55,6 +60,9 @@
   --tile: rgba(255, 255, 255, 0.09);
   --tile-edge: rgba(255, 255, 255, 0.16);
   --shadow-tile: 0 10px 30px rgba(0, 0, 0, 0.35);
+  --sheet: rgba(22, 22, 26, 0.84);
+  --sheet-shadow: 0 -12px 60px rgba(0, 0, 0, 0.6);
+  --scrim: rgba(0, 0, 0, 0.5);
   --run: #30D158;
   --gym: #FF9F0A;
   --bonus: #64D2FF;
@@ -73,6 +81,8 @@
 
 @media (prefers-reduced-transparency: reduce) {
   :root {
+    --sheet: var(--bg);
+    --sheet-filter: none;
     --chrome: var(--card);
     --chrome-filter: none;
     --tile: var(--card);
@@ -82,6 +92,8 @@
 
 @media (prefers-contrast: more) {
   :root {
+    --sheet: var(--bg);
+    --sheet-filter: none;
     --muted: var(--fg);
     --line: var(--fg);
     --chrome: var(--card);

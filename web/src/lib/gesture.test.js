@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { project, shouldClose, velocity } from "./gesture.js";
+import { project, rubberband, shouldClose, velocity } from "./gesture.js";
 
 test("project is the distance the velocity carries", () => {
   assert.ok(Math.abs(project(1000) - 499) <= 1);
@@ -20,4 +20,11 @@ test("velocity is 0 without a span", () => {
   assert.equal(velocity([]), 0);
   assert.equal(velocity([{ t: 5, x: 1 }]), 0);
   assert.equal(velocity([{ t: 5, x: 1 }, { t: 5, x: 9 }]), 0);
+});
+
+test("rubberband resists more the further it goes, and never reaches the overshoot", () => {
+  assert.equal(rubberband(0, 800), 0);
+  const a = rubberband(100, 800), b = rubberband(200, 800);
+  assert.ok(a > 0 && a < 100 && b > a && b - a < a);
+  assert.ok(rubberband(10000, 800) < 800);
 });

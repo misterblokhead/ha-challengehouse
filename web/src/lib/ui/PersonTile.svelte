@@ -4,7 +4,7 @@
   import Rings from "./Rings.svelte";
 
   // `index`: the person's place in the payload, for a stable avatar colour. `compact`: one line with small rings (the partner on a phone).
-  // `onopen` (Task 8): makes the tile a button that opens the person's details.
+  // `onopen(event)`: the whole tile becomes a button that opens the person's details.
   let { person: p, index = 0, compact = false, onopen } = $props();
 
   const AVATARS = [["#30D158", "#0A84FF"], ["#FF9F0A", "#FF375F"], ["#64D2FF", "#5E5CE6"], ["#FFD60A", "#FF9F0A"]];
@@ -25,52 +25,49 @@
   );
 </script>
 
-<!-- spans only, so the same content can sit in a button -->
-{#snippet content()}
-  <span class="head">
-    <span class="avatar" style:--a1={a1} style:--a2={a2} aria-hidden="true">{p.name.slice(0, 1)}</span>
-    <span class="who">
-      <span class="name">{p.name}</span>
-      <span class="lvl">{line}</span>
-    </span>
-    {#if compact}
-      <Rings fractions={ringFractions(w)} size={44} />
-      <span class="sr">{summary}</span>
-    {:else}
-      <span class="streak">🔥 {p.streak} wk</span>
-    {/if}
-    {#if onopen}<span class="chev" aria-hidden="true">›</span>{/if}
-  </span>
-  {#if !compact}
-    <span class="body">
-      <Rings fractions={ringFractions(w)} size={screen.wide ? 112 : 88} />
-      <span class="stats">
-        {#each stats as s (s.kind)}
-          <span class="stat">
-            <span class="k"><i style:background="var(--{s.kind})"></i>{s.label}</span>
-            <span class="v">{s.n}<small>/{s.of}</small></span>
-          </span>
-        {/each}
+<!-- The content stays mounted whether or not the tile opens details (`onopen` adds a full-size button over it), so the rings fill once. -->
+<article class="tile glass" class:compact class:opens={onopen}>
+  <div aria-hidden={onopen ? "true" : undefined}>
+    <span class="head">
+      <span class="avatar" style:--a1={a1} style:--a2={a2} aria-hidden="true">{p.name.slice(0, 1)}</span>
+      <span class="who">
+        <span class="name">{p.name}</span>
+        <span class="lvl">{line}</span>
       </span>
+      {#if compact}
+        <Rings fractions={ringFractions(w)} size={44} />
+        <span class="sr">{summary}</span>
+      {:else}
+        <span class="streak">🔥 {p.streak} wk</span>
+      {/if}
+      {#if onopen}<span class="chev" aria-hidden="true">›</span>{/if}
     </span>
-    <span class="xp">
-      <span class="bar"><i style:width="{lv.frac * 100}%"></i></span>
-      <span class="caption">{lv.into.toLocaleString()} of {lv.span.toLocaleString()} XP to level {lv.level + 1}</span>
-    </span>
-  {/if}
-{/snippet}
-
-{#if onopen}
-  <button type="button" class="tile glass press" class:compact onclick={onopen} aria-label={summary}>{@render content()}</button>
-{:else}
-  <article class="tile glass" class:compact>{@render content()}</article>
-{/if}
+    {#if !compact}
+      <span class="body">
+        <Rings fractions={ringFractions(w)} size={screen.wide ? 112 : 88} />
+        <span class="stats">
+          {#each stats as s (s.kind)}
+            <span class="stat">
+              <span class="k"><i style:background="var(--{s.kind})"></i>{s.label}</span>
+              <span class="v">{s.n}<small>/{s.of}</small></span>
+            </span>
+          {/each}
+        </span>
+      </span>
+      <span class="xp">
+        <span class="bar"><i style:width="{lv.frac * 100}%"></i></span>
+        <span class="caption">{lv.into.toLocaleString()} of {lv.span.toLocaleString()} XP to level {lv.level + 1}</span>
+      </span>
+    {/if}
+  </div>
+  {#if onopen}<button type="button" class="hit" onclick={onopen} aria-label={summary}></button>{/if}
+</article>
 
 <style>
-  .tile {
-    display: block; width: 100%; box-sizing: border-box; padding: 1.25rem; margin: 0;
-    color: inherit; font: inherit; text-align: start;
-  }
+  .tile { position: relative; display: block; width: 100%; box-sizing: border-box; padding: 1.25rem; margin: 0; }
+  .opens { transition: transform 100ms; }
+  .opens:has(> .hit:active) { transform: scale(var(--press-scale)); }
+  .hit { position: absolute; inset: 0; margin: 0; padding: 0; border: 0; border-radius: inherit; background: none; }
   .tile.compact { padding: 0.75rem 1rem; border-radius: var(--radius-pill); }
   .who, .name, .lvl, .stat, .v, .xp, .bar, .caption { display: block; }
   .head { display: flex; align-items: center; gap: 0.75rem; }

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { ringFractions, levelProgress, weekLabel, staleSince, feedRow, planBar, layout } from "./model.js";
+import { ringFractions, levelProgress, weekLabel, staleSince, feedRow, planBar, layout, shortDate, pendingDone, PENDING_MS } from "./model.js";
 
 const week = { runs: 1, gym: 2, bonus: 1, goal: { runs: 2, gym: 2 }, days_left: 3, week: "2026-W44" };
 
@@ -95,4 +95,23 @@ test("layout: the viewer's own tile first, the rest after", () => {
   assert.deepEqual(layout({ person: "sam", can_edit: ["sam"] }, people), { self: "sam", others: ["alex"] });
   assert.deepEqual(layout({ person: null, can_edit: [] }, people), { self: null, others: ["alex", "sam"] });
   assert.deepEqual(layout({ person: "gone", can_edit: [] }, people), { self: null, others: ["alex", "sam"] });
+});
+
+test("shortDate: day and month", () => {
+  assert.equal(shortDate("2026-10-23"), "23 Oct");
+  assert.equal(shortDate("2027-01-05"), "5 Jan");
+});
+
+test("pendingDone: settles when the payload shows the asked state, the workout is gone, or 6 min pass", () => {
+  const feed = [{ key: "e:1", excluded: false }, { key: "manual:2", excluded: false }];
+  const at = 1_000_000;
+  const remove = { key: "e:1", want: true, at };
+  assert.equal(pendingDone(remove, feed, at + 60000), false);
+  assert.equal(pendingDone(remove, [{ key: "e:1", excluded: true }], at + 60000), true);
+  assert.equal(pendingDone(remove, feed, at + PENDING_MS + 1), true);
+  assert.equal(pendingDone({ key: "e:1", want: false, at }, feed, at), true); // an Undo before fitbridge applied the remove
+  const del = { key: "manual:2", want: null, at };
+  assert.equal(pendingDone(del, feed, at + 60000), false);
+  assert.equal(pendingDone(del, feed.slice(0, 1), at + 60000), true);
+  assert.equal(pendingDone(remove, [], at), true);
 });

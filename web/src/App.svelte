@@ -1,10 +1,40 @@
 <script>
+  import { tick } from "svelte";
+  import { settle } from "./lib/actions.svelte.js";
   import { get } from "./lib/api.js";
   import { layout, weekLabel } from "./lib/model.js";
+  import Details from "./lib/ui/Details.svelte";
   import Header from "./lib/ui/Header.svelte";
   import PersonTile from "./lib/ui/PersonTile.svelte";
+  import Sheet from "./lib/ui/Sheet.svelte";
   import Status from "./lib/ui/Status.svelte";
+  import Toast from "./lib/ui/Toast.svelte";
   import Together from "./lib/ui/Together.svelte";
+
+  // Inside HA the page is an iframe and the URL (/fitness?person=sam&back=/kiosk-stage) is the parent's; in the demo it is our own.
+  const host = (() => {
+    try {
+      return window.parent.location.search !== undefined ? window.parent : window;
+    } catch {
+      return window; // not same-origin: only our own URL
+    }
+  })();
+  const query = new URLSearchParams(host.location.search);
+  let wanted = query.get("person"); // opens that person's sheet once the first scores are in
+  const back = /^\/(?!\/)/.test(query.get("back") ?? "") ? query.get("back") : null; // a path on this HA only
+  const goBack = back && (() => {
+    host.history.pushState(null, "", back);
+    host.dispatchEvent(new Event("location-changed"));
+  });
+
+  let sheet = $state(null); // {id, from}: whose details the sheet shows, and the tile it grows from
+  const openSheet = (id) => (e) => (sheet = { id, from: e.currentTarget });
+  async function closeSheet() {
+    const from = sheet?.from;
+    sheet = null;
+    await tick(); // the page is inert until the sheet is gone
+    from?.focus({ preventScroll: true });
+  }
 
   let data = $state(null);
   let failure = $state(null);
@@ -19,10 +49,14 @@
     try {
       data = await get("scores");
       failure = null;
+      settle(data.people);
+      if (wanted && Object.hasOwn(data.people, wanted) && wanted !== layout(data.viewer, data.people).self) sheet = { id: wanted, from: null };
+      wanted = null;
     } catch (e) {
       failure = e;
     }
     now = new Date();
+    clearTimeout(timer); // a visibilitychange load may have overlapped this one
     timer = setTimeout(load, data ? 60000 : 30000);
   }
 
@@ -40,9 +74,11 @@
   const ids = $derived(Object.keys(people));
   const split = $derived(layout(data?.viewer ?? {}, people));
   const week = $derived(people[split.self ?? ids[0]]?.week);
+  const canEdit = (id) => !!data?.viewer?.can_edit?.includes(id);
 </script>
 
-<Header title="Training" subtitle={week ? weekLabel(week) : ""} />
+<div inert={!!sheet}>
+<Header title="Training" subtitle={week ? weekLabel(week) : ""} onback={goBack} />
 
 <main>
   {#if !data}
@@ -59,20 +95,31 @@
       <!-- mapped viewer: the others compact on top, the own tile full width, the own details (Task 8) below -->
       {#if split.others.length}
         <div class="tiles compact">
-          {#each split.others as id (id)}<PersonTile person={people[id]} index={ids.indexOf(id)} compact />{/each}
+          {#each split.others as id (id)}
+            <PersonTile person={people[id]} index={ids.indexOf(id)} compact onopen={openSheet(id)} />
+          {/each}
         </div>
       {/if}
       <PersonTile person={people[split.self]} index={ids.indexOf(split.self)} />
     {:else}
       <!-- unmapped viewer (the wall iPad): everyone side by side, read-only -->
       <div class="tiles">
-        {#each split.others as id (id)}<PersonTile person={people[id]} index={ids.indexOf(id)} />{/each}
+        {#each split.others as id (id)}<PersonTile person={people[id]} index={ids.indexOf(id)} onopen={openSheet(id)} />{/each}
       </div>
     {/if}
     {#if data.group}<Together group={data.group} />{/if}
-    <!-- Task 8: <Details> for split.self goes here -->
+    {#if split.self}<Details id={split.self} person={people[split.self]} canEdit={canEdit(split.self)} />{/if}
   {/if}
 </main>
+</div>
+
+{#if sheet && people[sheet.id]}
+  <Sheet label="{people[sheet.id].name}'s details" from={sheet.from} onclose={closeSheet} onback={goBack}>
+    <PersonTile person={people[sheet.id]} index={ids.indexOf(sheet.id)} />
+    <Details id={sheet.id} person={people[sheet.id]} canEdit={canEdit(sheet.id)} />
+  </Sheet>
+{/if}
+<Toast />
 
 <style>
   main {

@@ -9,3 +9,6 @@ export function velocity(samples) {
   const a = samples[0], b = samples[samples.length - 1];
   return a && b && b.t > a.t ? ((b.x - a.x) / (b.t - a.t)) * 1000 : 0;
 }
+
+// Past a boundary the element follows less the further it goes (`overshoot` and the result in px, `dimension` the element's size).
+export const rubberband = (overshoot, dimension, c = 0.55) => (overshoot * dimension * c) / (dimension + c * Math.abs(overshoot));

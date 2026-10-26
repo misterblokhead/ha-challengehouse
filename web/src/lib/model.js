@@ -63,3 +63,15 @@ export function layout(viewer, people) {
   const self = Object.hasOwn(people, viewer.person) ? viewer.person : null;
   return { self, others: Object.keys(people).filter((id) => id !== self) };
 }
+
+// "2026-10-23" → "23 Oct" (a badge's unlock day)
+export const shortDate = (iso) => `${Number(iso.slice(8, 10))} ${MONTHS[Number(iso.slice(5, 7)) - 1]}`;
+
+// A Remove, Restore or Delete the page sent stays pending until a payload shows it, or until PENDING_MS pass (then the payload wins).
+// `entry.want`: the `excluded` value asked for, or null for a deleted manual entry (gone from the feed). A workout no longer in the
+// feed has nothing left to show either way.
+export const PENDING_MS = 6 * 60000;
+export function pendingDone(entry, feed, now) {
+  const item = feed.find((w) => w.key === entry.key);
+  return now - entry.at > PENDING_MS || !item || (entry.want !== null && item.excluded === entry.want);
+}
