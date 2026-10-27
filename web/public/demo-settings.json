@@ -1,0 +1,25 @@
+{
+  "history": [
+    {
+      "from": "2026-10-19",
+      "people": {
+        "alex": {"runs": 2, "workouts": 2, "active_days": 4, "steps": 10000},
+        "sam": {"runs": 2, "workouts": 2, "active_days": 3, "steps": 8000}
+      },
+      "couple": {"mode": "together", "together": 2, "team": 8, "reward": "Pizza night"}
+    }
+  ],
+  "current": {
+    "from": "2026-10-19",
+    "people": {
+      "alex": {"runs": 2, "workouts": 2, "active_days": 4, "steps": 10000},
+      "sam": {"runs": 2, "workouts": 2, "active_days": 3, "steps": 8000}
+    },
+    "couple": {"mode": "together", "together": 2, "team": 8, "reward": "Pizza night"}
+  },
+  "week_start": "2026-10-26",
+  "defaults": {
+    "alex": {"runs": 2, "workouts": 2, "active_days": 4, "steps": 10000},
+    "sam": {"runs": 2, "workouts": 2, "active_days": 3, "steps": 8000}
+  }
+}

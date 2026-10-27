@@ -1,6 +1,6 @@
 // Paths are relative to the integration's UI API. Inside Home Assistant the panel's `hass` signs each request (fetchWithAuth).
-// Without one (the demo) reads fetch ./demo-scores.json and writes only log, so the page works on any static host.
-// A failed request throws an Error whose `status` is the HTTP status.
+// Without one (the demo) reads fetch ./demo-<path>.json (scores, settings) and writes only log, so the page works on any static host.
+// A failed request throws an Error whose `status` is the HTTP status and `detail` the integration's reason, when it gave one.
 const PREFIX = "/api/fitbridge/ui/";
 let hass;
 export const setHass = (h) => (hass = h);
@@ -16,7 +16,10 @@ export async function send(method, path, body) {
     body: body === undefined ? undefined : JSON.stringify(body),
   };
   const r = await (hass ? hass.fetchWithAuth(PREFIX + path, init) : fetch(`./demo-${path}.json`, init));
-  if (!r.ok) throw Object.assign(new Error(String(r.status)), { status: r.status });
+  if (!r.ok) {
+    const detail = await r.json().then((b) => b?.detail, () => undefined);
+    throw Object.assign(new Error(String(r.status)), { status: r.status, detail });
+  }
   return r.json();
 }
 

@@ -46,7 +46,7 @@
   const grow = driver((v) => (g = v));
   const drop = driver((v) => (y = v));
 
-  function close() {
+  export function close() { // also the owner's, via bind:this (Goals closes after a Save)
     if (closing || drag) return; // Esc mid-drag: the release decides, else a spring-back would leave `closing` stuck
     closing = true;
     if (still) {

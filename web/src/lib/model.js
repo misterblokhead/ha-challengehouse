@@ -139,3 +139,49 @@ export function shoeRow(s) {
     detail: [runs, last && `last run ${last.getDate()} ${MONTHS[last.getMonth()]}`].filter(Boolean).join(" · "),
   };
 }
+
+// The Goals sheet. Settings limits (as the integration validates them): [min, max, step].
+export const LIMITS = { runs: [0, 7, 1], workouts: [0, 7, 1], active_days: [0, 7, 1], steps: [2000, 30000, 1000], together: [1, 3, 1], team: [1, 42, 1] };
+export const PERSON_GOALS = ["runs", "workouts", "active_days", "steps"];
+const TOML_GOAL = { runs: 0, workouts: 0, active_days: 0, steps: 10000 }; // scoring.toml's defaults, for a field an older payload lacks
+
+export function clampGoal(field, value) {
+  const [lo, hi, step] = LIMITS[field];
+  return Math.min(hi, Math.max(lo, Math.round(value / step) * step));
+}
+
+// The entry the sheet starts from (a POST body: no `from`): this week's settings, else each person's goal as scored now.
+export function goalsDraft(res, people) {
+  const cur = res.current;
+  const goal = (id) => cur?.people?.[id] ?? res.defaults?.[id] ?? {};
+  return {
+    people: Object.fromEntries(Object.keys(people).map((id) => {
+      const g = goal(id);
+      return [id, Object.fromEntries(PERSON_GOALS.map((k) => [k, clampGoal(k, g[k] ?? TOML_GOAL[k])]))];
+    })),
+    couple: { mode: "own", together: 1, team: 8, reward: "", ...cur?.couple },
+  };
+}
+
+// "2026-10-26" → 44
+export function isoWeek(ymd) {
+  const d = new Date(`${ymd}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + 3 - ((d.getUTCDay() + 6) % 7)); // the Thursday of its week decides the year
+  return Math.ceil(((d - Date.UTC(d.getUTCFullYear(), 0, 1)) / 86400000 + 1) / 7);
+}
+
+// Saved goals ({entry, at}) stay pending until every person's week.goal in a payload carries them, or PENDING_MS pass.
+const sameGoal = (want, goal) => PERSON_GOALS.every((k) => (k === "workouts" ? goal.workouts ?? goal.gym : goal[k]) === want[k]);
+export const goalsDone = (pend, people, now) =>
+  now - pend.at > PENDING_MS || Object.entries(pend.entry.people).every(([id, g]) => !people[id] || sameGoal(g, people[id].week.goal));
+
+// The people as the tiles show them: pending goals in place of the scored ones, with `week.goal_pending`.
+export function withPendingGoals(people, entry) {
+  if (!entry) return people;
+  const out = { ...people };
+  for (const [id, g] of Object.entries(entry.people)) {
+    const p = people[id];
+    if (p) out[id] = { ...p, week: { ...p.week, goal: { ...p.week.goal, ...g }, goal_pending: true } };
+  }
+  return out;
+}

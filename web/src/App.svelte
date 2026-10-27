@@ -1,9 +1,10 @@
 <script>
   import { tick } from "svelte";
-  import { settle } from "./lib/actions.svelte.js";
+  import { pendingGoals, settle } from "./lib/actions.svelte.js";
   import { get } from "./lib/api.js";
-  import { layout, weekLabel } from "./lib/model.js";
+  import { layout, weekLabel, withPendingGoals } from "./lib/model.js";
   import Details from "./lib/ui/Details.svelte";
+  import Goals from "./lib/ui/Goals.svelte";
   import Header from "./lib/ui/Header.svelte";
   import PersonTile from "./lib/ui/PersonTile.svelte";
   import Sheet from "./lib/ui/Sheet.svelte";
@@ -29,9 +30,11 @@
 
   let sheet = $state(null); // {id, from}: whose details the sheet shows, and the tile it grows from
   const openSheet = (id) => (e) => (sheet = { id, from: e.currentTarget });
+  let goals = $state(null); // {from}: the Goals sheet is open, grown from the Goals button
+  let goalsSheet = $state();
   async function closeSheet() {
-    const from = sheet?.from;
-    sheet = null;
+    const from = sheet?.from ?? goals?.from;
+    sheet = goals = null;
     await tick(); // the page is inert until the sheet is gone
     from?.focus({ preventScroll: true });
   }
@@ -70,16 +73,19 @@
     };
   });
 
-  const people = $derived(data?.people ?? {});
+  const people = $derived(withPendingGoals(data?.people ?? {}, pendingGoals.entry)); // saved goals show until a payload carries them
   const ids = $derived(Object.keys(people));
   const split = $derived(layout(data?.viewer ?? {}, people));
   const week = $derived(people[split.self ?? ids[0]]?.week);
   const canEdit = (id) => !!data?.viewer?.can_edit?.includes(id);
-  const sheetShown = $derived(!!sheet && Object.hasOwn(people, sheet.id)); // the page is inert exactly while the sheet is there
+  const sheetShown = $derived((!!sheet && Object.hasOwn(people, sheet.id)) || (!!goals && !!data)); // the page is inert exactly while a sheet is there
 </script>
 
 <div inert={sheetShown}>
-<Header title="Training" subtitle={week ? weekLabel(week) : ""} onback={goBack} />
+<Header
+  title="Training" subtitle={week ? weekLabel(week) : ""} onback={goBack}
+  actionLabel="Goals" onaction={data ? (e) => (goals = { from: e.currentTarget }) : undefined}
+/>
 
 <main>
   {#if !data}
@@ -114,7 +120,11 @@
 </main>
 </div>
 
-{#if sheetShown}
+{#if goals && data}
+  <Sheet label="Goals" from={goals.from} onclose={closeSheet} onback={goBack} bind:this={goalsSheet}>
+    <Goals people={data.people} readOnly={!split.self} onsaved={() => goalsSheet?.close()} />
+  </Sheet>
+{:else if sheetShown}
   <Sheet label="{people[sheet.id].name}'s details" from={sheet.from} onclose={closeSheet} onback={goBack}>
     <PersonTile person={people[sheet.id]} index={ids.indexOf(sheet.id)} />
     <Details id={sheet.id} person={people[sheet.id]} canEdit={canEdit(sheet.id)} />

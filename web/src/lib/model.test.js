@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { ringFractions, stepsLine, togetherLine, rewardLine, levelProgress, weekLabel, staleSince, feedRow, planBar, layout, shortDate, pendingDone, PENDING_MS, serial, shoeRow } from "./model.js";
+import { ringFractions, stepsLine, togetherLine, rewardLine, levelProgress, weekLabel, staleSince, feedRow, planBar, layout, shortDate, pendingDone, PENDING_MS, serial, shoeRow, goalsDraft, clampGoal, isoWeek, goalsDone, withPendingGoals } from "./model.js";
 
 const week = { runs: 1, workouts: 2, active_days: 3, bonus: 1, goal: { runs: 2, workouts: 2, active_days: 4, steps: 10000 }, days_left: 3, week: "2026-W44" };
 
@@ -205,4 +205,65 @@ test("shoeRow: unknown km, one run, no runs yet", () => {
   assert.deepEqual(gone, { name: "sensor.gone", km: "—", frac: 0, state: "unknown", label: null, detail: "" });
   assert.equal(shoeRow({ name: "Nike", km: 3, limit: 700, runs: 1, last_run: "2026-10-05T12:00:00Z" }).detail, "1 run · last run 5 Oct");
   assert.equal(shoeRow({ name: "Nike", km: 0, limit: 700, runs: 0, last_run: null }).detail, "No runs yet");
+});
+
+const twoPeople = { person1: { name: "Person1" }, person2: { name: "Person2" } };
+const defaults = { person1: { runs: 2, workouts: 1, active_days: 3, steps: 10000 }, person2: { runs: 1, workouts: 1, active_days: 0, steps: 8000 } };
+
+test("goalsDraft: the current entry wins, without its from", () => {
+  const current = { from: "2026-10-26", people: { person1: { runs: 3, workouts: 2, active_days: 4, steps: 12000 }, person2: { runs: 1, workouts: 2, active_days: 3, steps: 9000 } },
+    couple: { mode: "team", together: 2, team: 10, reward: "Pizza night" } };
+  const { from, ...entry } = current;
+  assert.deepEqual(goalsDraft({ current, defaults }, twoPeople), entry);
+});
+
+test("goalsDraft: defaults (and couple own/1/8/\"\") without a current entry; a person missing from it uses the defaults", () => {
+  assert.deepEqual(goalsDraft({ current: null, defaults }, twoPeople), { people: defaults, couple: { mode: "own", together: 1, team: 8, reward: "" } });
+  const current = { from: "2026-10-26", people: { person1: { runs: 3, workouts: 2, active_days: 4, steps: 12000 } }, couple: { mode: "own", together: 1, team: 8, reward: "" } };
+  assert.deepEqual(goalsDraft({ current, defaults }, twoPeople).people.person2, defaults.person2);
+  // an older payload's defaults may lack a field: scoring.toml's defaults, inside the limits
+  assert.deepEqual(goalsDraft({ current: null, defaults: { person1: { runs: 2, workouts: 1, active_days: null, steps: null } } }, { person1: {} }).people.person1,
+    { runs: 2, workouts: 1, active_days: 0, steps: 10000 });
+});
+
+test("clampGoal: the settings limits; steps snap to 1000", () => {
+  assert.equal(clampGoal("runs", 8), 7);
+  assert.equal(clampGoal("runs", -1), 0);
+  assert.equal(clampGoal("workouts", 3), 3);
+  assert.equal(clampGoal("active_days", 9), 7);
+  assert.equal(clampGoal("steps", 10499), 10000);
+  assert.equal(clampGoal("steps", 31000), 30000);
+  assert.equal(clampGoal("steps", 1000), 2000);
+  assert.equal(clampGoal("together", 0), 1);
+  assert.equal(clampGoal("together", 4), 3);
+  assert.equal(clampGoal("team", 50), 42);
+  assert.equal(clampGoal("team", 0), 1);
+});
+
+test("isoWeek: the ISO week number of a date", () => {
+  assert.equal(isoWeek("2026-10-26"), 44);
+  assert.equal(isoWeek("2026-01-01"), 1);
+  assert.equal(isoWeek("2027-01-01"), 53); // a Friday in 2026's last week
+  assert.equal(isoWeek("2024-12-30"), 1);
+});
+
+test("goalsDone: pending new goals settle once every person's week.goal matches, or 10 min pass", () => {
+  const at = 1_000_000;
+  const entry = { people: { person1: { runs: 3, workouts: 2, active_days: 4, steps: 12000 } }, couple: { mode: "own", together: 1, team: 8, reward: "" } };
+  const pend = { entry, at };
+  const p = (goal) => ({ person1: { week: { goal } } });
+  assert.equal(goalsDone(pend, p({ runs: 2, workouts: 2, active_days: 4, steps: 12000 }), at + 60000), false);
+  assert.equal(goalsDone(pend, p({ runs: 3, workouts: 2, active_days: 4, steps: 12000 }), at + 60000), true);
+  assert.equal(goalsDone(pend, p({ runs: 3, gym: 2, active_days: 4, steps: 12000 }), at + 60000), true); // older payload
+  assert.equal(goalsDone(pend, p({ runs: 2, workouts: 2, active_days: 4, steps: 12000 }), at + PENDING_MS + 1), true);
+  assert.equal(goalsDone(pend, {}, at), true); // nobody left to show it
+});
+
+test("withPendingGoals: the people with their pending goals shown, flagged; unchanged without any", () => {
+  const people = { person1: { name: "Person1", week: { runs: 1, goal: { runs: 2, gym: 1, active_days: 0, steps: 10000 } } }, sam: { name: "Sam", week: { runs: 0, goal: { runs: 1 } } } };
+  assert.equal(withPendingGoals(people, null), people);
+  const shown = withPendingGoals(people, { people: { person1: { runs: 3, workouts: 2, active_days: 4, steps: 12000 } } });
+  assert.deepEqual(shown.person1.week, { runs: 1, goal: { runs: 3, gym: 1, workouts: 2, active_days: 4, steps: 12000 }, goal_pending: true });
+  assert.equal(shown.sam, people.sam);
+  assert.equal(people.person1.week.goal.runs, 2); // the payload itself is untouched
 });

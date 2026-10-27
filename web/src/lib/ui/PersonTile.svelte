@@ -18,11 +18,12 @@
   ]);
   const steps = $derived(stepsLine(p.steps_today, w.goal.steps));
   const line = $derived(
-    [`Level ${lv.level}`, compact ? `🔥 ${p.streak} wk` : `${p.xp.toLocaleString()} XP`, w.paused && "Week paused"].filter(Boolean).join(" · "),
+    [`Level ${lv.level}`, compact ? `🔥 ${p.streak} wk` : `${p.xp.toLocaleString()} XP`, w.paused && "Week paused", w.goal_pending && "New goals pending"]
+      .filter(Boolean).join(" · "),
   );
   const summary = $derived(
     `${p.name}, level ${lv.level}. This week ${stats.map((s) => `${s.label.toLowerCase()} ${s.n} of ${s.of}`).join(", ")}. ` +
-      `${w.bonus ? "Weekly bonus earned. " : ""}${steps ? steps.replace("👟 ", "") + ". " : ""}Streak ${p.streak} weeks.`,
+      `${w.goal_pending ? "New goals pending. " : ""}${w.bonus ? "Weekly bonus earned. " : ""}${steps ? steps.replace("👟 ", "") + ". " : ""}Streak ${p.streak} weeks.`,
   );
 </script>
 
