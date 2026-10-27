@@ -1,13 +1,17 @@
 import json
 import re
 import time
+from datetime import timedelta
+from unittest.mock import patch
 
 import pytest
 from conftest import SCORES
 from homeassistant.auth.const import GROUP_ID_ADMIN, GROUP_ID_USER
+from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import MockUser
 
 from custom_components.fitbridge.const import OPT_SHOES, OPT_STEPS, OPT_VIEWERS
+from custom_components.fitbridge.settings import monday_of
 
 UI = "/api/fitbridge/ui"
 
@@ -119,3 +123,84 @@ async def test_post_before_payload_waits_and_unknown_path_is_404(hass, client, s
 
 async def test_unauthenticated_is_401(hass, entry, hass_client_no_auth):
     assert (await (await hass_client_no_auth()).get(f"{UI}/scores")).status == 401
+
+
+P = {"runs": 2, "workouts": 1, "active_days": 3, "steps": 10000}
+SETTINGS = {"people": {"p1": P, "p2": {**P, "runs": 0}}, "couple": {"mode": "together", "together": 2, "team": 8, "reward": "Pizza night"}}
+
+
+def _this_monday():
+    return monday_of(dt_util.now().date()).isoformat()
+
+
+def _settings_publishes(mqtt_mock):
+    return [c.args for c in mqtt_mock.async_publish.call_args_list if c.args[0] == "fitbridge/settings"]
+
+
+async def test_settings_publish_retained_with_this_mondays_entry(hass, client, send, mqtt_mock, hass_storage):
+    await send(SCORES)
+    mqtt_mock.async_publish.reset_mock()
+    resp = await (await client("alex")).post(f"{UI}/settings", json=SETTINGS)
+    monday = _this_monday()
+    assert resp.status == 202 and await resp.json() == {"ok": True, "from": monday}
+    history = [{"from": monday, **SETTINGS}]
+    assert _settings_publishes(mqtt_mock) == [("fitbridge/settings", json.dumps({"history": history}), 1, True)]
+    assert hass_storage["fitbridge.settings"]["data"] == {"history": history}
+
+
+async def test_second_save_in_a_week_replaces_and_a_later_week_appends(hass, client, send, hass_storage):
+    await send(SCORES)
+    c = await client("sam")
+    await c.post(f"{UI}/settings", json=SETTINGS)
+    again = {**SETTINGS, "couple": {**SETTINGS["couple"], "mode": "own"}}
+    assert (await c.post(f"{UI}/settings", json=again)).status == 202
+    saved = hass_storage["fitbridge.settings"]["data"]["history"]
+    assert [(e["from"], e["couple"]["mode"]) for e in saved] == [(_this_monday(), "own")]
+    with patch("custom_components.fitbridge.views.dt_util.now", return_value=dt_util.now() + timedelta(days=7)):  # not freezegun: it expires the token
+        assert (await c.post(f"{UI}/settings", json=SETTINGS)).status == 202
+    saved = hass_storage["fitbridge.settings"]["data"]["history"]
+    assert len(saved) == 2 and saved[0]["from"] < saved[1]["from"] and saved[1]["couple"]["mode"] == "together"
+
+
+@pytest.mark.parametrize("who,body,status,detail", [
+    ("robin", SETTINGS, 403, "not allowed"),  # admin, but not mapped
+    ("alex", {**SETTINGS, "people": {"p1": {**P, "runs": 9}, "p2": P}}, 400, "people.p1.runs: must be an integer 0-7"),
+    ("alex", {"people": {"p1": P}, "couple": SETTINGS["couple"]}, 400, "people.p2: required"),
+    ("alex", ["x"], 400, "body: must be an object"),
+])
+async def test_refused_settings_publish_nothing(hass, client, send, mqtt_mock, hass_storage, who, body, status, detail):
+    await send(SCORES)
+    mqtt_mock.async_publish.reset_mock()
+    resp = await (await client(who)).post(f"{UI}/settings", json=body)
+    assert resp.status == status and (await resp.json())["detail"] == detail
+    assert _settings_publishes(mqtt_mock) == [] and "fitbridge.settings" not in hass_storage
+
+
+async def test_settings_wait_for_the_first_scores(hass, client):
+    c = await client("alex")
+    assert (await c.post(f"{UI}/settings", json=SETTINGS)).status == 503
+    assert (await c.get(f"{UI}/settings")).status == 503
+
+
+async def test_settings_get_returns_current_week_start_and_defaults(hass, client, send):
+    p1 = {**SCORES["people"]["p1"], "week": {"goal": {"runs": 1, "gym": 2, "active_days": 0, "steps": 8000}}}
+    await send({"people": {"p1": p1, "p2": {"name": "Sam", "feed": []}}})
+    c = await client("alex")
+    body = await (await c.get(f"{UI}/settings")).json()
+    assert body == {"history": [], "current": None, "week_start": _this_monday(),
+                    "defaults": {"p1": {"runs": 1, "workouts": 2, "active_days": 0, "steps": 8000}}}  # old gym key still read
+    await c.post(f"{UI}/settings", json=SETTINGS)
+    body = await (await c.get(f"{UI}/settings")).json()
+    assert body["current"] == {"from": _this_monday(), **SETTINGS} and body["history"] == [body["current"]]
+
+
+async def test_settings_survive_a_reload_and_are_published_at_startup(hass, entry, client, send, mqtt_mock, hass_storage):
+    await send(SCORES)
+    await (await client("alex")).post(f"{UI}/settings", json=SETTINGS)
+    mqtt_mock.async_publish.reset_mock()
+    await hass.config_entries.async_reload(entry.entry_id)
+    await hass.async_block_till_done()
+    assert _settings_publishes(mqtt_mock) == [("fitbridge/settings", json.dumps({"history": [{"from": _this_monday(), **SETTINGS}]}), 1, True)]
+    await send(SCORES)
+    body = await (await (await client("alex")).get(f"{UI}/settings")).json()
+    assert body["current"] == {"from": _this_monday(), **SETTINGS}

@@ -8,4 +8,5 @@ OPT_SHOES = "shoes"
 SHOE_LIMIT_KM = 700
 OPT_STEPS = "steps"
 STEPS_TOPIC = "fitbridge/steps"
+SETTINGS_TOPIC = "fitbridge/settings"
 KEEP_DAYS = 35
