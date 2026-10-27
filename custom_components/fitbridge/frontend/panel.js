@@ -2386,7 +2386,7 @@ typeof window < "u" && ((window.__svelte ??= {}).v ??= /* @__PURE__ */ new Set()
 // src/lib/model.js
 var Ii = (e) => Math.min(1, Math.max(0, e)), Li = (e) => String(e).padStart(2, "0"), Ri = (e, t) => t > 0 ? Ii(e / t) : 1, zi = (e) => e.workouts ?? e.gym ?? 0, Bi = (e) => [
 	e.goal.runs,
-	e.goal.workouts ?? e.goal.gym ?? 0,
+	zi(e.goal),
 	e.goal.active_days ?? 0
 ], Vi = (e) => [
 	e.runs,
@@ -2455,11 +2455,11 @@ var Xi = [
 	"Nov",
 	"Dec"
 ];
-function Qi(e) {
-	let t = /^(\d+)-(\d+)-(\d+)T(\d+:\d+)/.exec(e);
-	if (!t) return "";
-	let [, n, r, i, a] = t;
-	return `${Xi[new Date(Date.UTC(n, r - 1, i)).getUTCDay()]} ${Number(i)} ${Zi[r - 1]}, ${a}`;
+function Qi(e, t = !0) {
+	let n = /^(\d+)-(\d+)-(\d+)T(\d+:\d+)/.exec(e);
+	if (!n) return "";
+	let [, r, i, a, o] = n, s = `${Xi[new Date(Date.UTC(r, i - 1, a)).getUTCDay()]} ${Number(a)} ${Zi[i - 1]}`;
+	return t ? `${s}, ${o}` : s;
 }
 var $i = (e) => e < 60 ? `${e} min` : e % 60 ? `${Math.floor(e / 60)} h ${Li(e % 60)} min` : `${e / 60} h`;
 function ea(e) {
@@ -2469,7 +2469,7 @@ function ea(e) {
 }
 var ta = (e) => ({
 	title: e.name,
-	when: Qi(e.start),
+	when: Qi(e.start, e.kind !== "active_day"),
 	duration: e.kind === "active_day" ? `${Ui(e.steps)} steps` : $i(e.minutes),
 	xp: e.xp ? `+${e.xp}` : "",
 	detail: {
@@ -2584,7 +2584,7 @@ function pa(e) {
 	let t = /* @__PURE__ */ new Date(`${e}T00:00:00Z`);
 	return t.setUTCDate(t.getUTCDate() + 3 - (t.getUTCDay() + 6) % 7), Math.ceil(((t - Date.UTC(t.getUTCFullYear(), 0, 1)) / 864e5 + 1) / 7);
 }
-var ma = (e, t) => la.every((n) => (n === "workouts" ? t.workouts ?? t.gym : t[n]) === e[n]), ha = (e, t, n) => n - e.at > 6e5 || Object.entries(e.entry.people).every(([e, n]) => !t[e] || ma(n, t[e].week.goal));
+var ma = (e, t) => la.every((n) => (n === "workouts" ? zi(t) : t[n]) === e[n]), ha = (e, t, n) => n - e.at > 6e5 || Object.entries(e.entry.people).every(([e, n]) => !t[e] || ma(n, t[e].week.goal));
 function ga(e, t) {
 	if (!t) return e;
 	let n = { ...e };
@@ -3228,38 +3228,36 @@ function Wo(e, t) {
 		["#FF9F0A", "#FF375F"],
 		["#64D2FF", "#5E5CE6"],
 		["#FFD60A", "#FF9F0A"]
-	], a = /* @__PURE__ */ F(() => i[n() % i.length]), o = /* @__PURE__ */ F(() => y(K(a), 2)), s = /* @__PURE__ */ F(() => K(o)[0]), c = /* @__PURE__ */ F(() => K(o)[1]), l = /* @__PURE__ */ F(() => qi(t.person)), u = /* @__PURE__ */ F(() => t.person.week), d = /* @__PURE__ */ F(() => [
+	], a = /* @__PURE__ */ F(() => i[n() % i.length]), o = /* @__PURE__ */ F(() => y(K(a), 2)), s = /* @__PURE__ */ F(() => K(o)[0]), c = /* @__PURE__ */ F(() => K(o)[1]), l = /* @__PURE__ */ F(() => qi(t.person)), u = /* @__PURE__ */ F(() => t.person.week), d = [
 		{
 			kind: "run",
-			label: "Runs",
-			n: K(u).runs,
-			of: K(u).goal.runs
+			label: "Runs"
 		},
 		{
 			kind: "gym",
-			label: "Workouts",
-			n: K(u).workouts ?? K(u).gym,
-			of: K(u).goal.workouts ?? K(u).goal.gym
+			label: "Workouts"
 		},
 		{
 			kind: "bonus",
-			label: "Active days",
-			n: K(u).active_days ?? 0,
-			of: K(u).goal.active_days ?? 0
+			label: "Active days"
 		}
-	]), f = /* @__PURE__ */ F(() => Wi(t.person.steps_today, K(u).goal.steps)), p = /* @__PURE__ */ F(() => [
+	], f = /* @__PURE__ */ F(() => d.map((e, t) => ({
+		...e,
+		n: Vi(K(u))[t],
+		of: Bi(K(u))[t]
+	}))), p = /* @__PURE__ */ F(() => Wi(t.person.steps_today, K(u).goal.steps)), m = /* @__PURE__ */ F(() => [
 		`Level ${K(l).level}`,
 		r() ? `🔥 ${t.person.streak} wk` : `${t.person.xp.toLocaleString()} XP`,
 		K(u).paused && "Week paused",
 		K(u).goal_pending && "New goals pending"
-	].filter(Boolean).join(" · ")), m = /* @__PURE__ */ F(() => `${t.person.name}, level ${K(l).level}. This week ${K(d).map((e) => `${e.label.toLowerCase()} ${e.n} of ${e.of}`).join(", ")}. ${K(u).goal_pending ? "New goals pending. " : ""}${K(u).bonus ? "Weekly bonus earned. " : ""}${K(f) ? K(f).replace("👟 ", "") + ". " : ""}Streak ${t.person.streak} weeks.`);
-	var h = Uo();
-	let g;
-	var _ = z(h), v = z(_), b = z(v);
-	let x;
-	var S = V(b, !0), C = H(b, 2), w = z(C), T = V(w, !0), E = V(H(w, 2), !0);
-	A(C);
-	var ee = H(C, 2), te = (e) => {
+	].filter(Boolean).join(" · ")), h = /* @__PURE__ */ F(() => `${t.person.name}, level ${K(l).level}. This week ${K(f).map((e) => `${e.label.toLowerCase()} ${e.n} of ${e.of}`).join(", ")}. ${K(u).goal_pending ? "New goals pending. " : ""}${K(u).bonus ? "Weekly bonus earned. " : ""}${K(p) ? K(p).replace("👟 ", "") + ". " : ""}Streak ${t.person.streak} weeks.`);
+	var g = Uo();
+	let _;
+	var v = z(g), b = z(v), x = z(b);
+	let S;
+	var C = V(x, !0), w = H(x, 2), T = z(w), E = V(T, !0), ee = V(H(T, 2), !0);
+	A(w);
+	var te = H(w, 2), ne = (e) => {
 		var t = Fo(), n = B(t), r = z(n);
 		{
 			let e = /* @__PURE__ */ F(() => Hi(K(u)));
@@ -3277,21 +3275,21 @@ function Wo(e, t) {
 			K(u).bonus && e(a);
 		}), A(n);
 		var o = V(H(n, 2), !0);
-		U(() => X(o, K(m))), Y(e, t);
-	}, ne = (e) => {
+		U(() => X(o, K(h))), Y(e, t);
+	}, re = (e) => {
 		var n = Io(), r = V(n);
 		U(() => X(r, `🔥 ${t.person.streak ?? ""} wk`)), Y(e, n);
 	};
-	Z(ee, (e) => {
-		r() ? e(te) : e(ne, -1);
+	Z(te, (e) => {
+		r() ? e(ne) : e(re, -1);
 	});
-	var re = H(ee, 2), ie = (e) => {
+	var ie = H(te, 2), ae = (e) => {
 		Y(e, Lo());
 	};
-	Z(re, (e) => {
-		t.onopen && e(ie);
-	}), A(v);
-	var ae = H(v, 2), oe = (e) => {
+	Z(ie, (e) => {
+		t.onopen && e(ae);
+	}), A(b);
+	var oe = H(b, 2), se = (e) => {
 		var t = Vo(), n = B(t), r = z(n), i = z(r);
 		{
 			let e = /* @__PURE__ */ F(() => Hi(K(u))), t = /* @__PURE__ */ F(() => Pa.wide ? 112 : 88);
@@ -3311,7 +3309,7 @@ function Wo(e, t) {
 			K(u).bonus && e(o);
 		}), A(r);
 		var s = H(r, 2);
-		Q(s, 21, () => K(d), (e) => e.kind, (e, t) => {
+		Q(s, 21, () => K(f), (e) => e.kind, (e, t) => {
 			var n = zo(), r = z(n), i = z(r);
 			let a;
 			var o = H(i, 1, !0);
@@ -3321,12 +3319,12 @@ function Wo(e, t) {
 				a = ui(i, "", a, { background: `var(--${K(t).kind ?? ""})` }), X(o, K(t).label), X(c, K(t).n), X(l, `/${K(t).of ?? ""}`);
 			}), Y(e, n);
 		}), A(s), A(n);
-		var c = H(n, 2), p = (e) => {
+		var c = H(n, 2), d = (e) => {
 			var t = Bo(), n = V(t, !0);
-			U(() => X(n, K(f))), Y(e, t);
+			U(() => X(n, K(p))), Y(e, t);
 		};
 		Z(c, (e) => {
-			K(f) && e(p);
+			K(p) && e(d);
 		});
 		var m = H(c, 2), h = z(m), g = z(h);
 		let _;
@@ -3336,26 +3334,26 @@ function Wo(e, t) {
 			_ = ui(g, "", _, { width: `${K(l).frac * 100}%` }), X(v, `${e ?? ""} of ${t ?? ""} XP to level ${K(l).level + 1}`);
 		}, [() => K(l).into.toLocaleString(), () => K(l).span.toLocaleString()]), Y(e, t);
 	};
-	Z(ae, (e) => {
-		r() || e(oe);
-	}), A(_);
-	var se = H(_, 2), ce = (e) => {
+	Z(oe, (e) => {
+		r() || e(se);
+	}), A(v);
+	var ce = H(v, 2), le = (e) => {
 		var n = Ho();
-		U(() => $(n, "aria-label", K(m))), q("click", n, function(...e) {
+		U(() => $(n, "aria-label", K(h))), q("click", n, function(...e) {
 			t.onopen?.apply(this, e);
 		}), Y(e, n);
 	};
-	Z(se, (e) => {
-		t.onopen && e(ce);
-	}), A(h), U((e) => {
-		g = ci(h, 1, "tile glass svelte-1handop", null, g, {
+	Z(ce, (e) => {
+		t.onopen && e(le);
+	}), A(g), U((e) => {
+		_ = ci(g, 1, "tile glass svelte-1handop", null, _, {
 			compact: r(),
 			opens: t.onopen
-		}), $(_, "aria-hidden", t.onopen ? "true" : void 0), x = ui(b, "", x, {
+		}), $(v, "aria-hidden", t.onopen ? "true" : void 0), S = ui(x, "", S, {
 			"--a1": K(s),
 			"--a2": K(c)
-		}), X(S, e), X(T, t.person.name), X(E, K(p));
-	}, [() => t.person.name.slice(0, 1)]), Y(e, h), N();
+		}), X(C, e), X(E, t.person.name), X(ee, K(m));
+	}, [() => t.person.name.slice(0, 1)]), Y(e, g), N();
 }
 Cr(["click"]);
 // src/lib/gesture.js
@@ -3554,9 +3552,9 @@ function ds(e, t) {
 	var c = H(o, 2), l = (e) => {
 		var n = cs();
 		let i;
-		var a = V(n);
+		var a = V(n, !0);
 		U(() => {
-			i = ci(n, 1, "reward svelte-1tya3no", null, i, { met: t.group.week.met }), X(a, `${t.group.week.met ? "🎉 " : "🎁 "}${K(r) ?? ""}`);
+			i = ci(n, 1, "reward svelte-1tya3no", null, i, { met: t.group.week.met }), X(a, K(r));
 		}), Y(e, n);
 	};
 	Z(c, (e) => {

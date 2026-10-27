@@ -1,6 +1,6 @@
 <script>
   import { screen } from "../media.svelte.js";
-  import { levelProgress, ringFractions, stepsLine } from "../model.js";
+  import { counts, goals, levelProgress, ringFractions, stepsLine } from "../model.js";
   import Rings from "./Rings.svelte";
 
   // `index`: the person's place in the payload, for a stable avatar colour. `compact`: one line with small rings (the partner on a phone).
@@ -11,11 +11,8 @@
   const [a1, a2] = $derived(AVATARS[index % AVATARS.length]);
   const lv = $derived(levelProgress(p));
   const w = $derived(p.week);
-  const stats = $derived([
-    { kind: "run", label: "Runs", n: w.runs, of: w.goal.runs },
-    { kind: "gym", label: "Workouts", n: w.workouts ?? w.gym, of: w.goal.workouts ?? w.goal.gym },
-    { kind: "bonus", label: "Active days", n: w.active_days ?? 0, of: w.goal.active_days ?? 0 },
-  ]);
+  const STATS = [{ kind: "run", label: "Runs" }, { kind: "gym", label: "Workouts" }, { kind: "bonus", label: "Active days" }];
+  const stats = $derived(STATS.map((s, i) => ({ ...s, n: counts(w)[i], of: goals(w)[i] })));
   const steps = $derived(stepsLine(p.steps_today, w.goal.steps));
   const line = $derived(
     [`Level ${lv.level}`, compact ? `🔥 ${p.streak} wk` : `${p.xp.toLocaleString()} XP`, w.paused && "Week paused", w.goal_pending && "New goals pending"]

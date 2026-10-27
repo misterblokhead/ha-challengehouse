@@ -4,9 +4,10 @@ const pad = (n) => String(n).padStart(2, "0");
 const ratio = (n, goal) => (goal > 0 ? clamp(n / goal) : 1); // goal 0: nothing to do, so the ring is full
 
 // Older payloads (mid-deploy) call workouts `gym` and have no active days; every reader of the week and its goals goes through these.
-const workouts = (w) => w.workouts ?? w.gym ?? 0;
-const goals = (w) => [w.goal.runs, w.goal.workouts ?? w.goal.gym ?? 0, w.goal.active_days ?? 0];
-const counts = (w) => [w.runs, workouts(w), w.active_days ?? 0];
+// shortcut: mid-deploy gym alias, delete once every fitbridge sends `workouts`.
+const workouts = (x) => x.workouts ?? x.gym ?? 0;
+export const goals = (w) => [w.goal.runs, workouts(w.goal), w.goal.active_days ?? 0];
+export const counts = (w) => [w.runs, workouts(w), w.active_days ?? 0];
 
 export const ringFractions = (w) => counts(w).map((n, i) => ratio(n, goals(w)[i]));
 
@@ -61,11 +62,13 @@ const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 // The feed's `start` is ISO with the household's offset; its own wall-clock fields are what people recognise, whatever the device's zone.
-function when(start) {
+// `time` false: the date alone (an active day is a whole day, its start is midnight).
+function when(start, time = true) {
   const m = /^(\d+)-(\d+)-(\d+)T(\d+:\d+)/.exec(start);
   if (!m) return "";
   const [, y, mo, d, hm] = m;
-  return `${DAYS[new Date(Date.UTC(y, mo - 1, d)).getUTCDay()]} ${Number(d)} ${MONTHS[mo - 1]}, ${hm}`;
+  const day = `${DAYS[new Date(Date.UTC(y, mo - 1, d)).getUTCDay()]} ${Number(d)} ${MONTHS[mo - 1]}`;
+  return time ? `${day}, ${hm}` : day;
 }
 
 const duration = (m) => (m < 60 ? `${m} min` : m % 60 ? `${Math.floor(m / 60)} h ${pad(m % 60)} min` : `${m / 60} h`);
@@ -78,7 +81,7 @@ function pace(item) {
 
 export const feedRow = (item) => ({
   title: item.name,
-  when: when(item.start),
+  when: when(item.start, item.kind !== "active_day"),
   duration: item.kind === "active_day" ? `${num(item.steps)} steps` : duration(item.minutes),
   xp: item.xp ? `+${item.xp}` : "",
   detail: {
@@ -171,7 +174,7 @@ export function isoWeek(ymd) {
 }
 
 // Saved goals ({entry, at}) stay pending until every person's week.goal in a payload carries them, or PENDING_MS pass.
-const sameGoal = (want, goal) => PERSON_GOALS.every((k) => (k === "workouts" ? goal.workouts ?? goal.gym : goal[k]) === want[k]);
+const sameGoal = (want, goal) => PERSON_GOALS.every((k) => (k === "workouts" ? workouts(goal) : goal[k]) === want[k]);
 export const goalsDone = (pend, people, now) =>
   now - pend.at > PENDING_MS || Object.entries(pend.entry.people).every(([id, g]) => !people[id] || sameGoal(g, people[id].week.goal));
 

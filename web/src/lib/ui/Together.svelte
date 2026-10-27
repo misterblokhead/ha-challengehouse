@@ -16,7 +16,7 @@
 <section class="together glass" aria-labelledby="together-title">
   <h2 id="together-title">Together</h2>
   {#if progress}<p class="progress">{progress}</p>{/if}
-  {#if reward}<p class="reward" class:met={g.week.met}>{g.week.met ? "🎉 " : "🎁 "}{reward}</p>{/if}
+  {#if reward}<p class="reward" class:met={g.week.met}>{reward}</p>{/if}
   <dl>
     {#each facts as f (f.k)}
       <div><dt>{f.k}</dt><dd>{f.v}<small>{f.unit}</small></dd></div>

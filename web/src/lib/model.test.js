@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { ringFractions, stepsLine, togetherLine, rewardLine, levelProgress, weekLabel, staleSince, feedRow, planBar, layout, shortDate, pendingDone, PENDING_MS, serial, shoeRow, goalsDraft, clampGoal, isoWeek, goalsDone, withPendingGoals } from "./model.js";
+import { counts, goals, ringFractions, stepsLine, togetherLine, rewardLine, levelProgress, weekLabel, staleSince, feedRow, planBar, layout, shortDate, pendingDone, PENDING_MS, serial, shoeRow, goalsDraft, clampGoal, isoWeek, goalsDone, withPendingGoals } from "./model.js";
 
 const week = { runs: 1, workouts: 2, active_days: 3, bonus: 1, goal: { runs: 2, workouts: 2, active_days: 4, steps: 10000 }, days_left: 3, week: "2026-W44" };
 
@@ -52,6 +52,12 @@ test("togetherLine: a member with no goal to count shows a tick, an unknown id i
   assert.equal(togetherLine(gw({ members_met: { ghost: false } }), people), "ghost 0 of 0");
   const old = { name: "Old", week: { runs: 1, gym: 1, goal: { runs: 1, gym: 1 } } };
   assert.equal(togetherLine(gw({ members_met: { old: false } }), { old }), "Old 2 of 2");
+});
+
+test("counts and goals: an older payload's gym and missing fields read as workouts and 0", () => {
+  const w = { runs: 1, gym: 2, goal: { runs: 2, gym: 3 } };
+  assert.deepEqual([counts(w), goals(w)], [[1, 2, 0], [2, 3, 0]]);
+  assert.deepEqual(counts({ runs: 0, goal: {} }), [0, 0, 0]);
 });
 
 test("rewardLine: what unlocks it, then unlocked, nothing without a reward", () => {
@@ -107,9 +113,9 @@ test("feedRow: gym has no pace or km, long durations in hours, no xp when 0", ()
 });
 
 test("feedRow: an active day shows its steps, has no Remove", () => {
-  const day = { key: "steps:person1:2026-10-26", kind: "active_day", name: "Active day", start: "2026-10-26T23:59:00+01:00", minutes: 0, km: null, avg_hr: null, plan: null, xp: 15, steps: 12034, excluded: false, url: null };
+  const day = { key: "steps:person1:2026-10-26", kind: "active_day", name: "Active day", start: "2026-10-26T00:00:00+01:00", minutes: 0, km: null, avg_hr: null, plan: null, xp: 15, steps: 12034, excluded: false, url: null };
   assert.deepEqual(feedRow(day), {
-    title: "Active day", when: "Mon 26 Oct, 23:59", duration: "12,034 steps", xp: "+15",
+    title: "Active day", when: "Mon 26 Oct", duration: "12,034 steps", xp: "+15",
     detail: { km: null, pace: null, hr: null, plan: null, url: null },
     removable: null,
   });
