@@ -7,6 +7,7 @@ from unittest.mock import patch
 import pytest
 from conftest import SCORES
 from homeassistant.auth.const import GROUP_ID_ADMIN, GROUP_ID_USER
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import MockUser
 
@@ -68,6 +69,17 @@ async def test_scores_carry_steps_today_from_the_live_sensor(hass, entry, users,
         body = await (await (await client("sam")).get(f"{UI}/scores")).json()
         assert (body["people"]["p1"]["steps_today"], body["people"]["p2"]["steps_today"]) == (expected, None)
 
+
+
+async def test_steps_today_is_0_until_the_phone_reports_today(hass, entry, users, client, send):
+    await send(SCORES)
+    hass.config_entries.async_update_entry(entry, options={**entry.options, OPT_STEPS: {"p1": "sensor.phone_steps"}})
+    c = await client("sam")
+    for state, expected in (("10504", 0), ("unavailable", None)):
+        hass.states.async_set("sensor.phone_steps", state)
+        with patch("custom_components.fitbridge.views.dt_util.now", return_value=dt_util.now() + timedelta(days=1)):  # next morning, no report yet
+            body = await (await c.get(f"{UI}/scores")).json()
+        assert body["people"]["p1"]["steps_today"] == expected
 
 @pytest.mark.parametrize("key,action", [("k1", "remove"), ("manual:a/b", "restore")])
 async def test_own_workout_publishes_retained_manual_message(hass, client, send, mqtt_mock, key, action):
@@ -161,6 +173,14 @@ async def test_second_save_in_a_week_replaces_and_a_later_week_appends(hass, cli
     saved = hass_storage["fitbridge.settings"]["data"]["history"]
     assert len(saved) == 2 and saved[0]["from"] < saved[1]["from"] and saved[1]["couple"]["mode"] == "together"
 
+
+
+async def test_a_failed_publish_keeps_the_old_settings(hass, client, send):
+    await send(SCORES)
+    c = await client("alex")
+    with patch("custom_components.fitbridge.settings.publish", side_effect=HomeAssistantError("broker down")):
+        assert (await c.post(f"{UI}/settings", json=SETTINGS)).status == 500
+    assert (await (await c.get(f"{UI}/settings")).json())["current"] is None
 
 @pytest.mark.parametrize("who,body,status,detail", [
     ("robin", SETTINGS, 403, "not allowed"),  # admin, but not mapped

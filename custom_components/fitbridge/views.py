@@ -58,6 +58,15 @@ def _defaults(scores: dict) -> dict:
     return out
 
 
+def _steps_today(state) -> int | None:
+    """The phone's count, or 0 while its last report is from before today: a phone resets only when it reports."""
+    n = parse(state.state) if state else None
+    if n is None:
+        return None
+    reported = getattr(state, "last_reported", None) or state.last_updated
+    return n if dt_util.as_local(reported).date() == dt_util.now().date() else 0
+
+
 class UiView(HomeAssistantView):
     url = "/api/fitbridge/ui/{path:.*}"
     name = "api:fitbridge:ui"
@@ -79,8 +88,7 @@ class UiView(HomeAssistantView):
         hass = request.app[KEY_HASS]
         states = {eid: (s.state, dict(s.attributes)) if (s := hass.states.get(eid)) else None
                   for limits in chosen.values() for eid in limits}
-        steps = {p: parse(s.state) if (s := hass.states.get(eid)) else None
-                 for p, eid in data.entry.options.get(OPT_STEPS, {}).items()}
+        steps = {p: _steps_today(hass.states.get(eid)) for p, eid in data.entry.options.get(OPT_STEPS, {}).items()}
         return self.json(shape(data.scores, person, user.is_admin, {p: shoes(limits, states) for p, limits in chosen.items()}, steps))
 
     async def post(self, request: web.Request, path: str) -> web.Response:
@@ -125,7 +133,8 @@ class UiView(HomeAssistantView):
         except ValueError as err:
             return _detail(self, str(err), HTTPStatus.BAD_REQUEST)
         monday = settings.monday_of(dt_util.now().date())
-        data.settings_history = settings.put(data.settings_history, entry, monday)
-        await data.settings_store.async_save({"history": data.settings_history})
-        await settings.publish(hass, data.settings_history)
+        history = settings.put(data.settings_history, entry, monday)
+        await data.settings_store.async_save({"history": history})
+        await settings.publish(hass, history)
+        data.settings_history = history  # only once stored and sent: a failed save leaves GET on the old goals
         return self.json({"ok": True, "from": monday.isoformat()}, status_code=HTTPStatus.ACCEPTED)
