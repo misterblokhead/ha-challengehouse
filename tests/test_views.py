@@ -7,7 +7,7 @@ from conftest import SCORES
 from homeassistant.auth.const import GROUP_ID_ADMIN, GROUP_ID_USER
 from pytest_homeassistant_custom_component.common import MockUser
 
-from custom_components.fitbridge.const import OPT_VIEWERS
+from custom_components.fitbridge.const import OPT_SHOES, OPT_VIEWERS
 
 UI = "/api/fitbridge/ui"
 
@@ -40,10 +40,21 @@ async def test_scores_wait_for_the_first_payload(hass, client, send):
     resp = await c.get(f"{UI}/scores")
     assert resp.status == 200
     body = await resp.json()
-    assert body["people"] == SCORES["people"] and body["viewer"] == {"person": "p1", "can_edit": ["p1"]}
+    assert body["people"] == {p: {**r, "shoes": []} for p, r in SCORES["people"].items()} and body["viewer"] == {"person": "p1", "can_edit": ["p1"]}
     robin = await (await (await client("robin")).get(f"{UI}/scores")).json()
     assert robin["viewer"] == {"person": None, "can_edit": []}
 
+
+
+async def test_scores_carry_each_persons_shoes(hass, entry, users, client, send):
+    await send(SCORES)
+    hass.states.async_set("sensor.trail", "123.4", {"nickname": "Trail", "activity_count": 9, "last_activity_at": "2026-10-20T07:00:00Z"})
+    hass.config_entries.async_update_entry(entry, options={**entry.options, OPT_SHOES: {"p1": {"sensor.trail": 700, "sensor.gone": 500}}})
+    body = await (await (await client("sam")).get(f"{UI}/scores")).json()
+    assert body["people"]["p1"]["shoes"] == [
+        {"entity_id": "sensor.trail", "name": "Trail", "km": 123.4, "limit": 700, "runs": 9, "last_run": "2026-10-20T07:00:00Z"},
+        {"entity_id": "sensor.gone", "name": "sensor.gone", "km": None, "limit": 500, "runs": None, "last_run": None}]
+    assert body["people"]["p2"]["shoes"] == []
 
 @pytest.mark.parametrize("key,action", [("k1", "remove"), ("manual:a/b", "restore")])
 async def test_own_workout_publishes_retained_manual_message(hass, client, send, mqtt_mock, key, action):

@@ -15,6 +15,14 @@
       "init": {
         "title": "Who is who",
         "description": "Pick the fitbridge person for each Home Assistant user. Users set to Nobody see the household read-only."
+      },
+      "shoes": {
+        "title": "Shoes",
+        "description": "Pick each person's running shoes from Endurain. Shoes retired in Endurain don't show on the page."
+      },
+      "limits": {
+        "title": "Replace at",
+        "description": "The distance at which each shoe should be replaced. The page warns from 90%."
       }
     },
     "abort": {

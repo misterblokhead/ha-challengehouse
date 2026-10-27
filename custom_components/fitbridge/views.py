@@ -9,8 +9,8 @@ from homeassistant.components import mqtt
 from homeassistant.components.http import HomeAssistantView
 from homeassistant.helpers.http import KEY_HASS
 
-from .const import DOMAIN, OPT_VIEWERS
-from .core import can_edit, find_workout, manual_message, shape, viewer_person
+from .const import DOMAIN, OPT_SHOES, OPT_VIEWERS
+from .core import can_edit, find_workout, manual_message, shape, shoes, viewer_person
 
 MAX_UI_BODY = 4 * 1024
 
@@ -47,7 +47,11 @@ class UiView(HomeAssistantView):
             return _detail(self, "waiting", HTTPStatus.SERVICE_UNAVAILABLE)
         user = request["hass_user"]
         person = viewer_person(user.id, data.entry.options.get(OPT_VIEWERS, {}), data.scores)
-        return self.json(shape(data.scores, person, user.is_admin))
+        chosen = data.entry.options.get(OPT_SHOES, {})
+        hass = request.app[KEY_HASS]
+        states = {eid: (s.state, dict(s.attributes)) if (s := hass.states.get(eid)) else None
+                  for limits in chosen.values() for eid in limits}
+        return self.json(shape(data.scores, person, user.is_admin, {p: shoes(limits, states) for p, limits in chosen.items()}))
 
     async def post(self, request: web.Request, path: str) -> web.Response:
         if path != "workouts":

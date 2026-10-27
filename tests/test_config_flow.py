@@ -3,7 +3,7 @@ from homeassistant import config_entries
 from homeassistant.data_entry_flow import FlowResultType
 from pytest_homeassistant_custom_component.common import MockUser
 
-from custom_components.fitbridge.const import DOMAIN, OPT_VIEWERS
+from custom_components.fitbridge.const import DOMAIN, OPT_SHOES, OPT_VIEWERS
 
 
 async def test_one_empty_step_creates_the_only_entry(hass, enable_custom_integrations, mqtt_mock):
@@ -35,6 +35,30 @@ async def test_options_map_users_to_people(hass, entry, send):
     assert sorted(fields) == ["Alex", "Robin (aaaaaa)", "Robin (bbbbbb)", "Sam", "cccccc"]
     result = await hass.config_entries.options.async_configure(
         result["flow_id"], {"Alex": "p1", "Sam": "", "Robin (bbbbbb)": "p2"})
-    assert result["type"] is FlowResultType.CREATE_ENTRY
-    assert entry.options == {OPT_VIEWERS: {alex.id: "p1", twins[1].id: "p2"}}
+    assert result["type"] is FlowResultType.FORM and result["step_id"] == "shoes"
+    assert sorted(str(k) for k in result["data_schema"].schema) == ["Alex", "Sam"]  # the payload's people, by name
+    result = await hass.config_entries.options.async_configure(result["flow_id"], {})
+    assert result["type"] is FlowResultType.CREATE_ENTRY  # no shoes: no limits step
+    assert entry.options == {OPT_VIEWERS: {alex.id: "p1", twins[1].id: "p2"}, OPT_SHOES: {}}
     assert sam.id not in entry.options[OPT_VIEWERS]
+
+
+async def test_options_shoes_and_their_limits(hass, entry, send):
+    await send(SCORES)
+    hass.states.async_set("sensor.trail", "12.0", {"nickname": "Trail"})
+    hass.states.async_set("sensor.road", "3.0", {"nickname": "Trail"})  # same nickname: labels get the entity id
+    hass.states.async_set("sensor.nike", "0.0", {"friendly_name": "Nike Distance"})
+    hass.config_entries.async_update_entry(entry, options={OPT_VIEWERS: {}, OPT_SHOES: {"p1": {"sensor.trail": 800}}})
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(result["flow_id"], {})
+    defaults = {str(k): k.default() for k in result["data_schema"].schema}
+    assert defaults == {"Alex": ["sensor.trail"], "Sam": []}  # earlier choices are kept
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {"Alex": ["sensor.trail", "sensor.road"], "Sam": ["sensor.nike"]})
+    assert result["type"] is FlowResultType.FORM and result["step_id"] == "limits"
+    defaults = {str(k): k.default() for k in result["data_schema"].schema}
+    assert defaults == {"Trail (sensor.trail)": 800, "Trail (sensor.road)": 700, "Nike Distance": 700}
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {"Trail (sensor.trail)": 800, "Trail (sensor.road)": 650, "Nike Distance": 700})
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert entry.options[OPT_SHOES] == {"p1": {"sensor.trail": 800, "sensor.road": 650}, "p2": {"sensor.nike": 700}}
