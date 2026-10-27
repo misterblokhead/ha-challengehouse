@@ -4,6 +4,7 @@ import math
 from datetime import date, timedelta
 
 from homeassistant.components import mqtt
+from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.event import async_call_later, async_track_state_change_event
 from homeassistant.helpers.storage import Store
@@ -51,9 +52,6 @@ class StepsCollector:
         if isinstance(raw, dict):
             self._days = {p: {d: n for d, n in days.items() if isinstance(n, int)}
                           for p, days in raw.items() if isinstance(days, dict)}
-        for person, sensor in self._sensors.items():
-            if state := self._hass.states.get(sensor):
-                self._record(person, state.state)
         if self._sensors:
             entry.async_on_unload(async_track_state_change_event(self._hass, list(self._sensors.values()), self._changed))
         entry.async_on_unload(self._stop)
@@ -65,7 +63,10 @@ class StepsCollector:
 
     @callback
     def _changed(self, event) -> None:
-        if (state := event.data["new_state"]) is None:
+        state, old = event.data["new_state"], event.data["old_state"]
+        # Only a phone's own report counts: a state that is new or comes back from unavailable is the entity's
+        # initial or restored one (yesterday's total after a restart), not today's steps.
+        if state is None or old is None or old.state in (STATE_UNAVAILABLE, STATE_UNKNOWN):
             return
         for person, sensor in self._sensors.items():
             if sensor == event.data["entity_id"]:
