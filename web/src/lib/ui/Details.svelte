@@ -3,8 +3,9 @@
   import Feed from "./Feed.svelte";
   import PlanBar from "./PlanBar.svelte";
   import Records from "./Records.svelte";
+  import Shoes from "./Shoes.svelte";
 
-  // A person's plan, 30-day activity, badges and records: inline under the viewer's own tile, or in the sheet for anyone else.
+  // A person's plan, 30-day activity, badges, records and shoes: inline under the viewer's own tile, or in the sheet for anyone else.
   // `canEdit`: this viewer may Remove/Restore this person's workouts (viewer.can_edit).
   let { id, person: p, canEdit } = $props();
   const uid = $props.id();
@@ -28,6 +29,12 @@
   <h2 id="{uid}-pbs">Records</h2>
   <Records pbs={p.pbs} />
 </section>
+{#if p.shoes?.length}
+  <section aria-labelledby="{uid}-shoes">
+    <h2 id="{uid}-shoes">Shoes</h2>
+    <Shoes shoes={p.shoes} />
+  </section>
+{/if}
 
 <style>
   h2 {

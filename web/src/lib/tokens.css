@@ -33,6 +33,7 @@
   --accent-text: #0062C4;
   --good-text: #1E7B34;
   --warn-text: #C40018;
+  --soon-text: #A84A00;
   --radius-card: 14px;
   --radius-tile: 24px;
   --radius-ctl: 10px;
@@ -71,6 +72,7 @@
   --accent-text: #4DA3FF;
   --good-text: #30D158;
   --warn-text: #FF6961;
+  --soon-text: #FFB340;
 }
 
 @media (prefers-reduced-transparency: reduce) {

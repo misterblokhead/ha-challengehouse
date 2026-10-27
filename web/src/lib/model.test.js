@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { ringFractions, levelProgress, weekLabel, staleSince, feedRow, planBar, layout, shortDate, pendingDone, PENDING_MS, serial } from "./model.js";
+import { ringFractions, levelProgress, weekLabel, staleSince, feedRow, planBar, layout, shortDate, pendingDone, PENDING_MS, serial, shoeRow } from "./model.js";
 
 const week = { runs: 1, gym: 2, bonus: 1, goal: { runs: 2, gym: 2 }, days_left: 3, week: "2026-W44" };
 
@@ -131,4 +131,23 @@ test("serial: a call for the same id waits until the previous one settled, even 
   assert.deepEqual(log, ["other", "remove", "restore"]);
   await new Promise((r) => setTimeout(r));
   assert.deepEqual(tails, {}); // nothing kept once idle
+});
+
+test("shoeRow: km toward the limit, Replace soon from 90 %, Replace from 100 %", () => {
+  const shoe = { name: "Hoka", km: 412.4, limit: 700, runs: 40, last_run: "2026-10-26T12:00:00Z" };
+  assert.deepEqual(shoeRow(shoe), { name: "Hoka", km: "412 / 700 km", frac: 412.4 / 700, state: "ok", label: null, detail: "40 runs · last run 26 Oct" });
+  assert.equal(shoeRow({ ...shoe, km: 4.13 }).km, "4.1 / 700 km");
+  assert.deepEqual([629.9, 630, 699.9].map((km) => shoeRow({ ...shoe, km }).state), ["ok", "soon", "soon"]);
+  assert.equal(shoeRow({ ...shoe, km: 630 }).label, "Replace soon");
+  const worn = shoeRow({ ...shoe, km: 812 });
+  assert.equal(worn.state, "replace");
+  assert.equal(worn.label, "Replace");
+  assert.equal(worn.frac, 1);
+});
+
+test("shoeRow: unknown km, one run, no runs yet", () => {
+  const gone = shoeRow({ name: "sensor.gone", km: null, limit: 500, runs: null, last_run: null });
+  assert.deepEqual(gone, { name: "sensor.gone", km: "—", frac: 0, state: "unknown", label: null, detail: "" });
+  assert.equal(shoeRow({ name: "Nike", km: 3, limit: 700, runs: 1, last_run: "2026-10-05T12:00:00Z" }).detail, "1 run · last run 5 Oct");
+  assert.equal(shoeRow({ name: "Nike", km: 0, limit: 700, runs: 0, last_run: null }).detail, "No runs yet");
 });

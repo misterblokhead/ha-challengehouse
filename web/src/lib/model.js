@@ -84,3 +84,20 @@ export function serial(tails, id, fn) {
   tail.then(() => tails[id] === tail && delete tails[id]);
   return run;
 }
+
+// A shoe from the integration ({name, km, limit, runs, last_run}): km toward its replace-at limit, "Replace soon" from 90 %.
+// `km` is null when HA has no number for the shoe's sensor.
+export function shoeRow(s) {
+  const km = (n) => (n < 10 ? n.toFixed(1) : Math.round(n).toLocaleString());
+  const state = s.km == null ? "unknown" : s.km >= s.limit ? "replace" : s.km >= 0.9 * s.limit ? "soon" : "ok";
+  const last = s.last_run ? new Date(s.last_run) : null;
+  const runs = s.runs ? `${s.runs} ${s.runs === 1 ? "run" : "runs"}` : s.runs === 0 ? "No runs yet" : "";
+  return {
+    name: s.name,
+    km: s.km == null ? "—" : `${km(s.km)} / ${km(s.limit)} km`,
+    frac: s.km == null ? 0 : clamp(s.km / s.limit),
+    state,
+    label: { soon: "Replace soon", replace: "Replace" }[state] ?? null,
+    detail: [runs, last && `last run ${last.getDate()} ${MONTHS[last.getMonth()]}`].filter(Boolean).join(" · "),
+  };
+}

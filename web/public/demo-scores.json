@@ -352,6 +352,32 @@
           "url": null,
           "xp": 0
         }
+      ],
+      "shoes": [
+        {
+          "entity_id": "sensor.endurain_alex_trail_distance",
+          "name": "Trail Runner",
+          "km": 412.4,
+          "limit": 700,
+          "runs": 40,
+          "last_run": "2026-10-26T16:48:53Z"
+        },
+        {
+          "entity_id": "sensor.endurain_alex_road_distance",
+          "name": "Road Racer",
+          "km": 655,
+          "limit": 700,
+          "runs": 71,
+          "last_run": "2026-10-21T06:30:00Z"
+        },
+        {
+          "entity_id": "sensor.endurain_alex_old_distance",
+          "name": "Old Pair",
+          "km": 812.6,
+          "limit": 800,
+          "runs": 95,
+          "last_run": "2026-09-30T17:00:00Z"
+        }
       ]
     },
     "sam": {
@@ -512,6 +538,16 @@
           "excluded": false,
           "url": null,
           "xp": 10
+        }
+      ],
+      "shoes": [
+        {
+          "entity_id": "sensor.endurain_sam_shoes_distance",
+          "name": "Everyday Shoes",
+          "km": null,
+          "limit": 700,
+          "runs": null,
+          "last_run": null
         }
       ]
     }
