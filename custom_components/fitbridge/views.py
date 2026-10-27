@@ -9,8 +9,9 @@ from homeassistant.components import mqtt
 from homeassistant.components.http import HomeAssistantView
 from homeassistant.helpers.http import KEY_HASS
 
-from .const import DOMAIN, OPT_SHOES, OPT_VIEWERS
+from .const import DOMAIN, OPT_SHOES, OPT_STEPS, OPT_VIEWERS
 from .core import can_edit, find_workout, manual_message, shape, shoes, viewer_person
+from .steps import parse
 
 MAX_UI_BODY = 4 * 1024
 
@@ -51,7 +52,9 @@ class UiView(HomeAssistantView):
         hass = request.app[KEY_HASS]
         states = {eid: (s.state, dict(s.attributes)) if (s := hass.states.get(eid)) else None
                   for limits in chosen.values() for eid in limits}
-        return self.json(shape(data.scores, person, user.is_admin, {p: shoes(limits, states) for p, limits in chosen.items()}))
+        steps = {p: parse(s.state) if (s := hass.states.get(eid)) else None
+                 for p, eid in data.entry.options.get(OPT_STEPS, {}).items()}
+        return self.json(shape(data.scores, person, user.is_admin, {p: shoes(limits, states) for p, limits in chosen.items()}, steps))
 
     async def post(self, request: web.Request, path: str) -> web.Response:
         if path != "workouts":
@@ -65,6 +68,8 @@ class UiView(HomeAssistantView):
         if not (isinstance(body, dict) and body.get("action") in ("remove", "restore")
                 and isinstance(body.get("person"), str) and isinstance(body.get("key"), str)):
             return _detail(self, "expected person, key and action remove or restore", HTTPStatus.BAD_REQUEST)
+        if body["key"].startswith("steps:"):  # an active day comes from steps: there is nothing to remove
+            return _detail(self, "active days cannot be removed", HTTPStatus.BAD_REQUEST)
         hass = request.app[KEY_HASS]
         data = hass.data.get(DOMAIN)
         if data is None or data.scores is None:

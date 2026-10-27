@@ -12,7 +12,7 @@ from homeassistant.helpers.selector import (
     SelectSelectorMode,
 )
 
-from .const import DOMAIN, OPT_SHOES, OPT_VIEWERS, SHOE_LIMIT_KM
+from .const import DOMAIN, OPT_SHOES, OPT_STEPS, OPT_VIEWERS, SHOE_LIMIT_KM
 
 
 def _labels(names: dict[str, str], tag=lambda k: k) -> dict[str, str]:
@@ -39,7 +39,7 @@ class FitbridgeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
 class FitbridgeOptionsFlow(config_entries.OptionsFlowWithReload):
     """Which fitbridge person each HA user is (nobody, "", means the read-only household view), then each person's
-    Endurain shoes and the km at which each should be replaced."""
+    Endurain shoes and the km at which each should be replaced, then each person's phone step sensor."""
 
     async def async_step_init(self, user_input=None):
         data = self.hass.data.get(DOMAIN)
@@ -63,7 +63,8 @@ class FitbridgeOptionsFlow(config_entries.OptionsFlowWithReload):
         labels = _labels({p: str(r.get("name") or p) for p, r in people.items()})
         if user_input is not None:
             self._shoes = {p: list(user_input[label]) for p, label in labels.items() if user_input.get(label)}
-            return await self.async_step_limits() if self._shoes else self._finish({})
+            self._limits = {}
+            return await self.async_step_limits() if self._shoes else await self.async_step_steps()
         old = self.config_entry.options.get(OPT_SHOES, {})
         select = EntitySelector(EntitySelectorConfig(integration="endurain", domain="sensor", device_class="distance", multiple=True))
         return self.async_show_form(step_id="shoes", data_schema=vol.Schema({
@@ -73,11 +74,20 @@ class FitbridgeOptionsFlow(config_entries.OptionsFlowWithReload):
         chosen = dict.fromkeys(e for shoes in self._shoes.values() for e in shoes)
         labels = _labels({e: (s.attributes.get("nickname") or s.name) if (s := self.hass.states.get(e)) else e for e in chosen})
         if user_input is not None:
-            return self._finish({p: {e: user_input[labels[e]] for e in shoes} for p, shoes in self._shoes.items()})
+            self._limits = {p: {e: user_input[labels[e]] for e in shoes} for p, shoes in self._shoes.items()}
+            return await self.async_step_steps()
         old = {e: km for limits in self.config_entry.options.get(OPT_SHOES, {}).values() for e, km in limits.items()}
         km = NumberSelector(NumberSelectorConfig(min=50, max=5000, step=10, unit_of_measurement="km", mode=NumberSelectorMode.BOX))
         return self.async_show_form(step_id="limits", data_schema=vol.Schema({
             vol.Required(labels[e], default=old.get(e, SHOE_LIMIT_KM)): km for e in chosen}))
 
-    def _finish(self, shoes: dict):
-        return self.async_create_entry(data={OPT_VIEWERS: self._viewers, OPT_SHOES: shoes})
+    async def async_step_steps(self, user_input=None):
+        people = self.hass.data[DOMAIN].scores["people"]
+        labels = _labels({p: str(r.get("name") or p) for p, r in people.items()})
+        if user_input is not None:
+            steps = {p: user_input[label] for p, label in labels.items() if user_input.get(label)}
+            return self.async_create_entry(data={OPT_VIEWERS: self._viewers, OPT_SHOES: self._limits, OPT_STEPS: steps})
+        old = self.config_entry.options.get(OPT_STEPS, {})
+        select = EntitySelector(EntitySelectorConfig(domain="sensor"))
+        return self.async_show_form(step_id="steps", data_schema=vol.Schema({  # a suggestion, not a default: the field can be cleared
+            vol.Optional(label, description={"suggested_value": old.get(p)}): select for p, label in labels.items()}))

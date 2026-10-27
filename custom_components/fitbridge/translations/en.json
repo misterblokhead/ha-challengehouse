@@ -23,6 +23,10 @@
       "limits": {
         "title": "Replace at",
         "description": "The distance at which each shoe should be replaced. The page warns from 90%."
+      },
+      "steps": {
+        "title": "Step sensors",
+        "description": "Pick each person's daily steps sensor, for example from the phone's companion app. Leave it empty for no steps."
       }
     },
     "abort": {

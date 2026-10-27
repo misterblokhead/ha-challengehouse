@@ -6,3 +6,6 @@ STATIC_URL = "/fitbridge_static"
 OPT_VIEWERS = "viewers"
 OPT_SHOES = "shoes"
 SHOE_LIMIT_KM = 700
+OPT_STEPS = "steps"
+STEPS_TOPIC = "fitbridge/steps"
+KEEP_DAYS = 35

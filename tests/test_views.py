@@ -7,7 +7,7 @@ from conftest import SCORES
 from homeassistant.auth.const import GROUP_ID_ADMIN, GROUP_ID_USER
 from pytest_homeassistant_custom_component.common import MockUser
 
-from custom_components.fitbridge.const import OPT_SHOES, OPT_VIEWERS
+from custom_components.fitbridge.const import OPT_SHOES, OPT_STEPS, OPT_VIEWERS
 
 UI = "/api/fitbridge/ui"
 
@@ -40,7 +40,7 @@ async def test_scores_wait_for_the_first_payload(hass, client, send):
     resp = await c.get(f"{UI}/scores")
     assert resp.status == 200
     body = await resp.json()
-    assert body["people"] == {p: {**r, "shoes": []} for p, r in SCORES["people"].items()} and body["viewer"] == {"person": "p1", "can_edit": ["p1"]}
+    assert body["people"] == {p: {**r, "shoes": [], "steps_today": None} for p, r in SCORES["people"].items()} and body["viewer"] == {"person": "p1", "can_edit": ["p1"]}
     robin = await (await (await client("robin")).get(f"{UI}/scores")).json()
     assert robin["viewer"] == {"person": None, "can_edit": []}
 
@@ -55,6 +55,15 @@ async def test_scores_carry_each_persons_shoes(hass, entry, users, client, send)
         {"entity_id": "sensor.trail", "name": "Trail", "km": 123.4, "limit": 700, "runs": 9, "last_run": "2026-10-20T07:00:00Z"},
         {"entity_id": "sensor.gone", "name": "sensor.gone", "km": None, "limit": 500, "runs": None, "last_run": None}]
     assert body["people"]["p2"]["shoes"] == []
+
+async def test_scores_carry_steps_today_from_the_live_sensor(hass, entry, users, client, send):
+    await send(SCORES)
+    hass.config_entries.async_update_entry(entry, options={**entry.options, OPT_STEPS: {"p1": "sensor.phone_steps", "p2": "sensor.gone"}})
+    for state, expected in (("247.9", 247), ("unavailable", None)):
+        hass.states.async_set("sensor.phone_steps", state)
+        body = await (await (await client("sam")).get(f"{UI}/scores")).json()
+        assert (body["people"]["p1"]["steps_today"], body["people"]["p2"]["steps_today"]) == (expected, None)
+
 
 @pytest.mark.parametrize("key,action", [("k1", "remove"), ("manual:a/b", "restore")])
 async def test_own_workout_publishes_retained_manual_message(hass, client, send, mqtt_mock, key, action):
@@ -82,6 +91,7 @@ async def test_mapped_admin_may_edit_partner(hass, client, send, mqtt_mock):
     ("alex", {"person": "p1", "key": "k1", "action": "delete"}, 400),
     ("alex", {"person": "p1", "key": 1, "action": "remove"}, 400),
     ("alex", ["p1", "k1", "remove"], 400),
+    ("alex", {"person": "p1", "key": "steps:p1:2026-10-27", "action": "remove"}, 400),  # an active day is not removable
 ])
 async def test_refused_edits_publish_nothing(hass, client, send, mqtt_mock, who, body, status):
     await send(SCORES)

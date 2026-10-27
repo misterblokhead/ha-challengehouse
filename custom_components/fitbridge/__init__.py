@@ -6,10 +6,12 @@ from homeassistant.components import mqtt
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.helpers.storage import Store
 
 from .const import DOMAIN, SCORES_TOPIC
 from .core import parse_scores
 from .panel import async_register_http, async_register_panel, remove_panel
+from .steps import StepsCollector
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -36,6 +38,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             _LOGGER.warning("Ignored a %s payload the fitness page cannot use; keeping the last good one", SCORES_TOPIC)
 
     entry.async_on_unload(await mqtt.async_subscribe(hass, SCORES_TOPIC, received))
+    await StepsCollector(hass, entry, Store(hass, 1, "fitbridge.steps")).async_start(entry)
     await async_register_http(hass)
     await async_register_panel(hass)  # last: a failed setup is not unloaded
     return True
