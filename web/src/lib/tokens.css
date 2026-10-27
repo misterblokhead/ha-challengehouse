@@ -25,7 +25,7 @@
   --edge: 0; /* the border of cards and bars: none, a visible one under more contrast */
   --accent: #0A84FF;
   --good: #34C759;
-  /* one colour per ring, nowhere else: runs, gym, bonus */
+  /* one colour per ring, nowhere else: runs, workouts (gym), active days (bonus) */
   --run: #28B84C;
   --gym: #FF8A00;
   --bonus: #1AA3DC;

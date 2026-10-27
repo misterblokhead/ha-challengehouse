@@ -8,21 +8,25 @@
       "next_level_xp": 1800,
       "week": {
         "week": "2026-W44",
-        "runs": 1,
-        "gym": 2,
+        "runs": 2,
+        "workouts": 2,
+        "active_days": 4,
         "bonus": 1,
-        "goal_met": false,
+        "goal_met": true,
         "paused": false,
         "days_left": 3,
-        "progress": 75,
+        "progress": 100,
         "goal": {
           "runs": 2,
-          "gym": 2
+          "workouts": 2,
+          "active_days": 4,
+          "steps": 10000
         },
         "last_week": {
           "week": "2026-W43",
           "runs": 2,
-          "gym": 2,
+          "workouts": 2,
+          "active_days": 4,
           "goal_met": true,
           "paused": false
         }
@@ -273,6 +277,23 @@
           "xp": 24
         },
         {
+          "key": "steps:alex:2026-10-26",
+          "kind": "active_day",
+          "name": "Active day",
+          "source": "steps",
+          "indoor": false,
+          "start": "2026-10-26T23:59:00+01:00",
+          "minutes": 0,
+          "km": null,
+          "avg_hr": null,
+          "plan": null,
+          "joint": false,
+          "excluded": false,
+          "url": null,
+          "xp": 15,
+          "steps": 12034
+        },
+        {
           "key": "opengym:55",
           "kind": "gym",
           "name": "Gym",
@@ -337,6 +358,22 @@
           "xp": 8
         },
         {
+          "key": "manual:1791800000-cd34ef",
+          "kind": "home",
+          "name": "Home workout",
+          "source": "manual",
+          "indoor": true,
+          "start": "2026-10-21T20:00:00+01:00",
+          "minutes": 30,
+          "km": null,
+          "avg_hr": null,
+          "plan": null,
+          "joint": false,
+          "excluded": false,
+          "url": null,
+          "xp": 30
+        },
+        {
           "key": "endurain:95",
           "kind": "run",
           "name": "Treadmill Run",
@@ -378,7 +415,8 @@
           "runs": 95,
           "last_run": "2026-09-30T17:00:00Z"
         }
-      ]
+      ],
+      "steps_today": 6820
     },
     "sam": {
       "name": "Sam",
@@ -389,20 +427,24 @@
       "week": {
         "week": "2026-W44",
         "runs": 0,
-        "gym": 1,
+        "workouts": 1,
+        "active_days": 2,
         "bonus": 0,
         "goal_met": false,
         "paused": false,
         "days_left": 3,
-        "progress": 25,
+        "progress": 40,
         "goal": {
           "runs": 2,
-          "gym": 2
+          "workouts": 2,
+          "active_days": 3,
+          "steps": 8000
         },
         "last_week": {
           "week": "2026-W43",
           "runs": 1,
-          "gym": 2,
+          "workouts": 2,
+          "active_days": 2,
           "goal_met": false,
           "paused": false
         }
@@ -549,7 +591,8 @@
           "runs": null,
           "last_run": null
         }
-      ]
+      ],
+      "steps_today": null
     }
   },
   "group": {
@@ -562,7 +605,24 @@
     "streak": 2,
     "best_streak": 3,
     "month_joint": 3,
-    "km_together": 12.4
+    "km_together": 12.4,
+    "week": {
+      "mode": "together",
+      "met": false,
+      "reward": "Pizza night",
+      "together": {
+        "done": 1,
+        "target": 2
+      },
+      "team": {
+        "done": 5,
+        "target": 8
+      },
+      "members_met": {
+        "alex": true,
+        "sam": false
+      }
+    }
   },
   "config_error": null,
   "gym_data_as_of": "2026-10-26T06:00:00+01:00",
@@ -573,5 +633,6 @@
     "can_edit": [
       "alex"
     ]
-  }
+  },
+  "settings_error": null
 }

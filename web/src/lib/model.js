@@ -3,7 +3,45 @@ const clamp = (x) => Math.min(1, Math.max(0, x));
 const pad = (n) => String(n).padStart(2, "0");
 const ratio = (n, goal) => (goal > 0 ? clamp(n / goal) : 1); // goal 0: nothing to do, so the ring is full
 
-export const ringFractions = (w) => [ratio(w.runs, w.goal.runs), ratio(w.gym, w.goal.gym), clamp(w.bonus)];
+// Older payloads (mid-deploy) call workouts `gym` and have no active days; every reader of the week and its goals goes through these.
+const workouts = (w) => w.workouts ?? w.gym ?? 0;
+const goals = (w) => [w.goal.runs, w.goal.workouts ?? w.goal.gym ?? 0, w.goal.active_days ?? 0];
+const counts = (w) => [w.runs, workouts(w), w.active_days ?? 0];
+
+export const ringFractions = (w) => counts(w).map((n, i) => ratio(n, goals(w)[i]));
+
+const num = (n) => n.toLocaleString("en-US");
+
+// "👟 8,412 steps today · 1,588 to go"; null without a step sensor (`steps` null). `goal` missing (older payload): just the count.
+export function stepsLine(steps, goal) {
+  if (steps == null) return null;
+  const tail = !(goal > 0) ? "" : steps >= goal ? " · Active day ✓" : ` · ${num(goal - steps)} to go`;
+  return `👟 ${num(steps)} steps today${tail}`;
+}
+
+// The couple's week in its mode, from `group.week` and the people map: "Person1 ✓ · Person2 2 of 3", "... · 1 of 1 together ✓", "5 of 8 team points".
+export function togetherLine(gw, people) {
+  const tick = (done) => (done ? " ✓" : "");
+  const member = ([id, met]) => {
+    const p = people[id];
+    if (met) return `${p?.name ?? id} ✓`;
+    const g = p ? goals(p.week) : [];
+    const n = p ? counts(p.week) : [];
+    return `${p?.name ?? id} ${g.filter((x, i) => x > 0 && n[i] >= x).length} of ${g.filter((x) => x > 0).length}`;
+  };
+  if (gw.mode === "team") return `${gw.team.done} of ${gw.team.target} team points${tick(gw.met)}`;
+  const parts = Object.entries(gw.members_met).map(member);
+  if (gw.mode === "together") parts.push(`${gw.together.done} of ${gw.together.target} together${tick(gw.together.done >= gw.together.target)}`);
+  return parts.join(" · ");
+}
+
+// The couple's reward: what unlocks it, then that it did; null when none is set.
+export function rewardLine(gw) {
+  if (!gw.reward) return null;
+  if (gw.met) return `${gw.reward} unlocked!`;
+  const when = { own: "you both make your goals", together: `you both make your goals and do ${gw.together.target} together`, team: `you reach ${gw.team.target} team points` };
+  return `${gw.reward}: unlocks when ${when[gw.mode]}`;
+}
 
 export function levelProgress(p) {
   const into = p.xp - p.level_floor;
@@ -41,7 +79,7 @@ function pace(item) {
 export const feedRow = (item) => ({
   title: item.name,
   when: when(item.start),
-  duration: duration(item.minutes),
+  duration: item.kind === "active_day" ? `${num(item.steps)} steps` : duration(item.minutes),
   xp: item.xp ? `+${item.xp}` : "",
   detail: {
     km: item.km == null ? null : `${item.km.toFixed(1)} km`,
@@ -50,7 +88,7 @@ export const feedRow = (item) => ({
     plan: item.plan ?? null,
     url: item.url ?? null,
   },
-  removable: item.excluded ? "restore" : item.key.startsWith("manual:") ? "delete" : "remove",
+  removable: item.kind === "active_day" ? null : item.excluded ? "restore" : item.key.startsWith("manual:") ? "delete" : "remove",
 });
 
 export function planBar(plan) {

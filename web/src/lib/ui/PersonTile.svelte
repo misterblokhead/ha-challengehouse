@@ -1,6 +1,6 @@
 <script>
   import { screen } from "../media.svelte.js";
-  import { levelProgress, ringFractions } from "../model.js";
+  import { levelProgress, ringFractions, stepsLine } from "../model.js";
   import Rings from "./Rings.svelte";
 
   // `index`: the person's place in the payload, for a stable avatar colour. `compact`: one line with small rings (the partner on a phone).
@@ -13,15 +13,16 @@
   const w = $derived(p.week);
   const stats = $derived([
     { kind: "run", label: "Runs", n: w.runs, of: w.goal.runs },
-    { kind: "gym", label: "Gym", n: w.gym, of: w.goal.gym },
-    { kind: "bonus", label: "Bonus", n: w.bonus, of: 1 },
+    { kind: "gym", label: "Workouts", n: w.workouts ?? w.gym, of: w.goal.workouts ?? w.goal.gym },
+    { kind: "bonus", label: "Active days", n: w.active_days ?? 0, of: w.goal.active_days ?? 0 },
   ]);
+  const steps = $derived(stepsLine(p.steps_today, w.goal.steps));
   const line = $derived(
     [`Level ${lv.level}`, compact ? `🔥 ${p.streak} wk` : `${p.xp.toLocaleString()} XP`, w.paused && "Week paused"].filter(Boolean).join(" · "),
   );
   const summary = $derived(
     `${p.name}, level ${lv.level}. This week ${stats.map((s) => `${s.label.toLowerCase()} ${s.n} of ${s.of}`).join(", ")}. ` +
-      `Streak ${p.streak} weeks.`,
+      `${w.bonus ? "Weekly bonus earned. " : ""}${steps ? steps.replace("👟 ", "") + ". " : ""}Streak ${p.streak} weeks.`,
   );
 </script>
 
@@ -35,7 +36,10 @@
         <span class="lvl">{line}</span>
       </span>
       {#if compact}
-        <Rings fractions={ringFractions(w)} size={44} />
+        <span class="rings">
+          <Rings fractions={ringFractions(w)} size={44} />
+          {#if w.bonus}<span class="star small" aria-hidden="true">⭐</span>{/if}
+        </span>
         <span class="sr">{summary}</span>
       {:else}
         <span class="streak">🔥 {p.streak} wk</span>
@@ -44,7 +48,10 @@
     </span>
     {#if !compact}
       <span class="body">
-        <Rings fractions={ringFractions(w)} size={screen.wide ? 112 : 88} />
+        <span class="rings">
+          <Rings fractions={ringFractions(w)} size={screen.wide ? 112 : 88} />
+          {#if w.bonus}<span class="star" aria-hidden="true">⭐</span>{/if}
+        </span>
         <span class="stats">
           {#each stats as s (s.kind)}
             <span class="stat">
@@ -54,6 +61,7 @@
           {/each}
         </span>
       </span>
+      {#if steps}<span class="steps">{steps}</span>{/if}
       <span class="xp">
         <span class="bar"><i style:width="{lv.frac * 100}%"></i></span>
         <span class="caption">{lv.into.toLocaleString()} of {lv.span.toLocaleString()} XP to level {lv.level + 1}</span>
@@ -69,7 +77,7 @@
   .opens:has(> .hit:active) { transform: scale(var(--press-scale)); }
   .hit { position: absolute; inset: 0; margin: 0; padding: 0; border: 0; border-radius: inherit; background: none; }
   .tile.compact { padding: 0.75rem 1rem; border-radius: var(--radius-pill); }
-  .who, .name, .lvl, .stat, .v, .xp, .bar, .caption { display: block; }
+  .who, .name, .steps, .lvl, .stat, .v, .xp, .bar, .caption { display: block; }
   .head { display: flex; align-items: center; gap: 0.75rem; }
   .avatar {
     display: grid; place-items: center; flex: none; width: 2.75rem; height: 2.75rem; border-radius: 50%;
@@ -93,6 +101,10 @@
   .v { font-size: 1.75rem; font-weight: 700; line-height: 1.1; letter-spacing: -0.02em; }
   .v small { color: var(--muted); font-size: 0.9375rem; font-weight: 600; letter-spacing: 0; }
 
+  .rings { position: relative; display: block; flex: none; }
+  .star { position: absolute; top: -0.25rem; right: -0.5rem; font-size: 1.125rem; line-height: 1; }
+  .star.small { top: -0.375rem; right: -0.375rem; font-size: 0.75rem; }
+  .steps { margin-top: 1rem; font-size: 0.9375rem; font-weight: 600; }
   .xp { margin-top: 1rem; }
   .bar { height: 0.375rem; overflow: hidden; border-radius: var(--radius-chip); background: var(--fill); margin-bottom: 0.375rem; }
   .bar i { display: block; height: 100%; border-radius: inherit; background: var(--fg); }

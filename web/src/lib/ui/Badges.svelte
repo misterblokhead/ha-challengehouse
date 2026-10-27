@@ -8,7 +8,7 @@
   const ICONS = {
     run: "🏃", "run-fast": "🏃", "map-marker-distance": "📍", ruler: "📏", "calendar-check": "📅", dumbbell: "🏋️",
     "weight-lifter": "🏋️", trophy: "🏆", "trophy-award": "🏆", target: "🎯", fire: "🔥", "star-circle": "⭐", beach: "🏖️",
-    "weather-sunset-up": "🌅", "weather-night": "🌙", "account-multiple": "👥", medal: "🏅",
+    "weather-sunset-up": "🌅", "weather-night": "🌙", "account-multiple": "👥", medal: "🏅", yoga: "🧘", "shoe-print": "👟",
   };
   const icon = (x) => ICONS[String(x.icon).replace(/^mdi:/, "")] ?? "🏅";
   const num = (n) => n.toLocaleString(undefined, { maximumFractionDigits: 1 });

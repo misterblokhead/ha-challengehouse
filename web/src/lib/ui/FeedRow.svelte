@@ -10,7 +10,7 @@
   // until a payload confirms it (actions.svelte.js).
   let { person, item, canEdit } = $props();
 
-  const ICONS = { run: "🏃", walk: "🚶", gym: "🏋️" };
+  const ICONS = { run: "🏃", walk: "🚶", gym: "🏋️", home: "🧘", active_day: "👟" };
   const uid = $props.id();
   const entry = $derived(pending[`${person}/${item.key}`]);
   const row = $derived(feedRow(entry && entry.want !== null ? { ...item, excluded: entry.want } : item));
@@ -19,10 +19,11 @@
       .filter(([, v]) => v),
   );
   const deleting = $derived(entry?.want === null);
+  const expandable = $derived(facts.length > 0 || !!row.detail.url || (canEdit && !!row.removable)); // an active day has nothing to open
 
   let open = $state(false);
   let confirming = $state(false);
-  let box, inner;
+  let box = $state(), inner = $state(); // inside the expandable `{#if}`
   const spring = createSpring({ response: 0.35, damping: 1 });
   const run = animate(spring, {
     onFrame: (v) => (box.style.height = `${v}px`),
@@ -31,6 +32,7 @@
   $effect(() => run.stop);
 
   function toggle() {
+    if (!expandable) return;
     open = !open;
     confirming = false;
     if (screen.reducedMotion) {
@@ -49,7 +51,7 @@
 </script>
 
 <li class:dim={row.removable === "restore" || deleting}>
-  <button type="button" class="head" aria-expanded={open} aria-controls="{uid}-more" onclick={toggle}>
+  <button type="button" class="head" aria-expanded={expandable ? open : undefined} aria-controls={expandable ? `${uid}-more` : undefined} onclick={toggle}>
     <span class="ic {item.kind}" aria-hidden="true">{ICONS[item.kind] ?? "💪"}</span>
     <span class="main">
       <span class="t1">
@@ -64,6 +66,7 @@
       {row.removable === "restore" ? "Removed" : row.xp && `${row.xp} XP`}
     </span>
   </button>
+  {#if expandable}
   <div class="more" class:open id="{uid}-more" bind:this={box} inert={!open}>
     <div class="inner" bind:this={inner}>
       {#if facts.length}
@@ -73,7 +76,7 @@
       {/if}
       <div class="acts">
         {#if row.detail.url}<a class="btn link" href={row.detail.url} target="_blank" rel="noopener noreferrer">Open in Endurain</a>{/if}
-        {#if canEdit && !deleting}
+        {#if canEdit && !deleting && row.removable}
           {#if confirming}
             <span class="ask">Delete manual entry?</span>
             <button type="button" class="btn" onclick={() => (confirming = false)}>Cancel</button>
@@ -85,6 +88,7 @@
       </div>
     </div>
   </div>
+  {/if}
 </li>
 
 <style>
@@ -100,7 +104,8 @@
     background: var(--fill); font-size: 1.125rem;
   }
   .ic.run { background: color-mix(in srgb, var(--run) 20%, transparent); }
-  .ic.gym { background: color-mix(in srgb, var(--gym) 20%, transparent); }
+  .ic.gym, .ic.home { background: color-mix(in srgb, var(--gym) 20%, transparent); }
+  .ic.active_day { background: color-mix(in srgb, var(--bonus) 20%, transparent); }
   .main { flex: 1; min-width: 0; }
   .t1, .t2 { display: block; }
   .t1 { display: flex; flex-wrap: wrap; align-items: center; gap: 0.375rem; font-weight: 600; }

@@ -4,7 +4,7 @@
   import { screen } from "../media.svelte.js";
   import { createSpring } from "../spring.js";
 
-  // Three concentric rings, outer to inner: runs, gym, bonus. `size` in CSS px at the default text size; the rings scale with it.
+  // Three concentric rings, outer to inner: runs, workouts (the `gym` token), active days (the `bonus` token). `size` in CSS px at the default text size; the rings scale with it.
   // They fill from empty once, when the component first appears; later fractions show as they are.
   let { fractions, size = 88 } = $props();
 

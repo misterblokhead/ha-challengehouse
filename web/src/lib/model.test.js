@@ -1,20 +1,66 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { ringFractions, levelProgress, weekLabel, staleSince, feedRow, planBar, layout, shortDate, pendingDone, PENDING_MS, serial, shoeRow } from "./model.js";
+import { ringFractions, stepsLine, togetherLine, rewardLine, levelProgress, weekLabel, staleSince, feedRow, planBar, layout, shortDate, pendingDone, PENDING_MS, serial, shoeRow } from "./model.js";
 
-const week = { runs: 1, gym: 2, bonus: 1, goal: { runs: 2, gym: 2 }, days_left: 3, week: "2026-W44" };
+const week = { runs: 1, workouts: 2, active_days: 3, bonus: 1, goal: { runs: 2, workouts: 2, active_days: 4, steps: 10000 }, days_left: 3, week: "2026-W44" };
 
-test("ringFractions: against the goals, clamped to 0..1", () => {
-  assert.deepEqual(ringFractions(week), [0.5, 1, 1]);
-  assert.deepEqual(ringFractions({ ...week, runs: 5, bonus: 0 }), [1, 1, 0]);
-  assert.deepEqual(ringFractions({ ...week, runs: 0, gym: 1, bonus: 3 }), [0, 0.5, 1]);
+test("ringFractions: runs, workouts, active days against their goals, clamped to 0..1", () => {
+  assert.deepEqual(ringFractions(week), [0.5, 1, 0.75]);
+  assert.deepEqual(ringFractions({ ...week, runs: 5, active_days: 9 }), [1, 1, 1]);
+  assert.deepEqual(ringFractions({ ...week, runs: 0, workouts: 1, active_days: 0 }), [0, 0.5, 0]);
 });
 
 test("ringFractions: goal 0 is always full", () => {
-  const zero = { runs: 0, gym: 0, bonus: 0, goal: { runs: 0, gym: 0 } };
-  assert.deepEqual(ringFractions(zero), [1, 1, 0]);
-  assert.deepEqual(ringFractions({ ...zero, gym: 1 }), [1, 1, 0]);
-  assert.deepEqual(ringFractions({ ...zero, goal: { runs: 0, gym: 2 }, gym: 1 }), [1, 0.5, 0]);
+  const zero = { runs: 0, workouts: 0, active_days: 0, bonus: 0, goal: { runs: 0, workouts: 0, active_days: 0 } };
+  assert.deepEqual(ringFractions(zero), [1, 1, 1]);
+  assert.deepEqual(ringFractions({ ...zero, goal: { runs: 0, workouts: 2, active_days: 4 }, workouts: 1, active_days: 1 }), [1, 0.5, 0.25]);
+});
+
+test("ringFractions: an older payload (gym, no active_days) still reads", () => {
+  const old = { runs: 1, gym: 1, bonus: 1, goal: { runs: 2, gym: 2 } };
+  assert.deepEqual(ringFractions(old), [0.5, 0.5, 1]);
+  assert.deepEqual(ringFractions({ ...old, goal: { runs: 2, gym: 2, active_days: 3 } }), [0.5, 0.5, 0]);
+  assert.deepEqual(ringFractions({ ...old, workouts: 2, goal: { ...old.goal, workouts: 4 } }), [0.5, 0.5, 1]); // workouts wins over gym
+});
+
+test("stepsLine: steps so far and what is left, Active day once reached, nothing without a sensor", () => {
+  assert.equal(stepsLine(8412, 10000), "👟 8,412 steps today · 1,588 to go");
+  assert.equal(stepsLine(10000, 10000), "👟 10,000 steps today · Active day ✓");
+  assert.equal(stepsLine(12034, 10000), "👟 12,034 steps today · Active day ✓");
+  assert.equal(stepsLine(0, 10000), "👟 0 steps today · 10,000 to go");
+  assert.equal(stepsLine(null, 10000), null);
+  assert.equal(stepsLine(undefined, 10000), null);
+  assert.equal(stepsLine(500, undefined), "👟 500 steps today"); // an older payload without a steps goal
+});
+
+const person1 = { name: "Person1", week: { ...week, goal_met: true } };
+const person2 = { name: "Person2", week: { runs: 1, workouts: 1, active_days: 1, goal_met: false, goal: { runs: 1, workouts: 1, active_days: 3, steps: 8000 } } };
+const people = { person1, person2 };
+const gw = (over) => ({ mode: "own", met: false, reward: "Pizza night", together: { done: 0, target: 1 }, team: { done: 0, target: 8 }, members_met: { person1: true, person2: false }, ...over });
+
+test("togetherLine: each member's goals, then the mode's own count", () => {
+  assert.equal(togetherLine(gw(), people), "Person1 ✓ · Person2 2 of 3");
+  assert.equal(togetherLine(gw({ mode: "together" }), people), "Person1 ✓ · Person2 2 of 3 · 0 of 1 together");
+  assert.equal(togetherLine(gw({ mode: "together", together: { done: 1, target: 1 } }), people), "Person1 ✓ · Person2 2 of 3 · 1 of 1 together ✓");
+  assert.equal(togetherLine(gw({ mode: "team", team: { done: 5, target: 8 } }), people), "5 of 8 team points");
+  assert.equal(togetherLine(gw({ mode: "team", met: true, team: { done: 9, target: 8 } }), people), "9 of 8 team points ✓");
+});
+
+test("togetherLine: a member with no goal to count shows a tick, an unknown id its id, an older week its gym", () => {
+  const none = { name: "Person2", week: { runs: 0, workouts: 0, active_days: 0, goal: { runs: 0, workouts: 0, active_days: 0 } } };
+  assert.equal(togetherLine(gw({ members_met: { person2: true } }), { person2: none }), "Person2 ✓");
+  assert.equal(togetherLine(gw({ members_met: { ghost: false } }), people), "ghost 0 of 0");
+  const old = { name: "Old", week: { runs: 1, gym: 1, goal: { runs: 1, gym: 1 } } };
+  assert.equal(togetherLine(gw({ members_met: { old: false } }), { old }), "Old 2 of 2");
+});
+
+test("rewardLine: what unlocks it, then unlocked, nothing without a reward", () => {
+  assert.equal(rewardLine(gw()), "Pizza night: unlocks when you both make your goals");
+  assert.equal(rewardLine(gw({ mode: "together", together: { done: 0, target: 2 } })), "Pizza night: unlocks when you both make your goals and do 2 together");
+  assert.equal(rewardLine(gw({ mode: "team", team: { done: 0, target: 8 } })), "Pizza night: unlocks when you reach 8 team points");
+  assert.equal(rewardLine(gw({ met: true })), "Pizza night unlocked!");
+  assert.equal(rewardLine(gw({ reward: "" })), null);
+  assert.equal(rewardLine(gw({ reward: "", met: true })), null);
 });
 
 test("levelProgress: xp inside the current level", () => {
@@ -58,6 +104,15 @@ test("feedRow: gym has no pace or km, long durations in hours, no xp when 0", ()
     removable: "remove",
   });
   assert.equal(feedRow({ ...gym, minutes: 60 }).duration, "1 h");
+});
+
+test("feedRow: an active day shows its steps, has no Remove", () => {
+  const day = { key: "steps:person1:2026-10-26", kind: "active_day", name: "Active day", start: "2026-10-26T23:59:00+01:00", minutes: 0, km: null, avg_hr: null, plan: null, xp: 15, steps: 12034, excluded: false, url: null };
+  assert.deepEqual(feedRow(day), {
+    title: "Active day", when: "Mon 26 Oct, 23:59", duration: "12,034 steps", xp: "+15",
+    detail: { km: null, pace: null, hr: null, plan: null, url: null },
+    removable: null,
+  });
 });
 
 test("feedRow: pace only for run and walk with a distance", () => {

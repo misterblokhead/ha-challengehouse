@@ -91,7 +91,7 @@
       <p class="msg" role="status">{failure.status === 503 ? "Waiting for fitbridge" : "Couldn't reach Home Assistant"}</p>
     {/if}
   {:else}
-    <Status scoredAt={data.scored_at} configError={data.config_error} {now} />
+    <Status scoredAt={data.scored_at} configError={data.config_error} settingsError={data.settings_error} {now} />
     {#if split.self}
       <!-- mapped viewer: the others compact on top, the own tile full width, the own details (Task 8) below -->
       {#if split.others.length}
@@ -108,7 +108,7 @@
         {#each split.others as id (id)}<PersonTile person={people[id]} index={ids.indexOf(id)} onopen={openSheet(id)} />{/each}
       </div>
     {/if}
-    {#if data.group}<Together group={data.group} />{/if}
+    {#if data.group}<Together group={data.group} {people} />{/if}
     {#if split.self}<Details id={split.self} person={people[split.self]} canEdit={canEdit(split.self)} />{/if}
   {/if}
 </main>
