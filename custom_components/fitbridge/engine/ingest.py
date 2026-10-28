@@ -101,13 +101,19 @@ def parse_hex_export(body: bytes):
     if zipfile.is_zipfile(io.BytesIO(body)):
         with zipfile.ZipFile(io.BytesIO(body)) as z:
             wanted = [i for i in z.infolist() if i.filename.endswith((".json", ".gpx"))]
-            if sum(i.file_size for i in wanted) > MAX_UNZIPPED:  # zipfile never reads past an entry's file_size
+            if sum(i.file_size for i in wanted) > MAX_UNZIPPED:
                 raise ValueError("zip expands too large")
+            budget = MAX_UNZIPPED
             for info in wanted:
+                # z.read() decompresses up to 2 GB before cutting to the declared file_size: read at most the budget
+                with z.open(info) as f:
+                    data = f.read(budget + 1)
+                if (budget := budget - len(data)) < 0:
+                    raise ValueError("zip expands too large")
                 if info.filename.endswith(".json"):
-                    docs.append(json.loads(z.read(info)))
-                elif info.filename.endswith(".gpx"):
-                    gpx[Path(info.filename).name] = z.read(info)
+                    docs.append(json.loads(data))
+                else:
+                    gpx[Path(info.filename).name] = data
     else:
         docs.append(json.loads(body))
     if not docs or not all(isinstance(d, dict) and isinstance(d.get("workouts"), list)

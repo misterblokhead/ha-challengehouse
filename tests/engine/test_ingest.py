@@ -3,9 +3,11 @@ import hashlib
 import io
 import json
 import tempfile
+import tracemalloc
 import unittest
 import zipfile
 from pathlib import Path
+from unittest.mock import patch
 
 from custom_components.fitbridge.engine import ingest
 from custom_components.fitbridge.engine.scoring_config import load_config
@@ -209,6 +211,24 @@ class FlowTests(unittest.TestCase):
         self.assertLess(len(buf.getvalue()), 1024 * 1024)
         with self.assertRaises(ingest.Unreadable):
             ingest.ingest_body(self.store, self.archive, P1, buf.getvalue())
+        self.assertEqual(self.store.all_rows(), [])
+        self.assertFalse(self.archive.exists())
+
+    def test_a_zip_declaring_less_than_it_holds_is_never_decompressed_past_the_cap(self):
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+            z.writestr("x/x.json", b" " * (8 * 1024 * 1024))
+        body = bytearray(buf.getvalue())
+        cd = body.index(b"PK\x01\x02")
+        body[cd + 24:cd + 28] = (10).to_bytes(4, "little")  # the central directory's file_size: 10 bytes declared
+        tracemalloc.start()
+        try:
+            with patch.object(ingest, "MAX_UNZIPPED", 64 * 1024), self.assertRaises(ingest.Unreadable):
+                ingest.ingest_body(self.store, self.archive, P1, bytes(body))
+            peak = tracemalloc.get_traced_memory()[1]
+        finally:
+            tracemalloc.stop()
+        self.assertLess(peak, 1024 * 1024)  # z.read() would decompress all 8 MB before cutting to the declared size
         self.assertEqual(self.store.all_rows(), [])
         self.assertFalse(self.archive.exists())
 
