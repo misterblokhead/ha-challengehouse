@@ -99,7 +99,8 @@ def rows(store, person, runs):
 
 def carry_over(store, person, endurain):
     """Shoes from Endurain ({"name", "replace_at_km", "km"} each): the first becomes current and takes every existing
-    run; each start_km is Endurain's km minus what fitbridge counts. Safe to run twice (shoes match by name)."""
+    run; each start_km is Endurain's km minus what fitbridge counts, never below 0 (Endurain missed those runs' uploads).
+    Safe to run twice (shoes match by name)."""
     runs = db_workouts(store, (person,))[person]
     with store.lock:
         known = {r["name"]: r["id"] for r in store.db.execute("SELECT id, name FROM shoes WHERE person=?", (person,))}
@@ -112,4 +113,4 @@ def carry_over(store, person, endurain):
                                  [(person, w["key"], ids[0]) for w in runs if w["kind"] == "run"])
     used = _used(store, person, runs)
     for e, shoe_id in zip(endurain, ids):
-        update(store, shoe_id, start_km=(e["km"] or 0) - used.get(shoe_id, (0.0,))[0] if e["km"] is not None else 0)
+        update(store, shoe_id, start_km=max(0.0, (e["km"] or 0) - used.get(shoe_id, (0.0,))[0]))

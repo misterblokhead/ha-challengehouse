@@ -171,6 +171,11 @@ class ShoeTests(unittest.TestCase):
         self.assertEqual(self.store.db.execute("SELECT start_km FROM shoes WHERE name='A'").fetchone()[0], 1.5)
         self.assertEqual(self.count("shoes"), 2)
 
+    def test_carry_over_never_subtracts_runs_endurain_missed(self):
+        self.workout("r1", km=2.0)  # never reached Endurain, so its shoe says 0 km
+        shoes.carry_over(self.store, P0, [{"name": "A", "replace_at_km": 600, "km": 0.0}])
+        self.assertEqual([(r["km"], r["runs"]) for r in self.rows()], [(2.0, 1)])
+
     def test_old_database_gains_the_tables(self):
         self.store.db.close()
         old = Path(self.tmp.name) / "old.sqlite"
