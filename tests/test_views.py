@@ -298,7 +298,7 @@ async def test_live_scores_carry_the_engines_shoes_not_endurains(hass, live):
     body = await (await c.get(f"{UI}/scores")).json()
     assert body["people"]["person1"]["shoes"] == [] and body["people"]["person1"]["run_shoes"] == {}  # OPT_SHOES is for the shadow weeks
     a = await _add(c)
-    assert await _shoes(c) == [{"id": a, "name": "Trail", "km": 0.0, "limit": 700, "runs": 0, "last_run": None, "current": False}]
+    assert await _shoes(c) == [{"id": a, "name": "Trail", "km": 0.0, "limit": 700, "runs": 0, "last_run": None, "current": True}]
     assert await (await c.get(f"{UI}/shoes")).json() == {"person1": await _shoes(c), "person2": []}
 
 
@@ -306,6 +306,7 @@ async def test_shoe_ops_add_update_current_retire(hass, live):
     c = await live("person1")
     a, b = await _add(c, name=" Trail "), await _add(c, name="Road", km=500)
     assert [s["name"] for s in await _shoes(c)] == ["Trail", "Road"]  # trimmed
+    assert [s["current"] for s in await _shoes(c)] == [True, False]  # the first one added is current
     resp = await c.post(f"{UI}/shoes", json={"op": "current", "person": "person1", "id": b})
     assert resp.status == 202 and [s["current"] for s in await _shoes(c)] == [False, True]
     resp = await c.post(f"{UI}/shoes", json={"op": "update", "id": a, "name": "Trail 2", "replace_at_km": 650.5})
@@ -314,6 +315,18 @@ async def test_shoe_ops_add_update_current_retire(hass, live):
     assert resp.status == 202 and (await _shoes(c))[0]["name"] == "Trail 2" and (await _shoes(c))[0]["limit"] == 800
     resp = await c.post(f"{UI}/shoes", json={"op": "retire", "id": b})
     assert resp.status == 202 and [s["id"] for s in await _shoes(c)] == [a]
+
+
+async def test_the_first_shoe_added_becomes_current_a_second_does_not(hass, live):
+    c = await live("person1")
+    a, b = await _add(c, name="A"), await _add(c, name="B")
+    assert [(s["id"], s["current"]) for s in await _shoes(c)] == [(a, True), (b, False)]
+    await c.post(f"{UI}/shoes", json={"op": "retire", "id": a})  # no current left: the next one added takes over
+    c2 = await _add(c, name="C")
+    assert [(s["id"], s["current"]) for s in await _shoes(c)] == [(b, False), (c2, True)]
+    _run(hass, "person1", "r1", 5, 1)
+    await hass.data[DOMAIN].runner.async_score_now()
+    assert [(s["km"], s["runs"]) for s in await _shoes(c)] == [(0.0, 0), (5.0, 1)]  # new runs count on it
 
 
 async def test_a_shoe_op_scores_before_it_answers(hass, live):
@@ -354,6 +367,9 @@ async def test_shoe_rights_follow_the_shoes_owner(hass, live):
     ({"op": "add", "person": "person1", "name": "x"}, 400, "replace_at_km: a number 100-3000"),
     ({"op": "add", "person": "nobody", "name": "x", "replace_at_km": 700}, 400, "person: not a person"),
     ({"op": "add", "name": "x", "replace_at_km": 700}, 400, "person: not a person"),
+    ({"op": "add", "person": [], "name": "x", "replace_at_km": 700}, 400, "person: not a person"),  # unhashable: not a 500
+    ({"op": "add", "person": {}, "name": "x", "replace_at_km": 700}, 400, "person: not a person"),
+    ({"op": "current", "person": [], "id": 1}, 400, "person: not a person"),
     ({"op": "frobnicate"}, 400, "op: add, update, current or retire"),
     ({"op": "update", "id": "1", "name": "x"}, 400, "id: a whole number"),
     ({"op": "update", "id": True, "name": "x"}, 400, "id: a whole number"),

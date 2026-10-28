@@ -210,7 +210,7 @@ class UiView(HomeAssistantView):
         try:
             if op in ("add", "current"):
                 person = body.get("person")
-                if person not in data.scores["people"]:
+                if not isinstance(person, str) or person not in data.scores["people"]:
                     raise ValueError("person: not a person")
                 if op == "add":
                     fields = _shoe_fields(body, need_all=True)
@@ -228,7 +228,7 @@ class UiView(HomeAssistantView):
             return _detail(self, str(err), HTTPStatus.BAD_REQUEST)
         if not allowed(person):
             return _detail(self, "not allowed", HTTPStatus.FORBIDDEN)
-        change = {"add": lambda st: shoe_engine.add(st, person, **fields),
+        change = {"add": lambda st: shoe_engine.add(st, person, **fields, current_if_none=True),
                   "update": lambda st: shoe_engine.update(st, shoe_id, **fields),
                   "current": lambda st: shoe_engine.set_current(st, person, shoe_id),
                   "retire": lambda st: shoe_engine.update(st, shoe_id, retired=True)}[op]

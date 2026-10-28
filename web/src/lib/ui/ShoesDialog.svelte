@@ -97,7 +97,7 @@
           </li>
         {/each}
       </ul>
-      {#if !rows.some((s) => s.current)}<p class="caption note">No current shoe: new runs count on no shoe. Set one.</p>{/if}
+      {#if !rows.some((s) => s.current)}<p class="caption note">No current shoe: new runs count on no shoe until you set one.</p>{/if}
     {:else}
       <p class="caption note">No shoes yet.</p>
     {/if}

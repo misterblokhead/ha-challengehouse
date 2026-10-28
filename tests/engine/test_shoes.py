@@ -65,6 +65,15 @@ class ShoeTests(unittest.TestCase):
         shoes.move_run(self.store, P0, "r2", b)
         self.assertEqual([(r["name"], r["km"], r["runs"]) for r in self.rows()], [("A", 5.0, 1), ("B", 4.0, 1)])
 
+    def test_add_makes_the_first_shoe_current_only_when_asked_and_only_without_one(self):
+        a = shoes.add(self.store, P0, "A", 600)
+        self.assertFalse(self.rows()[0]["current"])  # plain add: unchanged
+        b = shoes.add(self.store, P0, "B", 600, current_if_none=True)  # no current yet: B takes it
+        self.assertEqual([(r["id"], r["current"]) for r in self.rows()], [(a, False), (b, True)])
+        c = shoes.add(self.store, P0, "C", 600, current_if_none=True)  # there is one: it stays
+        self.assertEqual([r["current"] for r in self.rows()], [False, True, False])
+        self.assertNotEqual(b, c)
+
     def test_assigned_maps_each_run_to_its_shoe_including_retired(self):
         a, b = shoes.add(self.store, P0, "A", 600), shoes.add(self.store, P0, "B", 600)
         shoes.set_current(self.store, P0, a)

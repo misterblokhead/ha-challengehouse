@@ -21,10 +21,14 @@ def _shoe(store, person, shoe_id):
     return row
 
 
-def add(store, person, name, replace_at_km) -> int:
+def add(store, person, name, replace_at_km, *, current_if_none=False) -> int:
+    """A new shoe's id; with current_if_none it becomes the current shoe when the person has none (new runs count on it)."""
     with store.lock, store.db:
-        return store.db.execute("INSERT INTO shoes(person, name, replace_at_km, added) VALUES(?,?,?,?)",
-                                (person, name, replace_at_km, store_mod.now_iso())).lastrowid
+        shoe_id = store.db.execute("INSERT INTO shoes(person, name, replace_at_km, added) VALUES(?,?,?,?)",
+                                   (person, name, replace_at_km, store_mod.now_iso())).lastrowid
+    if current_if_none and _current(store, person) is None:
+        set_current(store, person, shoe_id)
+    return shoe_id
 
 
 def update(store, shoe_id, *, name=None, replace_at_km=None, start_km=None, retired=None):
