@@ -4,9 +4,9 @@
   import StepBars from "./StepBars.svelte";
 
   // A person's progress: this week's steps, their heaviest sets per muscle group (a tap opens all records, at that group), the fastest
-  // 1 km and two lifetime lines. Older payloads may lack the steps, `lifts` and `fastest_1k`: each part then falls back to its empty
+  // 1 km (a tap opens its run, `onopen({key})`) and two lifetime lines. Older payloads may lack the steps, `lifts` and `fastest_1k`: each part then falls back to its empty
   // text or is left out.
-  let { person: p } = $props();
+  let { person: p, onopen } = $props();
   const goal = $derived(p.week.goal.steps ?? 0);
   const week = $derived(weekBars(p.steps_week, goal, localDay())); // the viewer's own day
   const lifts = $derived(p.pbs.lifts ?? []);
@@ -40,9 +40,16 @@
 
 <div class="card rows">
   {#if k1}
-    <div class="row"><span class="k"><span class="chip" aria-hidden="true">⚡</span>Fastest 1 km</span>
+    <!-- an older payload's 1 km has no key: nothing to open -->
+    {#snippet fastest()}
+      <span class="k"><span class="chip" aria-hidden="true">⚡</span>Fastest 1 km</span>
       <span class="v run">{paceText(k1.seconds)} · {shortDate(k1.date)}</span>
-    </div>
+    {/snippet}
+    {#if k1.key}
+      <button type="button" class="row" onclick={() => onopen({ key: k1.key })}>{@render fastest()}</button>
+    {:else}
+      <div class="row">{@render fastest()}</div>
+    {/if}
   {:else}
     <p class="caption empty">Run 1 km with GPS to set your first time.</p>
   {/if}
@@ -67,6 +74,8 @@
   .more { margin: 0.25rem 0 0.5rem; }
   .empty { margin: 0; padding: 0.625rem 0; }
   .row { display: flex; justify-content: space-between; gap: 1rem; padding: 0.625rem 0; }
+  button.row { width: 100%; min-height: 2.75rem; border: 0; background: none; color: inherit; font: inherit; text-align: start; }
+  button.row:active { background: var(--fill); }
   .row + .row, .empty + .row { border-top: 1px solid var(--line); }
   .k { color: var(--muted); }
   .v { font-weight: 600; font-variant-numeric: tabular-nums; }

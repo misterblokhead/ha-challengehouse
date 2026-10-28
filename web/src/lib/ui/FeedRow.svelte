@@ -1,120 +1,54 @@
 <script>
-  import { act, moveRun, pending } from "../actions.svelte.js";
-  import { screen } from "../media.svelte.js";
-  import { feedRow, shoePicker } from "../model.js";
-  import { animate } from "../motion.js";
-  import { createSpring } from "../spring.js";
+  import { pending } from "../actions.svelte.js";
+  import { feedRow } from "../model.js";
 
-  // One workout of the feed. Tap opens it in place (a height spring, from wherever it is, so a second tap reverses it mid-way):
-  // the details, and Remove / Restore / Delete when `canEdit`. A sent change shows at once, dimmed with a spinner
-  // until a payload confirms it (actions.svelte.js).
-  // `shoes` (the owner's shoe rows, only when the viewer may move their runs) adds "Shoe: <name> ▾" to a run; `runShoes`: {run key: shoe id}.
-  let { person, item, canEdit, record, shoes = null, runShoes } = $props(); // record: this workout holds a personal record
+  // One workout of the feed. A tap opens its details pop-up (`onopen(item)`); an active day has none. An uncounted workout is greyed
+  // and says why in place of its XP. A sent Remove / Restore shows at once, dimmed with a spinner until a payload confirms it (actions.svelte.js).
+  let { person, item, record, onopen } = $props(); // record: this workout holds a personal record
 
   const ICONS = { run: "🏃", walk: "🚶", gym: "🏋️", home: "🧘", active_day: "👟" };
-  const uid = $props.id();
   const entry = $derived(pending[`${person}/${item.key}`]);
   const row = $derived(feedRow(entry && entry.want !== null ? { ...item, excluded: entry.want } : item));
-  const facts = $derived(
-    [["Distance", row.detail.km], ["Pace", row.detail.pace], ["Avg heart rate", row.detail.hr], ["Plan session", row.detail.plan]]
-      .filter(([, v]) => v),
-  );
   const deleting = $derived(entry?.want === null);
-  const picker = $derived(shoes && item.kind === "run" ? shoePicker(shoes, runShoes?.[item.key]) : null);
-  const expandable = $derived(facts.length > 0 || (canEdit && !!row.removable) || !!picker?.options.length); // an active day has nothing to open
-
-  let open = $state(false);
-  let confirming = $state(false);
-  let box = $state(), inner = $state(); // inside the expandable `{#if}`
-  const spring = createSpring({ response: 0.35, damping: 1 });
-  const run = animate(spring, {
-    onFrame: (v) => (box.style.height = `${v}px`),
-    onSettle: () => open && (box.style.height = "auto"), // follows later content (the Delete confirm)
-  });
-  $effect(() => run.stop);
-
-  function toggle() {
-    if (!expandable) return;
-    open = !open;
-    confirming = false;
-    if (screen.reducedMotion) {
-      box.style.height = open ? "auto" : "0px"; // the content cross-fades (CSS)
-      return;
-    }
-    if (!run.running) spring.value = box.offsetHeight; // from what is on screen
-    run.to(open ? inner.offsetHeight : 0);
-  }
-
-  async function pick(e) {
-    const select = e.currentTarget;
-    if (!(await moveRun(person, item.key, Number(select.value)))) select.value = String(picker.value); // refused: back to the shoe it is on
-  }
-
-  const label = { remove: "Remove", restore: "Restore", delete: "Delete" };
-  function action() {
-    if (row.removable === "delete") confirming = true;
-    else act(person, item.key, row.removable);
-  }
+  const opens = $derived(item.kind !== "active_day");
 </script>
 
-<li class:dim={row.removable === "restore" || deleting}>
-  <button type="button" class="head" aria-expanded={expandable ? open : undefined} aria-controls={expandable ? `${uid}-more` : undefined} onclick={toggle}>
-    <span class="ic {item.kind}" aria-hidden="true">{ICONS[item.kind] ?? "💪"}</span>
-    <span class="main">
-      <span class="t1">
-        {row.title}
-        {#if item.plan}<span class="mini">{item.plan}</span>{/if}
-        {#if item.joint}<span class="mini">Together</span>{/if}
-        {#if record}<span role="img" aria-label="Holds a record">🏆</span>{/if}
-      </span>
-      <span class="t2">{row.when} · {row.duration}</span>
-    </span>
-    <span class="right">
-      {#if entry}<span class="spin" role="img" aria-label="Saving"></span>{/if}
-      {row.removable === "restore" ? "Removed" : row.xp && `${row.xp} XP`}
-    </span>
-  </button>
-  {#if expandable}
-  <div class="more" class:open id="{uid}-more" bind:this={box} inert={!open}>
-    <div class="inner" bind:this={inner}>
-      {#if facts.length}
-        <dl>
-          {#each facts as [k, v] (k)}<div><dt>{k}</dt><dd>{v}</dd></div>{/each}
-        </dl>
-      {/if}
-      {#if picker?.options.length}
-        <label class="shoe">
-          Shoe:
-          <select value={picker.value} onchange={pick}>
-            {#if picker.extra}<option value="" disabled>{picker.extra}</option>{/if}
-            {#each picker.options as o (o.id)}<option value={o.id}>{o.label}</option>{/each}
-          </select>
-        </label>
-      {/if}
-      <div class="acts">
-        {#if canEdit && !deleting && row.removable}
-          {#if confirming}
-            <span class="ask">Delete manual entry?</span>
-            <button type="button" class="btn" onclick={() => (confirming = false)}>Cancel</button>
-            <button type="button" class="btn danger" onclick={() => (toggle(), act(person, item.key, "remove"))}>Delete</button>
-          {:else}
-            <button type="button" class="btn" class:danger={row.removable !== "restore"} onclick={action}>{label[row.removable]}</button>
-          {/if}
-        {/if}
-      </div>
-    </div>
-  </div>
+<li class:dim={row.removable === "restore" || deleting} class:grey={!!row.label}>
+  {#if opens}
+    <button type="button" class="head" onclick={() => onopen(item)}>{@render content()}</button>
+  {:else}
+    <div class="head">{@render content()}</div>
   {/if}
 </li>
+
+{#snippet content()}
+  <span class="ic {item.kind}" aria-hidden="true">{ICONS[item.kind] ?? "💪"}</span>
+  <span class="main">
+    <span class="t1">
+      {row.title}
+      {#if item.plan}<span class="mini">{item.plan}</span>{/if}
+      {#if item.joint}<span class="mini">Together</span>{/if}
+      {#if record}<span role="img" aria-label="Holds a record">🏆</span>{/if}
+    </span>
+    <span class="t2">{row.when} · {row.duration}</span>
+  </span>
+  <span class="right">
+    {#if entry}<span class="spin" role="img" aria-label="Saving"></span>{/if}
+    {row.removable === "restore" ? "Removed" : (row.label ?? (row.xp && `${row.xp} XP`))}
+  </span>
+{/snippet}
 
 <style>
   .head {
     display: flex; align-items: center; gap: 0.75rem; width: 100%; min-height: 3.5rem; box-sizing: border-box;
     padding: 0.625rem 1rem; border: 0; background: none; color: inherit; font: inherit; text-align: start;
   }
-  .head:active { background: var(--fill); }
+  button.head:active { background: var(--fill); }
   .head:focus-visible { outline-offset: -2px; }
   .dim .head > * { opacity: 0.45; }
+  /* uncounted: no colour, the title muted; text keeps its readable contrast */
+  .grey .ic { filter: grayscale(1); }
+  .grey .t1 { color: var(--muted); }
   .ic {
     display: grid; place-items: center; flex: none; width: 2.25rem; height: 2.25rem; border-radius: 0.625rem;
     background: var(--fill); font-size: 1.125rem;
@@ -136,22 +70,5 @@
     border: 2px solid var(--muted); border-right-color: transparent; animation: spin 0.8s linear infinite;
   }
   @keyframes spin { to { transform: rotate(1turn); } }
-
-  .more { height: 0; overflow: hidden; }
-  .inner { padding: 0 1rem 1rem 4rem; opacity: 0; transition: opacity var(--fade); }
-  .open .inner { opacity: 1; }
-  dl { display: grid; grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr)); gap: 0.5rem 1rem; margin: 0 0 0.75rem; }
-  dt { color: var(--muted); font-size: 0.75rem; font-weight: 600; }
-  dd { margin: 0; font-weight: 600; }
-  .shoe { display: flex; align-items: center; gap: 0.5rem; margin: 0 0 0.75rem; font-weight: 600; }
-  select {
-    min-height: 2.75rem; max-width: 100%; padding: 0 0.5rem; border: 1px solid var(--line); border-radius: var(--radius-ctl);
-    background: var(--card); color: var(--fg); font: inherit; font-size: 1rem; /* 16 px: iOS does not zoom into it */
-  }
-  select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-  .acts { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
-  .acts:empty { display: none; }
-  .danger { color: var(--warn-text); }
-  .ask { flex-basis: 100%; font-weight: 600; }
   @media (prefers-reduced-motion: reduce) { .spin { animation: none; border-right-color: var(--muted); opacity: 0.6; } }
 </style>

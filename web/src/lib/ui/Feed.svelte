@@ -4,8 +4,7 @@
   import FeedRow from "./FeedRow.svelte";
 
   // The 90-day feed, newest first, then what "Load older" brought in; excluded workouts stay in it, dimmed, so they can be restored.
-  let { person, items, canEdit, records, shoes = null, runShoes } = $props(); // records: the keys that hold a record (recordKeys), for the 🏆
-  // shoes: the person's shoe rows when the viewer may move their runs between them (live data), else null; runShoes: {run key: shoe id}
+  let { person, items, records, onopen } = $props(); // records: the keys that hold a record (recordKeys), for the 🏆; onopen(item): the pop-up
 
   let older = $state([]), more = $state(true), busy = $state(false);
   let before = null; // the day the next request asks for what is before: set by the first one, then 90 days further back each time
@@ -25,7 +24,7 @@
 
 {#if shown.length}
   <ul class="card">
-    {#each shown as item (item.key)}<FeedRow {person} {item} {canEdit} record={records?.has(item.key)} {shoes} {runShoes} />{/each}
+    {#each shown as item (item.key)}<FeedRow {person} {item} record={records?.has(item.key)} {onopen} />{/each}
   </ul>
 {:else}
   <p class="caption empty">No workouts in the last 90 days.</p>

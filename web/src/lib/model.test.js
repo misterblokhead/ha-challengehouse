@@ -94,20 +94,23 @@ test("staleSince: local HH:MM once older than the limit, else null", () => {
 
 const run = { key: "endurain:1", kind: "run", name: "Morning Run", start: "2026-10-26T07:30:00+01:00", minutes: 28, km: 3.1, avg_hr: 150.6552059052059, plan: "W1D2", xp: 24, excluded: false, url: "https://e/1" };
 
-test("feedRow: a run with pace, hr, plan and link", () => {
-  assert.deepEqual(feedRow(run), {
-    title: "Morning Run", when: "Mon 26 Oct, 07:30", duration: "28 min", xp: "+24",
-    detail: { km: "3.1 km", pace: "9:02 /km", hr: "151 bpm", plan: "W1D2", url: "https://e/1" },
-    removable: "remove",
+test("feedRow: a counted run", () => {
+  assert.deepEqual(feedRow({ ...run, counts: true, reason: null }), {
+    title: "Morning Run", when: "Mon 26 Oct, 07:30", duration: "28 min", xp: "+24", label: null, removable: "remove",
   });
 });
 
-test("feedRow: gym has no pace or km, long durations in hours, no xp when 0", () => {
+test("feedRow: an uncounted workout says why", () => {
+  assert.equal(feedRow({ ...run, counts: false, reason: "short", xp: 0 }).label, "Too short");
+  assert.equal(feedRow({ ...run, counts: false, reason: "easy", xp: 0 }).label, "Too easy");
+  assert.equal(feedRow({ ...run, counts: false, reason: "type", xp: 0 }).label, "Type not counted");
+  assert.equal(feedRow(run).label, null); // an older payload without `counts`
+});
+
+test("feedRow: long durations in hours, no xp when 0", () => {
   const gym = { key: "opengym:9", kind: "gym", name: "Gym", start: "2026-10-25T18:05:00+01:00", minutes: 65, km: null, avg_hr: null, plan: null, xp: 0, excluded: false, url: null };
   assert.deepEqual(feedRow(gym), {
-    title: "Gym", when: "Sun 25 Oct, 18:05", duration: "1 h 05 min", xp: "",
-    detail: { km: null, pace: null, hr: null, plan: null, url: null },
-    removable: "remove",
+    title: "Gym", when: "Sun 25 Oct, 18:05", duration: "1 h 05 min", xp: "", label: null, removable: "remove",
   });
   assert.equal(feedRow({ ...gym, minutes: 60 }).duration, "1 h");
 });
@@ -115,17 +118,8 @@ test("feedRow: gym has no pace or km, long durations in hours, no xp when 0", ()
 test("feedRow: an active day shows its steps, has no Remove", () => {
   const day = { key: "steps:person1:2026-10-26", kind: "active_day", name: "Active day", start: "2026-10-26T00:00:00+01:00", minutes: 0, km: null, avg_hr: null, plan: null, xp: 15, steps: 12034, excluded: false, url: null };
   assert.deepEqual(feedRow(day), {
-    title: "Active day", when: "Mon 26 Oct", duration: "12,034 steps", xp: "+15",
-    detail: { km: null, pace: null, hr: null, plan: null, url: null },
-    removable: null,
+    title: "Active day", when: "Mon 26 Oct", duration: "12,034 steps", xp: "+15", label: null, removable: null,
   });
-});
-
-test("feedRow: pace only for run and walk with a distance", () => {
-  assert.equal(feedRow({ ...run, kind: "walk" }).detail.pace, "9:02 /km");
-  assert.equal(feedRow({ ...run, kind: "gym" }).detail.pace, null);
-  assert.equal(feedRow({ ...run, km: 0 }).detail.pace, null);
-  assert.equal(feedRow({ ...run, km: null }).detail.km, null);
 });
 
 test("feedRow: a malformed start gives an empty date, not a throw", () => {

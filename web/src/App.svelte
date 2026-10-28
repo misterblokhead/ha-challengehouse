@@ -119,7 +119,7 @@
       </div>
     {/if}
     {#if data.group}<Together group={data.group} {people} />{/if}
-    {#if split.self}<Details id={split.self} person={people[split.self]} canEdit={canEdit(split.self)} />{/if}
+    {#if split.self}<Details id={split.self} person={people[split.self]} canEdit={canEdit(split.self)} viewer={data.viewer} />{/if}
   {/if}
 </main>
 </div>
@@ -131,7 +131,7 @@
 {:else if sheetShown}
   <Sheet label="{people[sheet.id].name}'s details" from={sheet.from} onclose={closeSheet} onback={goBack}>
     <PersonTile person={people[sheet.id]} index={ids.indexOf(sheet.id)} />
-    <Details id={sheet.id} person={people[sheet.id]} canEdit={canEdit(sheet.id)} />
+    <Details id={sheet.id} person={people[sheet.id]} canEdit={canEdit(sheet.id)} viewer={data.viewer} />
   </Sheet>
 {/if}
 <Toast />

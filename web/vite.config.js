@@ -10,5 +10,7 @@ export default defineConfig(({ command }) => ({
     outDir: "../custom_components/fitbridge/frontend",
     emptyOutDir: true,
     lib: { entry: "src/panel.js", formats: ["es"], fileName: () => "panel.js", cssFileName: "panel" },
+    // viz (Leaflet, uPlot) loads only when a workout pop-up opens; what it shares with the panel (Svelte) sits in a chunk both import
+    rollupOptions: { output: { chunkFileNames: (c) => (c.isDynamicEntry ? "[name]-[hash].js" : "shared-[hash].js") } },
   },
 }));

@@ -4,6 +4,8 @@
 const PREFIX = "/api/fitbridge/ui/";
 let hass;
 export const setHass = (h) => (hass = h);
+// A signed fetch of any HA path (the map tiles, authed.js); a plain one in the demo
+export const authedFetch = (url, init) => (hass ? hass.fetchWithAuth(url, init) : fetch(url, init));
 
 export async function send(method, path, body) {
   if (!hass && method !== "GET") {
@@ -15,7 +17,7 @@ export async function send(method, path, body) {
     headers: body === undefined ? {} : { "Content-Type": "application/json" },
     body: body === undefined ? undefined : JSON.stringify(body),
   };
-  const r = await (hass ? hass.fetchWithAuth(PREFIX + path, init) : fetch(`./demo-${path}.json`, init));
+  const r = await (hass ? hass.fetchWithAuth(PREFIX + path, init) : fetch(`./demo-${path.split("?")[0]}.json`, init)); // the demo has one file per view
   if (!r.ok) {
     const detail = await r.json().then((b) => b?.detail, () => undefined);
     throw Object.assign(new Error(String(r.status)), { status: r.status, detail });

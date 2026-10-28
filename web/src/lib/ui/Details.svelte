@@ -5,15 +5,17 @@
   import Progress from "./Progress.svelte";
   import Shoes from "./Shoes.svelte";
   import ShoesDialog from "./ShoesDialog.svelte";
+  import WorkoutDialog from "./WorkoutDialog.svelte";
   import { recordKeys, shoesManageable } from "../model.js";
 
   // A person's plan, 90-day activity, badges, progress and shoes: inline under the viewer's own tile, or in the sheet for anyone else.
-  // `canEdit`: this viewer may Remove/Restore this person's workouts (viewer.can_edit).
-  let { id, person: p, canEdit } = $props();
+  // `canEdit`: this viewer may Remove/Restore this person's workouts (viewer.can_edit); a tap on a workout opens its pop-up.
+  let { id, person: p, canEdit, viewer } = $props();
   const uid = $props.id();
   const records = $derived(recordKeys(p.pbs));
   const manage = $derived(shoesManageable(p, canEdit)); // live data and this viewer may edit: Manage, and each run's shoe
-  let shoesDialog = $state();
+  let shoesDialog = $state(), workout = $state();
+  const openWorkout = (item) => workout.open(item);
 </script>
 
 {#if p.plan}
@@ -24,7 +26,7 @@
 {/if}
 <section aria-labelledby="{uid}-feed">
   <h2 id="{uid}-feed">Activity</h2>
-  {#key id}<Feed person={id} items={p.feed} {canEdit} {records} shoes={manage ? p.shoes : null} runShoes={p.run_shoes} />{/key}
+  {#key id}<Feed person={id} items={p.feed} {records} onopen={openWorkout} />{/key}
 </section>
 <section aria-labelledby="{uid}-badges">
   <h2 id="{uid}-badges">Badges <small>{p.badges.count} unlocked</small></h2>
@@ -32,8 +34,9 @@
 </section>
 <section aria-labelledby="{uid}-pbs">
   <h2 id="{uid}-pbs">Progress</h2>
-  <Progress person={p} />
+  <Progress person={p} onopen={openWorkout} />
 </section>
+<WorkoutDialog bind:this={workout} person={id} feed={p.feed} {viewer} shoes={manage ? p.shoes : null} runShoes={p.run_shoes} />
 {#if p.shoes?.length || manage}
   <section aria-labelledby="{uid}-shoes">
     <h2 id="{uid}-shoes">

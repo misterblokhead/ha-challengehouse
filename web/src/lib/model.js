@@ -63,7 +63,7 @@ const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "
 
 // The feed's `start` is ISO with the household's offset; its own wall-clock fields are what people recognise, whatever the device's zone.
 // `time` false: the date alone (an active day is a whole day, its start is midnight).
-function when(start, time = true) {
+export function when(start, time = true) {
   const m = /^(\d+)-(\d+)-(\d+)T(\d+:\d+)/.exec(start);
   if (!m) return "";
   const [, y, mo, d, hm] = m;
@@ -71,26 +71,17 @@ function when(start, time = true) {
   return time ? `${day}, ${hm}` : day;
 }
 
-const duration = (m) => (m < 60 ? `${m} min` : m % 60 ? `${Math.floor(m / 60)} h ${pad(m % 60)} min` : `${m / 60} h`);
+export const duration = (m) => (m < 60 ? `${m} min` : m % 60 ? `${Math.floor(m / 60)} h ${pad(m % 60)} min` : `${m / 60} h`);
 
-function pace(item) {
-  if (!(item.kind === "run" || item.kind === "walk") || !(item.km > 0)) return null;
-  const s = Math.round((item.minutes * 60) / item.km);
-  return `${Math.floor(s / 60)}:${pad(s % 60)} /km`;
-}
+// Why a workout earns nothing (`reason` of an uncounted one); the row shows it greyed, in place of its XP.
+const UNCOUNTED = { short: "Too short", easy: "Too easy", type: "Type not counted" };
 
 export const feedRow = (item) => ({
   title: item.name,
   when: when(item.start, item.kind !== "active_day"),
   duration: item.kind === "active_day" ? `${num(item.steps)} steps` : duration(item.minutes),
   xp: item.xp ? `+${item.xp}` : "",
-  detail: {
-    km: item.km == null ? null : `${item.km.toFixed(1)} km`,
-    pace: pace(item),
-    hr: item.avg_hr == null ? null : `${Math.round(item.avg_hr)} bpm`,
-    plan: item.plan ?? null,
-    url: item.url ?? null,
-  },
+  label: UNCOUNTED[item.reason] ?? null,
   removable: item.kind === "active_day" ? null : item.excluded ? "restore" : item.key.startsWith("manual:") ? "delete" : "remove",
 });
 
