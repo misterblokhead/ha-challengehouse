@@ -2,8 +2,8 @@
 import json
 import unittest
 
-from custom_components.fitbridge.engine.entities import (DEVICE, EVENT_ENTITIES, EVENTS, FITNESS_DEVICE, GROUP_SENSORS,
-                                                         MEASURED, PERSON_SENSORS, WORKOUT_FIELDS)
+from custom_components.fitbridge.engine.entities import (EVENT_ENTITIES, EVENTS, GROUP_SENSORS, MEASURED, PERSON_SENSORS,
+                                                         WORKOUT_FIELDS)
 from custom_components.fitbridge.engine.scoring import score
 from .discovery_fixture import FIXTURE, P1, P2, build
 from .test_scoring import CFG, NOW, SOLO
@@ -49,8 +49,6 @@ class FixtureTests(unittest.TestCase):
                 cfg = json.loads(MSGS[f"homeassistant/sensor/fit_{owner}_{key}/config"])
                 self.assertEqual((cfg["name"], cfg["icon"], cfg.get("unit_of_measurement")), (label, icon, unit))
                 self.assertEqual(cfg.get("state_class"), "measurement" if unit in MEASURED else None)
-                self.assertEqual(cfg["device"], {k: v.format(id=owner, name=subject["name"]) if isinstance(v, str) else
-                                                 [i.format(id=owner) for i in v] for k, v in DEVICE.items()})
 
     def test_events_match_mqtt(self):
         _, badges, workouts, records = build()
@@ -61,7 +59,7 @@ class FixtureTests(unittest.TestCase):
         self.assertEqual([tuple(e) for e in built], [tuple(e) for e in recorded])  # same key order too
         for t, (name, icon) in EVENT_ENTITIES.items():
             cfg = json.loads(MSGS[f"homeassistant/event/fit_{t}/config"])
-            self.assertEqual((cfg["name"], cfg["icon"], cfg["event_types"], cfg["device"]), (name, icon, [t], FITNESS_DEVICE))
+            self.assertEqual((cfg["name"], cfg["icon"], cfg["event_types"]), (name, icon, [t]))
 
 
 class EntityTests(unittest.TestCase):
@@ -78,6 +76,11 @@ class EntityTests(unittest.TestCase):
         workouts = PERSON_SENSORS["recent"][4](r1)["workouts"]
         self.assertEqual(len(workouts), PERSON_SENSORS["recent"][3](r1))
         self.assertFalse(any("url" in w for w in workouts))
+
+    def test_pbs_attributes_have_no_url(self):
+        run = {"seconds": 300, "date": "2026-10-27", "key": "f9"}
+        r1 = {**RESULT["people"][P1], "pbs": {**RESULT["people"][P1]["pbs"], "fastest_1k": {**run, "url": "https://e.test/1"}}}
+        self.assertEqual(PERSON_SENSORS["pbs"][4](r1)["fastest_1k"], run)
 
     def test_pbs_sensor_attributes_leave_out_the_growing_lifts_list(self):
         r1 = {**RESULT["people"][P1], "pbs": {**RESULT["people"][P1]["pbs"], "lifts": [{"id": "0118", "w": 70, "r": 5}]}}

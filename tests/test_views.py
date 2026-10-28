@@ -11,7 +11,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import MockUser
 
-from custom_components.fitbridge.const import OPT_SHOES, OPT_STEPS, OPT_VIEWERS
+from custom_components.fitbridge.const import DOMAIN, OPT_SHOES, OPT_STEPS, OPT_VIEWERS
 from custom_components.fitbridge.settings import monday_of
 
 UI = "/api/fitbridge/ui"
@@ -110,6 +110,21 @@ async def test_own_workout_publishes_retained_manual_message(hass, client, send,
     assert abs(int(topic.rsplit("/", 1)[1][:13]) - time.time() * 1000) < 60000
     assert payload == json.dumps({"action": action, "person": "p1", "key": key}) and qos == 1 and retain is True
 
+
+async def test_live_remove_goes_through_the_runner(hass, client, send, mqtt_mock):
+    await send(SCORES)
+    data = hass.data[DOMAIN]
+    data.shadow = False  # live: no MQTT, the runner applies it
+    mqtt_mock.async_publish.reset_mock()
+    c = await client("alex")
+    with patch.object(data.runner, "async_manual") as manual:
+        resp = await c.post(f"{UI}/workouts", json={"person": "p1", "key": "k1", "action": "remove"})
+    assert resp.status == 202 and await resp.json() == {"ok": True}
+    manual.assert_awaited_once_with({"action": "remove", "person": "p1", "key": "k1"})
+    with patch.object(data.runner, "async_manual", side_effect=ValueError("unknown person")):
+        resp = await c.post(f"{UI}/workouts", json={"person": "p1", "key": "k1", "action": "restore"})
+    assert resp.status == 400 and await resp.json() == {"detail": "unknown person"}
+    mqtt_mock.async_publish.assert_not_called()
 
 async def test_mapped_admin_may_edit_partner(hass, client, send, mqtt_mock):
     await send(SCORES)

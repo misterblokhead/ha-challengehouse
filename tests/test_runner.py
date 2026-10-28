@@ -11,7 +11,7 @@ from homeassistant.core import SupportsResponse, callback
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.util import dt as dt_util
-from pytest_homeassistant_custom_component.common import MockConfigEntry, async_fire_time_changed
+from pytest_homeassistant_custom_component.common import async_fire_time_changed
 
 from custom_components.fitbridge import runner as runner_mod
 from custom_components.fitbridge.const import (
@@ -23,28 +23,9 @@ from custom_components.fitbridge.const import (
 )
 from custom_components.fitbridge.engine.cycle import Cycle, score_cycle
 
-LIVE = {OPT_SHADOW: False}
 GYM = {OPT_SHADOW: False, OPT_OPENGYM_URL: "https://gym.example.test"}
 ALL_DAY = {"start": "2026-10-26", "end": "2026-10-28", "summary": "Sick"}  # end exclusive
 TIMED = {"start": "2026-10-28T08:00:00+01:00", "end": "2026-10-28T18:00:00+01:00", "summary": "Trip", "description": "x"}
-
-
-@pytest.fixture
-async def setup(hass, enable_custom_integrations):
-    """Set up an entry (live unless options say otherwise) and wait for its first cycle; unloaded afterwards."""
-    entries = []
-
-    async def _setup(options=LIVE, data=None, minor_version=2):
-        e = MockConfigEntry(domain=DOMAIN, unique_id=DOMAIN, title="Fitness", minor_version=minor_version,
-                            options=options, data=data or {})
-        e.add_to_hass(hass)
-        entries.append(e)
-        assert await hass.config_entries.async_setup(e.entry_id)
-        await hass.async_block_till_done(wait_background_tasks=True)
-        return e
-    yield _setup
-    for e in entries:
-        await hass.config_entries.async_unload(e.entry_id)
 
 
 @pytest.fixture
@@ -111,8 +92,10 @@ async def test_a_cycle_still_running_skips_the_tick(hass, setup, cycles, tmp_pat
         assert cycles.call_count == 1 and scan.call_count == 0  # skipped, not queued
         await hass.async_block_till_done(wait_background_tasks=True)
         assert cycles.call_count == 1
+        await _tick(hass, 61)  # alone: due together, either tick may take the lock first and skip the other
+        assert scan.call_count == 1 and cycles.call_count == 1
         await _tick(hass, 301)
-    assert cycles.call_count == 2 and scan.call_count == 1
+    assert cycles.call_count == 2
 
 
 async def test_shadow_writes_the_json_and_never_signals_or_commits(hass, setup, mqtt_mock, order):

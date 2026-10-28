@@ -33,11 +33,13 @@ DEFAULT_CONFIG = Path(__file__).parent / "engine" / "scoring.toml"
 
 class Runner:
     """Shadow mode (the LXC's fitbridge is still the live system): scores into `scores` and shadow-scores.json only.
-    Live: after each cycle SIGNAL_SCORES carries the Cycle; handlers must be @callback, as commit() follows them."""
+    Live: after each cycle SIGNAL_SCORES carries the Cycle; handlers must be @callback, as commit() follows them.
+    Not shadow but not live (old entities in the way): scores for the page, announces and records nothing."""
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         self.hass, self.entry = hass, entry
         self.shadow: bool = entry.options.get(OPT_SHADOW, False)
+        self.live: bool = not self.shadow  # entities and announcements; set before async_start
         self.dir = Path(hass.config.path(DATA_DIR))
         self.folders: dict[str, Path] = {}  # person -> watch folder, scanned every minute (Task 6 fills it)
         self.store: Store | None = None
@@ -103,7 +105,9 @@ class Runner:
             return
         self.scores = cycle.scores
         self._token_issue(og, cycle.gym_error)
-        if self.shadow:
+        if not self.shadow and isinstance(cycle.scores.get("people"), dict):  # no valid scoring config: the page keeps the last
+            data.scores = cycle.scores
+        if not self.live:
             return
         async_dispatcher_send(self.hass, SIGNAL_SCORES, cycle)
         try:  # only after the handlers ran: a restart in between repeats an announcement, never loses one
@@ -159,7 +163,7 @@ class Runner:
         return Store(self.dir / "fitbridge.db")
 
     def _cycle(self, og, inputs):
-        cycle = score_cycle(self.store, self.holder, og, inputs, dt_util.utcnow(), not self.shadow)
+        cycle = score_cycle(self.store, self.holder, og, inputs, dt_util.utcnow(), self.live)
         if self.shadow:  # compared with the LXC's /scores during the shadow run
             (self.dir / "shadow-scores.json").write_text(json.dumps(cycle.scores, indent=2, sort_keys=True), encoding="utf-8")
         return cycle

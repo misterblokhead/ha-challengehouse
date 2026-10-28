@@ -2,6 +2,11 @@
 
 Same states, attributes and event payloads as fitbridge's MQTT discovery published (spec section 7), minus Endurain links."""
 
+def _no_url(item):
+    """An item without its Endurain link (fastest_1k and the recent workouts carried one over MQTT)."""
+    return {k: v for k, v in item.items() if k != "url"} if isinstance(item, dict) else item
+
+
 # key -> (label, icon, unit, state(person), attributes(person)); entity sensor.fit_<person or group id>_<key>
 PERSON_SENSORS = {
     "xp": ("XP", "mdi:star-circle", "XP", lambda r: r["xp"],
@@ -13,9 +18,9 @@ PERSON_SENSORS = {
     "badges": ("Badges", "mdi:medal", None, lambda r: r["badges"]["count"], lambda r: r["badges"]),
     # longest_session_km is always a number (0.0 before the first outdoor run), so no unknown state
     "pbs": ("Personal bests", "mdi:trophy", "km", lambda r: r["pbs"]["longest_session_km"],
-             lambda r: {k: v for k, v in r["pbs"].items() if k != "lifts"}),  # the growing lifts list could pass HA's 16 KB limit; the page reads the full scores
+             lambda r: {k: _no_url(v) for k, v in r["pbs"].items() if k != "lifts"}),  # the growing lifts list could pass HA's 16 KB limit; the page reads the full scores
     "recent": ("Recent", "mdi:history", None, lambda r: len(r["recent"]),
-               lambda r: {"workouts": [{k: v for k, v in w.items() if k != "url"} for w in r["recent"]]}),
+               lambda r: {"workouts": [_no_url(w) for w in r["recent"]]}),
 }
 GROUP_SENSORS = {
     "streak_weeks": ("Streak", "mdi:fire", "wk", lambda g: g["streak"], lambda g: {"best": g["best_streak"]}),
@@ -25,8 +30,6 @@ GROUP_SENSORS = {
 }
 MEASURED = {"XP", "%", "wk", "km"}                  # units that also get state_class: measurement
 WORKOUT_FIELDS = ("kind", "minutes", "km", "xp", "plan", "joint")
-FITNESS_DEVICE = {"identifiers": ["fitbridge"], "name": "Fitness", "manufacturer": "fitbridge"}  # the events' device
-DEVICE = {"identifiers": ["fitbridge_{id}"], "name": "Fitness {name}", "manufacturer": "fitbridge"}  # per person / group
 EVENT_ENTITIES = {"badge_unlocked": ("Badge unlocked", "mdi:medal"), "workout_scored": ("Workout scored", "mdi:run"),
                   "record_set": ("Record set", "mdi:trophy")}  # event type -> (name, icon); entity event.fit_<type>
 # event type -> payload(person, item): item is a badge, a feed item or a record event

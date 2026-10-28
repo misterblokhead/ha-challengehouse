@@ -37,6 +37,70 @@
     "opengym_token": {
       "title": "openGym rejected the token",
       "description": "fitbridge could not read openGym because the token was rejected. Gym sessions come from the last good fetch until fitbridge is paired with openGym again."
+    },
+    "old_entities": {
+      "title": "Old fitness entities are in the way",
+      "description": "Fitness is not in shadow mode, but another integration (MQTT, from fitbridge on the LXC) still has entity ids the fitness sensors and events need, such as the sensor.fit_… sensors or event.fit_record_set. Until they are gone, Fitness scores for its page but creates no entities and announces nothing. Stop the LXC's fitbridge so it clears its MQTT entities (or delete them), then reload Fitness."
+    }
+  },
+  "services": {
+    "remove_workout": {
+      "name": "Remove workout",
+      "description": "Leaves a workout out of scoring; a workout logged by hand is deleted.",
+      "fields": {
+        "person": {
+          "name": "Person",
+          "description": "The fitbridge person, as in scoring.toml (for example person1)."
+        },
+        "key": {
+          "name": "Workout key",
+          "description": "The workout's key, as the Recent sensor and the page show it."
+        }
+      }
+    },
+    "restore_workout": {
+      "name": "Restore workout",
+      "description": "Counts a removed workout again.",
+      "fields": {
+        "person": {
+          "name": "Person",
+          "description": "The fitbridge person, as in scoring.toml (for example person1)."
+        },
+        "key": {
+          "name": "Workout key",
+          "description": "The workout's key, as the Recent sensor and the page show it."
+        }
+      }
+    },
+    "log_workout": {
+      "name": "Log workout",
+      "description": "Adds a workout by hand.",
+      "fields": {
+        "person": {
+          "name": "Person",
+          "description": "The fitbridge person, as in scoring.toml (for example person1)."
+        },
+        "kind": {
+          "name": "Kind",
+          "description": "run, walk, gym or home."
+        },
+        "start": {
+          "name": "Start",
+          "description": "ISO 8601 time with timezone, for example 2026-10-28T18:30:00+01:00."
+        },
+        "minutes": {
+          "name": "Minutes",
+          "description": "Duration, up to 600."
+        },
+        "km": {
+          "name": "Distance",
+          "description": "Kilometres, optional."
+        },
+        "indoor": {
+          "name": "Indoor",
+          "description": "Indoor, for example on a treadmill."
+        }
+      }
     }
   }
 }

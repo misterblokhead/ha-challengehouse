@@ -119,6 +119,13 @@ class UiView(HomeAssistantView):
             return _detail(self, "not allowed", HTTPStatus.FORBIDDEN)
         if find_workout(data.scores, person, key) is None:
             return _detail(self, "not found", HTTPStatus.NOT_FOUND)
+        if not data.shadow:
+            try:
+                await data.runner.async_manual({"action": body["action"], "person": person, "key": key})
+            except ValueError as err:
+                return _detail(self, str(err), HTTPStatus.BAD_REQUEST)
+            return self.json({"ok": True}, status_code=HTTPStatus.ACCEPTED)
+        # shadow: the LXC's fitbridge is live (cleanup after the switch: this MQTT branch goes).
         # ms, zero-padded: fitbridge applies messages in id-time order, so an Undo a second later follows its Remove
         msg_id = f"{time.time_ns() // 1_000_000:013d}-{secrets.token_hex(3)}"
         topic, payload = manual_message(body["action"], person, key, msg_id)
