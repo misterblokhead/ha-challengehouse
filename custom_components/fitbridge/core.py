@@ -76,8 +76,8 @@ def shoes(chosen: dict[str, float], states: dict[str, tuple[str, dict] | None]) 
 
 
 def find_workout(scores: dict, person: str, key: str) -> dict | None:
-    feed = scores["people"].get(person, {}).get("feed", [])
-    return next((w for w in feed if w.get("key") == key), None)
+    r = scores["people"].get(person, {})
+    return next((w for w in r.get("feed", []) + r.get("older", []) if w.get("key") == key), None)
 
 
 def manual_message(action: str, person: str, key: str, msg_id: str) -> tuple[str, str]:

@@ -148,6 +148,16 @@ async def test_own_workout_publishes_retained_manual_message(hass, client, send,
     assert payload == json.dumps({"action": action, "person": "p1", "key": key}) and qos == 1 and retain is True
 
 
+async def test_remove_works_on_a_workout_only_in_older(hass, client, send, mqtt_mock):
+    await send({"people": {"p1": {"feed": [{"key": "k1"}], "older": _older(100)}}})
+    mqtt_mock.async_publish.reset_mock()
+    c = await client("alex")
+    resp = await c.post(f"{UI}/workouts", json={"person": "p1", "key": "o100", "action": "remove"})
+    assert resp.status == 202
+    assert json.loads(mqtt_mock.async_publish.call_args.args[1]) == {"action": "remove", "person": "p1", "key": "o100"}
+    assert (await c.post(f"{UI}/workouts", json={"person": "p1", "key": "o999", "action": "remove"})).status == 404
+
+
 async def test_live_remove_goes_through_the_runner(hass, client, send, mqtt_mock):
     await send(SCORES)
     data = hass.data[DOMAIN]
