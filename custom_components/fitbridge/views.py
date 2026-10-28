@@ -12,8 +12,8 @@ from homeassistant.helpers.http import KEY_HASS
 from homeassistant.util import dt as dt_util
 
 from . import settings
-from .const import DOMAIN, OPT_SHOES, OPT_STEPS, OPT_VIEWERS
-from .core import can_edit, find_workout, manual_message, older_feed, shape, shoes, viewer_person
+from .const import DOMAIN, OPT_STEPS, OPT_VIEWERS
+from .core import can_edit, find_workout, manual_message, older_feed, shape, viewer_person
 from .engine import shoes as shoe_engine
 from .steps import parse, week
 
@@ -135,16 +135,13 @@ class UiView(HomeAssistantView):
     def _scores(self, request: web.Request, data) -> dict:
         user, hass = request["hass_user"], request.app[KEY_HASS]
         person = viewer_person(user.id, data.entry.options.get(OPT_VIEWERS, {}), data.scores)
-        chosen = data.entry.options.get(OPT_SHOES, {}) if data.shadow else {}  # shadow: Endurain's shoes; live: the engine's, in the scores
-        states = {eid: (s.state, dict(s.attributes)) if (s := hass.states.get(eid)) else None
-                  for limits in chosen.values() for eid in limits}
         steps = {p: _steps_today(hass.states.get(eid)) for p, eid in data.entry.options.get(OPT_STEPS, {}).items()}
         today = dt_util.now().date()
         weeks = {p: week(data.steps.days(p) if data.steps else {}, today) for p in steps}
         for p, n in steps.items():
             if n is not None:  # the live count leads the collector, which only files a phone's own reports
                 weeks[p][today.isoformat()] = max(weeks[p].get(today.isoformat(), 0), n)
-        return shape(data.scores, person, user.is_admin, {p: shoes(limits, states) for p, limits in chosen.items()}, steps, weeks)
+        return shape(data.scores, person, user.is_admin, steps, weeks)
 
     async def post(self, request: web.Request, path: str) -> web.Response:
         if path not in ("workouts", "settings", "shoes"):

@@ -16,7 +16,6 @@ from custom_components.fitbridge.const import (
     OPT_OPENGYM_UIDS,
     OPT_OPENGYM_URL,
     OPT_SHADOW,
-    OPT_SHOES,
     OPT_STEPS,
     OPT_VIEWERS,
     WEBHOOKS,
@@ -69,16 +68,6 @@ async def test_options_map_users_to_people(hass, entry, send):
     assert entry.options == {OPT_SHADOW: True,  # options the flow does not show are kept
                              OPT_VIEWERS: {alex.id: "p1", twins[1].id: "p2"}, OPT_STEPS: {}}
     assert sam.id not in entry.options[OPT_VIEWERS]
-
-
-async def test_options_keep_the_saved_endurain_shoes_for_the_carry_over(hass, entry, send):
-    await send(SCORES)
-    shoes = {"p1": {"sensor.trail": 800}}
-    hass.config_entries.async_update_entry(entry, options={OPT_VIEWERS: {}, OPT_SHOES: shoes})
-    result = await _open(hass, entry, "viewers")
-    result = await hass.config_entries.options.async_configure(result["flow_id"], {})
-    result = await hass.config_entries.options.async_configure(result["flow_id"], {})
-    assert result["type"] is FlowResultType.CREATE_ENTRY and entry.options[OPT_SHOES] == shoes
 
 
 async def test_options_step_sensors_after_viewers(hass, entry, send):

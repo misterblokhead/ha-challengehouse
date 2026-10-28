@@ -11,7 +11,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import MockUser
 
-from custom_components.fitbridge.const import DOMAIN, OPT_SHADOW, OPT_SHOES, OPT_STEPS, OPT_VIEWERS
+from custom_components.fitbridge.const import DOMAIN, OPT_SHADOW, OPT_STEPS, OPT_VIEWERS
 from custom_components.fitbridge.settings import monday_of
 
 UI = "/api/fitbridge/ui"
@@ -87,16 +87,6 @@ async def test_feed_refusals(hass, client, send):
     body = await (await c.get(f"{UI}/feed", params={"person": "p1", "before": "2027-03-01"})).json()
     assert body == {"items": [], "more": False}                         # no older at all (e.g. the LXC's payload)
 
-
-async def test_scores_carry_each_persons_shoes(hass, entry, users, client, send):
-    await send(SCORES)
-    hass.states.async_set("sensor.trail", "123.4", {"nickname": "Trail", "activity_count": 9, "last_activity_at": "2026-10-20T07:00:00Z"})
-    hass.config_entries.async_update_entry(entry, options={**entry.options, OPT_SHOES: {"p1": {"sensor.trail": 700, "sensor.gone": 500}}})
-    body = await (await (await client("sam")).get(f"{UI}/scores")).json()
-    assert body["people"]["p1"]["shoes"] == [
-        {"entity_id": "sensor.trail", "name": "Trail", "km": 123.4, "limit": 700, "runs": 9, "last_run": "2026-10-20T07:00:00Z"},
-        {"entity_id": "sensor.gone", "name": "sensor.gone", "km": None, "limit": 500, "runs": None, "last_run": None}]
-    assert body["people"]["p2"]["shoes"] == []
 
 async def test_scores_carry_steps_today_from_the_live_sensor(hass, entry, users, client, send):
     await send(SCORES)
@@ -346,8 +336,7 @@ async def live(hass, setup, hass_client):
             "robin": MockUser(name="Robin", groups=[admin])}
     for u in made.values():
         u.add_to_hass(hass)
-    await setup({OPT_SHADOW: False, OPT_VIEWERS: {made["person1"].id: "person1", made["person2"].id: "person2"},
-                 OPT_SHOES: {"person1": {"sensor.endurain_trail": 700}}})
+    await setup({OPT_SHADOW: False, OPT_VIEWERS: {made["person1"].id: "person1", made["person2"].id: "person2"}})
 
     async def _client(name):
         token = await hass.auth.async_create_refresh_token(made[name], "https://fit.example.test")
@@ -371,10 +360,10 @@ def _run(hass, person, key, km, days_ago):
                                        start=start.isoformat(), end=(start + timedelta(minutes=30)).isoformat(), duration_s=1800)
 
 
-async def test_live_scores_carry_the_engines_shoes_not_endurains(hass, live):
+async def test_live_scores_carry_the_engines_shoes(hass, live):
     c = await live("person1")
     body = await (await c.get(f"{UI}/scores")).json()
-    assert body["people"]["person1"]["shoes"] == [] and body["people"]["person1"]["run_shoes"] == {}  # OPT_SHOES is for the shadow weeks
+    assert body["people"]["person1"]["shoes"] == [] and body["people"]["person1"]["run_shoes"] == {}
     a = await _add(c)
     assert await _shoes(c) == [{"id": a, "name": "Trail", "km": 0.0, "limit": 700, "runs": 0, "last_run": None, "current": True}]
     assert await (await c.get(f"{UI}/shoes")).json() == {"person1": await _shoes(c), "person2": []}
@@ -522,21 +511,6 @@ async def test_shoes_are_not_managed_during_shadow(hass, client, send, mqtt_mock
         assert resp.status == 409 and await resp.json() == {"detail": "shoes are managed after the switch"}
     mqtt_mock.async_publish.assert_not_called()
     assert (await c.get(f"{UI}/shoes")).status == 200
-
-
-async def test_carry_over_shoes_takes_the_endurain_shoes_and_their_km(hass, setup):
-    hass.states.async_set("sensor.trail", "412.4", {"nickname": "Trail"})
-    hass.states.async_set("sensor.old", "50", {"nickname": "Old", "active": False})  # retired in Endurain
-    hass.states.async_set("sensor.road", "unavailable", {"friendly_name": "Road"})
-    await setup({OPT_SHADOW: False, OPT_SHOES: {"person1": {"sensor.trail": 700, "sensor.old": 500, "sensor.road": 600, "sensor.gone": 400},
-                                                 "nobody": {"sensor.trail": 700}}})
-    _run(hass, "person1", "r1", 5, 2)
-    for _ in range(2):  # twice: nothing doubles
-        await hass.services.async_call(DOMAIN, "carry_over_shoes", {}, blocking=True)
-        rows = hass.data[DOMAIN].scores["people"]["person1"]["shoes"]
-        assert [(s["name"], s["km"], s["limit"], s["runs"], s["current"]) for s in rows] == [
-            ("Trail", 412.4, 700, 1, True), ("Road", 0.0, 600, 0, False)]
-    assert hass.data[DOMAIN].scores["people"]["person2"]["shoes"] == []
 
 
 def _gpx(path, points=700, hr=True):

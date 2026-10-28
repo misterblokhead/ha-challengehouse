@@ -1,6 +1,6 @@
 """Shoes: km counted from the owner's runs, each run on one shoe, one current shoe per person."""
 from . import scoring, store as store_mod
-from .ingest import db_workouts, is_run
+from .ingest import is_run
 
 
 def _current(store, person):
@@ -96,21 +96,3 @@ def rows(store, person, runs):
                     "current": s["id"] == current})
     return out
 
-
-def carry_over(store, person, endurain, types):
-    """Shoes from Endurain ({"name", "replace_at_km", "km"} each): the first becomes current and takes every existing
-    run; each start_km is Endurain's km minus what fitbridge counts, never below 0 (Endurain missed those runs' uploads).
-    Safe to run twice (shoes match by name)."""
-    runs = db_workouts(store, (person,), types)[0][person]
-    with store.lock:
-        known = {r["name"]: r["id"] for r in store.db.execute("SELECT id, name FROM shoes WHERE person=?", (person,))}
-    ids = [known.get(e["name"]) or add(store, person, e["name"], e["replace_at_km"]) for e in endurain]
-    if ids and _current(store, person) is None:
-        set_current(store, person, ids[0])
-    if ids:
-        with store.lock, store.db:
-            store.db.executemany("INSERT OR IGNORE INTO run_shoes VALUES(?,?,?)",
-                                 [(person, w["key"], ids[0]) for w in runs if w["kind"] == "run"])
-    used = _used(store, person, runs)
-    for e, shoe_id in zip(endurain, ids):
-        update(store, shoe_id, start_km=max(0.0, (e["km"] or 0) - used.get(shoe_id, (0.0,))[0]))

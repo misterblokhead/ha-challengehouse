@@ -140,10 +140,6 @@
           "description": "Indoor, for example on a treadmill."
         }
       }
-    },
-    "carry_over_shoes": {
-      "name": "Carry over shoes",
-      "description": "Copies each person's Endurain shoes (the ones chosen earlier in the options) into Fitness: same name and replace-at distance, each person's earlier runs on their first shoe, and the distance Endurain shows kept. Safe to run twice."
     }
   }
 }

@@ -84,43 +84,11 @@ def test_manual_message_bad_action():
         core.manual_message("delete", "p1", "k1", "m-1")
 
 
-HOKA = ("412.5", {"nickname": "Hoka", "friendly_name": "Endurain Hoka Distance", "active": True,
-                  "activity_count": 40, "last_activity_at": "2026-10-26T16:48:53Z"})
-
-
-def test_shoes_rows_in_chosen_order():
-    states = {"sensor.hoka": HOKA, "sensor.old": ("900", {"nickname": "Old", "active": False}),
-              "sensor.nike": ("0.0", {"friendly_name": "Endurain Nike Distance"})}
-    rows = core.shoes({"sensor.nike": 600, "sensor.hoka": 700, "sensor.old": 700}, states)
-    assert rows == [
-        {"entity_id": "sensor.nike", "name": "Endurain Nike Distance", "km": 0.0, "limit": 600, "runs": None, "last_run": None},
-        {"entity_id": "sensor.hoka", "name": "Hoka", "km": 412.5, "limit": 700, "runs": 40, "last_run": "2026-10-26T16:48:53Z"},
-    ]  # a shoe Endurain retired (active false) is left out
-
-
-@pytest.mark.parametrize("state", ["unavailable", "unknown", "", "nan", "inf"])
-def test_shoes_without_a_number_has_no_km(state):
-    [row] = core.shoes({"sensor.hoka": 700}, {"sensor.hoka": (state, HOKA[1])})
-    assert row["km"] is None and row["name"] == "Hoka"
-
-
-def test_shoes_missing_entity():
-    assert core.shoes({"sensor.gone": 700}, {"sensor.gone": None}) == [
-        {"entity_id": "sensor.gone", "name": "sensor.gone", "km": None, "limit": 700, "runs": None, "last_run": None}]
-
-
-def test_shape_adds_shoes_per_person():
-    rows = [{"entity_id": "sensor.hoka"}]
-    out = core.shape(SCORES, None, False, {"p1": rows, "ghost": rows})
-    assert out["people"]["p1"]["shoes"] == rows and out["people"]["p2"]["shoes"] == []
-    assert "ghost" not in out["people"]
-
-
 def test_shape_adds_steps_today_per_person():
-    out = core.shape(SCORES, None, False, None, {"p1": 812, "ghost": 5})
+    out = core.shape(SCORES, None, False, {"p1": 812, "ghost": 5})
     assert out["people"]["p1"]["steps_today"] == 812 and out["people"]["p2"]["steps_today"] is None
 
 
 def test_shape_adds_steps_week_per_person():
-    out = core.shape(SCORES, None, False, None, None, {"p1": {"2026-10-26": 12000}, "ghost": {}})
+    out = core.shape(SCORES, None, False, None, {"p1": {"2026-10-26": 12000}, "ghost": {}})
     assert out["people"]["p1"]["steps_week"] == {"2026-10-26": 12000} and out["people"]["p2"]["steps_week"] is None
