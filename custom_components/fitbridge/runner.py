@@ -32,6 +32,14 @@ ISSUE_TOKEN = "opengym_token"
 DEFAULT_CONFIG = Path(__file__).parent / "engine" / "scoring.toml"
 
 
+def _without_older(scores: dict) -> dict:
+    """The scores as the LXC's /scores has them: no `older` feed (it lives in memory, for the page's Load older)."""
+    people = scores.get("people")
+    if not isinstance(people, dict):
+        return scores
+    return {**scores, "people": {p: {k: v for k, v in r.items() if k != "older"} for p, r in people.items()}}
+
+
 class Runner:
     """Shadow mode (the LXC's fitbridge is still the live system): scores into `scores` and shadow-scores.json only.
     Live: after each cycle SIGNAL_SCORES carries the Cycle; handlers must be @callback, as commit() follows them.
@@ -230,7 +238,7 @@ class Runner:
     def _cycle(self, og, inputs):
         cycle = score_cycle(self.store, self.holder, og, inputs, dt_util.utcnow(), self.live)
         if self.shadow:  # compared with the LXC's /scores during the shadow run
-            (self.dir / "shadow-scores.json").write_text(json.dumps(cycle.scores, indent=2, sort_keys=True), encoding="utf-8")
+            (self.dir / "shadow-scores.json").write_text(json.dumps(_without_older(cycle.scores), indent=2, sort_keys=True), encoding="utf-8")
         return cycle
 
     def _scan(self) -> set[str]:

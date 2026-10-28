@@ -2,6 +2,7 @@
 import json
 import secrets
 import time
+from datetime import date
 from http import HTTPStatus
 
 from aiohttp import web
@@ -12,7 +13,7 @@ from homeassistant.util import dt as dt_util
 
 from . import settings
 from .const import DOMAIN, OPT_SHOES, OPT_STEPS, OPT_VIEWERS
-from .core import can_edit, find_workout, manual_message, shape, shoes, viewer_person
+from .core import can_edit, find_workout, manual_message, older_feed, shape, shoes, viewer_person
 from .engine import shoes as shoe_engine
 from .steps import parse, week
 
@@ -102,11 +103,19 @@ class UiView(HomeAssistantView):
     requires_auth = True
 
     async def get(self, request: web.Request, path: str) -> web.Response:
-        if path not in ("scores", "settings", "shoes"):
+        if path not in ("scores", "settings", "shoes", "feed"):
             return _detail(self, "not found", HTTPStatus.NOT_FOUND)
         data = request.app[KEY_HASS].data.get(DOMAIN)
         if data is None or data.scores is None:
             return _detail(self, "waiting", HTTPStatus.SERVICE_UNAVAILABLE)
+        if path == "feed":
+            if request.query.get("person") not in data.scores["people"]:
+                return _detail(self, "unknown person", HTTPStatus.NOT_FOUND)
+            try:
+                before = date.fromisoformat(request.query.get("before", ""))
+            except ValueError:
+                return _detail(self, "before: a date, YYYY-MM-DD", HTTPStatus.BAD_REQUEST)
+            return self.json(older_feed(data.scores, request.query["person"], before))
         if path == "settings":
             monday = settings.monday_of(dt_util.now().date())
             return self.json({"history": data.settings_history, "profiles": data.settings_profiles, "current": settings.current(data.settings_history, monday),

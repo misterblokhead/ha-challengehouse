@@ -6,7 +6,7 @@ from custom_components.fitbridge.engine.entities import (EVENT_ENTITIES, EVENTS,
                                                          WORKOUT_FIELDS)
 from custom_components.fitbridge.engine.scoring import score
 from .discovery_fixture import FIXTURE, P1, P2, build
-from .test_scoring import CFG, NOW, SOLO
+from .test_scoring import CFG, NOW, SOLO, wk
 
 G = CFG["group"]["name"]
 FIX = json.loads(FIXTURE.read_text(encoding="utf-8"))
@@ -36,6 +36,7 @@ class FixtureTests(unittest.TestCase):
         result, badges, workouts, records = build()
         for r in result["people"].values():  # newer than the recorded capture (not regenerated); counts/reason DO appear in the `recent` attribute payload
             r.pop("max_hr")
+            r.pop("older")
             for w in r["recent"] + r["feed"]:
                 del w["counts"], w["reason"]
         self.assertEqual(result, RESULT)
@@ -73,6 +74,14 @@ class EntityTests(unittest.TestCase):
         self.assertEqual(set(EVENTS), set(EVENT_ENTITIES))
         self.assertEqual(set(EVENTS), {"badge_unlocked", "workout_scored", "record_set"})
         self.assertEqual(WORKOUT_FIELDS, ("kind", "minutes", "km", "xp", "plan", "joint"))
+
+    def test_no_sensor_carries_the_older_feed(self):
+        old = wk("person1", "gym", 0, 18, 0, 26)
+        old["kind"] = None                                               # uncounted: in the feed and `older`, never in `recent`
+        res = score({"person1": [], "person2": []}, [], CFG, NOW(120), uncounted={"person1": [old]})
+        self.assertEqual([i["key"] for i in res["people"]["person1"]["older"]], [old["key"]])
+        for key, (_, _, _, state, attrs) in PERSON_SENSORS.items():
+            self.assertNotIn(old["key"], json.dumps([state(res["people"]["person1"]), attrs(res["people"]["person1"])]), key)
 
     def test_recent_attributes_have_no_url(self):
         r1 = RESULT["people"][P1]

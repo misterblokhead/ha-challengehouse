@@ -287,13 +287,32 @@ class ScoringTests(unittest.TestCase):
         p = score({"person1": [w], "person2": []}, [], CFG, NOW(1))["people"]["person1"]
         self.assertEqual([(i["key"], i["xp"]) for i in p["feed"]], [(w["key"], 0)])
 
-    def test_feed_covers_30_days_and_recent_stays_20(self):
+    def test_feed_covers_90_days_and_recent_stays_20(self):
         days = [int(i * 1.4) for i in range(25)]                           # 25 workouts over days 0..33
         ws = [wk("person1", "gym", d, 19, 0, 30) for d in days]
-        p = score({"person1": ws, "person2": []}, [], CFG, NOW(34))["people"]["person1"]
-        self.assertEqual(len(p["feed"]), len([d for d in days if d >= 5]))   # today is day 34: window = days 5..34
+        p = score({"person1": ws, "person2": []}, [], CFG, NOW(120))["people"]["person1"]
+        self.assertEqual(len(p["feed"]), len([d for d in days if d >= 31]))  # today is day 120: window = days 31..120 (90 days)
         self.assertEqual(len(p["recent"]), 20)
         self.assertEqual(p["feed"][0]["key"], ws[-1]["key"])
+
+    def test_the_90_day_window_is_today_and_89_days_back(self):
+        edge, before = wk("person1", "gym", 31, 19, 0, 30), wk("person1", "gym", 30, 19, 0, 30)
+        p = score({"person1": [before, edge], "person2": []}, [], CFG, NOW(120))["people"]["person1"]
+        self.assertEqual(([i["key"] for i in p["feed"]], [i["key"] for i in p["older"]]), ([edge["key"]], [before["key"]]))
+
+    def test_older_holds_what_the_feed_dropped_newest_first_with_the_same_kinds_of_rows(self):
+        ws = [wk("person1", "gym", d, 19, 0, 30) for d in (0, 5, 100)]
+        golf = wk("person1", "gym", 10, 9, 0, 120, name="Golf")
+        golf["kind"] = None
+        steps = {"person1": dict([st(3, 12000), st(100, 12000)])}
+        p = score({"person1": ws, "person2": []}, [], CFG, NOW(120), steps=steps, uncounted={"person1": [golf]})["people"]["person1"]
+        self.assertEqual([i["key"] for i in p["feed"]], [ws[2]["key"], "steps:person1:2027-02-03"])
+        self.assertEqual([i["key"] for i in p["older"]], [golf["key"], ws[1]["key"], "steps:person1:2026-10-29", ws[0]["key"]])
+        self.assertEqual([(i["counts"], i["reason"]) for i in p["older"]][0], (False, "type"))
+
+    def test_no_older_when_nothing_is_past_the_window(self):
+        p = score({"person1": [wk("person1", "gym", 0, 19, 0, 30)], "person2": []}, [], CFG, NOW(1))["people"]["person1"]
+        self.assertEqual(p["older"], [])
 
     def test_week_has_goal_and_last_week(self):
         now = datetime(2026, 11, 2, 8, 0, tzinfo=TZ)                         # Monday morning

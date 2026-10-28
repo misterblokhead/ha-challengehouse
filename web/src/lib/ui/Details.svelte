@@ -7,7 +7,7 @@
   import ShoesDialog from "./ShoesDialog.svelte";
   import { recordKeys, shoesManageable } from "../model.js";
 
-  // A person's plan, 30-day activity, badges, progress and shoes: inline under the viewer's own tile, or in the sheet for anyone else.
+  // A person's plan, 90-day activity, badges, progress and shoes: inline under the viewer's own tile, or in the sheet for anyone else.
   // `canEdit`: this viewer may Remove/Restore this person's workouts (viewer.can_edit).
   let { id, person: p, canEdit } = $props();
   const uid = $props.id();
@@ -24,7 +24,7 @@
 {/if}
 <section aria-labelledby="{uid}-feed">
   <h2 id="{uid}-feed">Activity</h2>
-  <Feed person={id} items={p.feed} {canEdit} {records} shoes={manage ? p.shoes : null} runShoes={p.run_shoes} />
+  {#key id}<Feed person={id} items={p.feed} {canEdit} {records} shoes={manage ? p.shoes : null} runShoes={p.run_shoes} />{/key}
 </section>
 <section aria-labelledby="{uid}-badges">
   <h2 id="{uid}-badges">Badges <small>{p.badges.count} unlocked</small></h2>

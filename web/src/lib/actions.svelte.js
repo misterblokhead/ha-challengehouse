@@ -1,4 +1,4 @@
-import { send } from "./api.js";
+import { get, send } from "./api.js";
 import { goalsDone, pendingDone, serial } from "./model.js";
 
 // Remove / Restore / Delete from the activity feed. The row changes at once (pending) and settles when a payload shows the change.
@@ -58,6 +58,16 @@ export async function act(person, key, action) {
 }
 
 const why = (e) => e.detail ?? (e.status === 403 ? "Not allowed" : e.status === 404 ? "Already gone" : "Couldn't reach Home Assistant");
+
+// The next 90 days of a person's feed before the day `before`: {items, more}; null (with the page's usual toast) when it fails.
+export async function loadOlder(person, before) {
+  try {
+    return await get(`feed?person=${encodeURIComponent(person)}&before=${before}`);
+  } catch (e) {
+    say(why(e));
+    return null;
+  }
+}
 
 // A change to a person's shoes (a body for POST shoes: add, update, current, retire); true once the integration took it.
 export async function shoeOp(body) {

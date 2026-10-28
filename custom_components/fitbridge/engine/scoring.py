@@ -482,13 +482,15 @@ def score(by_person, pauses, cfg, now, steps=None, settings=None, catalog=None, 
                            max_hrs[p] and max_hrs[p]["bpm"])
            for p in cfg["people"]}
     start = cfg["rules"]["start"]
-    window = max(start, local_date(now, tz) - timedelta(days=29))
+    window = max(start, local_date(now, tz) - timedelta(days=89))  # today + 89 days back = 90
     people = {}
     for p, r in raw.items():
         c = r["counters"]
         lifts, fastest_1k = _records(cleaned[p], tz, catalog)
         other = (uncounted or {}).get(p, [])  # added after scoring: they touch nothing but the feed (not `recent`)
         reasons = r["not_counted"] | {w["key"]: "type" for w in other}
+        rows = _feed(sorted(cleaned[p] + r["active_rows"] + other, key=lambda w: w["start"]),
+                     r["plan_done"], r["workout_xp"], reasons, cfg, start, None)
         people[p] = {k: v for k, v in r.items() if k not in ("weekly", "counters", "unlocked_at", "plan_done", "workout_xp", "active_rows", "not_counted")} | {
             "name": cfg["people"][p]["name"], "max_hr": max_hrs[p],
             "badges": _badges(cfg, c, r["unlocked_at"]),
@@ -496,7 +498,7 @@ def score(by_person, pauses, cfg, now, steps=None, settings=None, catalog=None, 
                     "gym_tonnes": round(c["tonnes"], 2),
                     "lifts": lifts, "fastest_1k": fastest_1k},
             "recent": _feed(cleaned[p], r["plan_done"], r["workout_xp"], r["not_counted"], cfg, start, 20),
-            "feed": _feed(sorted(cleaned[p] + r["active_rows"] + other, key=lambda w: w["start"]),
-                          r["plan_done"], r["workout_xp"], reasons, cfg, window, None),
+            "feed": [i for i in rows if i["start"][:10] >= window.isoformat()],  # start's date is the local one
+            "older": [i for i in rows if i["start"][:10] < window.isoformat()],  # in memory only: core.shape drops it, GET feed pages it
         }
     return {"people": people, "group": _group(cfg, raw, cleaned, now, settings)}

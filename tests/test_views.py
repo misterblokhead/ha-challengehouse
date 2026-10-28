@@ -51,6 +51,43 @@ async def test_scores_wait_for_the_first_payload(hass, client, send):
 
 
 
+def _older(*days_ago):
+    """Feed items `days_ago` days before 2027-03-01, newest first."""
+    return [{"key": f"o{n}", "start": (date(2027, 3, 1) - timedelta(days=n)).isoformat() + "T18:00:00+01:00"} for n in days_ago]
+
+
+async def test_scores_never_carry_older(hass, client, send):
+    await send({"people": {"p1": {"feed": [], "older": _older(100)}}})
+    body = await (await (await client("alex")).get(f"{UI}/scores")).json()
+    assert "older" not in body["people"]["p1"]
+
+
+async def test_feed_pages_the_older_items_90_days_at_a_time(hass, client, send):
+    older = _older(10, 20, 100, 170, 180, 181, 250)
+    await send({"people": {"p1": {"feed": [], "older": older}, "p2": {"feed": [], "older": _older(5)}}})
+    c = await client("alex")
+    body = await (await c.get(f"{UI}/feed", params={"person": "p1", "before": "2027-03-01"})).json()
+    assert body == {"items": older[:2], "more": True}                  # the 90 days before 1 Mar start on 1 Dec
+    body = await (await c.get(f"{UI}/feed", params={"person": "p1", "before": "2026-12-01"})).json()
+    assert body == {"items": older[2:5], "more": True}                  # 1 Dec back to 2 Sep (inclusive): 181 days ago (1 Sep) and 250 are older
+    body = await (await c.get(f"{UI}/feed", params={"person": "p1", "before": "2026-09-02"})).json()
+    assert body == {"items": older[5:], "more": False}                   # 2 Jun ... 1 Sep takes the rest
+    both = await (await c.get(f"{UI}/feed", params={"person": "p2", "before": "2027-03-01"})).json()
+    assert both == {"items": _older(5), "more": False}                  # any viewer reads either person
+
+
+async def test_feed_refusals(hass, client, send):
+    c = await client("alex")
+    assert (await c.get(f"{UI}/feed", params={"person": "p1", "before": "2027-03-01"})).status == 503
+    await send({"people": {"p1": {"feed": []}}})
+    assert (await c.get(f"{UI}/feed", params={"person": "nobody", "before": "2027-03-01"})).status == 404
+    assert (await c.get(f"{UI}/feed", params={"before": "2027-03-01"})).status == 404
+    for before in ({}, {"before": "yesterday"}, {"before": "2027-13-01"}):
+        assert (await c.get(f"{UI}/feed", params={"person": "p1", **before})).status == 400
+    body = await (await c.get(f"{UI}/feed", params={"person": "p1", "before": "2027-03-01"})).json()
+    assert body == {"items": [], "more": False}                         # no older at all (e.g. the LXC's payload)
+
+
 async def test_scores_carry_each_persons_shoes(hass, entry, users, client, send):
     await send(SCORES)
     hass.states.async_set("sensor.trail", "123.4", {"nickname": "Trail", "activity_count": 9, "last_activity_at": "2026-10-20T07:00:00Z"})

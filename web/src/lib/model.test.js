@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { counts, goals, ringFractions, stepsLine, togetherLine, rewardLine, levelProgress, weekLabel, staleSince, feedRow, planBar, layout, shortDate, pendingDone, PENDING_MS, serial, shoeRow, goalsDraft, maxHrText, clampGoal, isoWeek, goalsDone, withPendingGoals, weekBars, localDay, stepsSummary, liftSet, liftLine, GROUPS, groupRows, groupedLifts, paceText, recordKeys, SHOE_LIMITS, SHOE_DEFAULT_KM, shoesManageable, shoeForm, shoePicker } from "./model.js";
+import { counts, goals, ringFractions, stepsLine, togetherLine, rewardLine, levelProgress, weekLabel, staleSince, feedRow, planBar, layout, shortDate, pendingDone, PENDING_MS, serial, shoeRow, goalsDraft, maxHrText, clampGoal, isoWeek, goalsDone, withPendingGoals, weekBars, localDay, stepsSummary, liftSet, liftLine, GROUPS, groupRows, groupedLifts, paceText, recordKeys, SHOE_LIMITS, SHOE_DEFAULT_KM, shoesManageable, shoeForm, shoePicker, mergeOlder, minusDays } from "./model.js";
 
 const week = { runs: 1, workouts: 2, active_days: 3, bonus: 1, goal: { runs: 2, workouts: 2, active_days: 4, steps: 10000 }, days_left: 3, week: "2026-W44" };
 
@@ -460,4 +460,19 @@ test("shoePicker: a run on no shoe or on a retired one gets a placeholder, never
   assert.equal(shoePicker(live, 99).extra, "Retired shoe");
   assert.equal(shoePicker(live, 99).value, "");
   assert.deepEqual(shoePicker([], undefined), { value: "", options: [], extra: "No shoe" });
+});
+
+test("mergeOlder: the older items go after the feed, none twice, the feed's own row wins", () => {
+  const feed = [{ key: "a", xp: 1 }, { key: "b", xp: 2 }];
+  const merged = mergeOlder(feed, [{ key: "b", xp: 99 }, { key: "c", xp: 3 }, { key: "d", xp: 4 }]);
+  assert.deepEqual(merged, [{ key: "a", xp: 1 }, { key: "b", xp: 2 }, { key: "c", xp: 3 }, { key: "d", xp: 4 }]);
+  assert.deepEqual(mergeOlder(feed, []), feed);
+  assert.deepEqual(mergeOlder([], [{ key: "c" }]), [{ key: "c" }]);
+  assert.equal(feed.length, 2); // the feed itself is not changed
+});
+
+test("minusDays: calendar days back across a month and a year end", () => {
+  assert.equal(minusDays("2027-03-01", 90), "2026-12-01");
+  assert.equal(minusDays("2027-01-05", 10), "2026-12-26");
+  assert.equal(minusDays("2026-11-01", 0), "2026-11-01");
 });

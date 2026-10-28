@@ -1,6 +1,7 @@
 """Pure logic for the fitness page: payload checks, who is who, who may edit. No Home Assistant imports."""
 import json
 import math
+from datetime import date, timedelta
 
 from .const import MANUAL_PREFIX
 
@@ -36,11 +37,20 @@ def shape(scores: dict, viewer_person: str | None, is_admin: bool, shoes_by_pers
           steps_by_person: dict[str, int | None] | None = None, steps_week_by_person: dict[str, dict[str, int]] | None = None) -> dict:
     shoes_by_person, steps_by_person, steps_week_by_person = shoes_by_person or {}, steps_by_person or {}, steps_week_by_person or {}
     return {**scores,
-            "people": {p: {**r, "shoes": shoes_by_person.get(p, r.get("shoes", [])), "steps_today": steps_by_person.get(p),
+            "people": {p: {**{k: v for k, v in r.items() if k != "older"}, "shoes": shoes_by_person.get(p, r.get("shoes", [])), "steps_today": steps_by_person.get(p),
                            "steps_week": steps_week_by_person.get(p)}
                        for p, r in scores["people"].items()},
             "viewer": {"person": viewer_person,
                        "can_edit": [p for p in scores["people"] if can_edit(viewer_person, is_admin, p)]}}
+
+
+def older_feed(scores: dict, person: str, before: date) -> dict:
+    """The next 90 days of `person`'s older feed: items dated on or after before - 90 days and before `before`, newest first,
+    and whether any are older still."""
+    since = (before - timedelta(days=90)).isoformat()
+    older = scores["people"][person].get("older", [])
+    return {"items": [i for i in older if since <= i["start"][:10] < before.isoformat()],
+            "more": any(i["start"][:10] < since for i in older)}
 
 
 def _km(state: str) -> float | None:

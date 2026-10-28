@@ -160,7 +160,8 @@ async def test_shadow_writes_the_json_and_never_signals_or_commits(hass, setup, 
     await setup({OPT_SHADOW: True})
     runner = _runner(hass)
     written = json.loads(Path(hass.config.path("fitbridge", "shadow-scores.json")).read_text(encoding="utf-8"))
-    assert written == runner.scores and "people" in written
+    assert all("older" in r for r in runner.scores["people"].values()) and runner.scores["people"]
+    assert written == {**runner.scores, "people": {p: {k: v for k, v in r.items() if k != "older"} for p, r in runner.scores["people"].items()}}  # the LXC's /scores has no older
     assert signals == [] and order == []
     assert hass.data[DOMAIN].scores is None  # the page keeps reading fitbridge/scores from MQTT
 

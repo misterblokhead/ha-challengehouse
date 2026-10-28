@@ -94,6 +94,15 @@ export const feedRow = (item) => ({
   removable: item.kind === "active_day" ? null : item.excluded ? "restore" : item.key.startsWith("manual:") ? "delete" : "remove",
 });
 
+// The feed with the older items a "Load older" brought in appended, none twice (by key); the payload's own rows win.
+export function mergeOlder(feed, items) {
+  const have = new Set(feed.map((w) => w.key));
+  return [...feed, ...items.filter((w) => !have.has(w.key))];
+}
+
+// "YYYY-MM-DD" minus `n` days
+export const minusDays = (day, n) => new Date(Date.parse(`${day}T00:00:00Z`) - n * 864e5).toISOString().slice(0, 10);
+
 export function planBar(plan) {
   const segs = [["walk", plan.warmup_s ?? 0], ...plan.intervals].filter(([, s]) => s > 0);
   const total = segs.reduce((t, [, s]) => t + s, 0);
