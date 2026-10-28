@@ -30,13 +30,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
             if group := cycle.scores.get("group"):
                 owners.append((group["id"], group, GROUP_SENSORS))
             new = []
-            for owner, subject, specs in owners:
-                for key, spec in specs.items():
-                    if (sensor := sensors.get(f"{owner}_{key}")) is None:
-                        sensor = sensors[f"{owner}_{key}"] = FitSensor(owner, subject["name"], key, spec)
-                        new.append(sensor)
-                    sensor.show(subject)
-            async_add_entities(new)
+            try:
+                for owner, subject, specs in owners:
+                    for key, spec in specs.items():
+                        sensor = sensors.get(f"{owner}_{key}") or FitSensor(owner, subject["name"], key, spec)
+                        sensor.show(subject)
+                        if f"{owner}_{key}" not in sensors:  # kept only once shown: one that failed is new again next cycle
+                            sensors[f"{owner}_{key}"] = sensor
+                            new.append(sensor)
+            finally:  # those shown before a failure are added all the same
+                async_add_entities(new)
         except Exception as err:
             _LOGGER.error("Updating the fitness sensors failed: %s", type(err).__name__)
 

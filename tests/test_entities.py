@@ -130,6 +130,22 @@ async def test_a_failing_handler_is_logged_by_class_and_the_rest_still_fire(hass
     assert "KeyError" in caplog.text and "secret" not in caplog.text
 
 
+async def test_sensors_a_failed_cycle_could_not_show_come_with_the_next(hass, setup, caplog):
+    people = FIX["scores"]["people"]
+    broken = {**FIX["scores"], "people": {**people, "person2": {k: v for k, v in people["person2"].items() if k != "pbs"}}}
+    cycles = [Cycle(broken, [], [], [], lambda: None), Cycle(FIX["scores"], [], [], [], lambda: None)]
+    with patch.object(runner_mod, "score_cycle", side_effect=cycles):
+        await setup()
+        assert "KeyError" in caplog.text
+        assert hass.states.get("sensor.fit_person1_xp").state == "282"  # shown before the failure: added all the same
+        assert hass.states.get("sensor.fit_person2_pbs") is None
+        await hass.data[DOMAIN].runner.async_score_now()
+        await hass.async_block_till_done()
+    assert _ours(hass) == set(CONFIGS)
+    for entity_id, cfg in SENSORS.items():
+        assert hass.states.get(entity_id).state == PAYLOADS[cfg["state_topic"]], entity_id
+
+
 @pytest.mark.parametrize("options", [{OPT_SHADOW: False}, {OPT_SHADOW: True}], ids=["live", "shadow"])
 async def test_actions_apply_through_the_runner(hass, setup, mqtt_mock, options):
     await setup(options)
