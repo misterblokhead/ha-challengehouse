@@ -341,11 +341,12 @@ class ScoringCycleTests(unittest.TestCase):
             opener.paths = []
         return opengym.OpenGym("http://og", lambda: "t", lambda t: None, opener=opener), opener
 
-    def add_gpx_run(self, key, gpx, name=None, activity="running"):
+    def add_gpx_run(self, key, gpx, name=None, activity="running", **fields):
         path = Path(self.tmp.name) / (name or f"{key}.gpx")
         path.write_bytes(gpx)
-        self.store.add(P0, key, "opentracks", "completed", activity_type=activity, points=5, file=str(path),
-                       start="2026-10-27T18:00:00+01:00", end="2026-10-27T18:30:00+01:00", duration_s=1800)
+        self.store.add(P0, key, "opentracks", "completed", **{
+            "activity_type": activity, "points": 5, "file": str(path), "start": "2026-10-27T18:00:00+01:00",
+            "end": "2026-10-27T18:30:00+01:00", "duration_s": 1800, **fields})
         return path
 
     def test_fill_best_km_reads_a_run_file_once(self):
@@ -360,8 +361,7 @@ class ScoringCycleTests(unittest.TestCase):
         self.assertEqual(res["people"][P0]["pbs"]["fastest_1k"]["seconds"], 300)
 
     def test_fill_best_km_stores_null_for_a_missing_or_unparseable_file_once(self):
-        self.add_gpx_run("gone", b"")
-        self.store.update(P0, "gone", file=str(Path(self.tmp.name) / "nope.gpx"))
+        self.add_gpx_run("gone", b"").unlink()
         self.add_gpx_run("bad", track([seg(1500)]))
         with mock.patch.object(cycle.records, "fastest_1k_s", side_effect=TypeError("naive vs aware")):
             with self.assertLogs("custom_components.fitbridge", "WARNING") as logs:
@@ -419,8 +419,8 @@ class ScoringCycleTests(unittest.TestCase):
     def test_faster_kilometre_is_announced(self):
         self.add_gpx_run("t1", track([seg(1500, pace=300)]))
         self.run_cycle()
-        self.add_gpx_run("t2", track([seg(1500, pace=280)]))
-        self.store.update(P0, "t2", start="2026-10-28T08:00:00+01:00", end="2026-10-28T08:30:00+01:00")  # not a copy of t1
+        self.add_gpx_run("t2", track([seg(1500, pace=280)]), start="2026-10-28T08:00:00+01:00",
+                         end="2026-10-28T08:30:00+01:00")  # not a copy of t1
         self.run_cycle()
         ((_, ev),) = self.records
         self.assertEqual((ev["key"], ev["lifts"], ev["fastest_1k"]), ("t2", [], 280))

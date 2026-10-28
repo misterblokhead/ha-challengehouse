@@ -37,6 +37,15 @@ def gpx_with_points(trackid=TRACK, hrs=(100, 120, 140)):
         b"<trkseg>\n</trkseg>", f"<trkseg>{pts}</trkseg>".encode())
 
 
+def counts(store):
+    """{person: {status: rows}}."""
+    out = {}
+    for r in store.all_rows():
+        out.setdefault(r["person"], {}).setdefault(r["status"], 0)
+        out[r["person"]][r["status"]] += 1
+    return out
+
+
 def archived(key):
     """The archive file name of a GPX stored under key."""
     return hashlib.sha256(key.encode()).hexdigest() + ".gpx"
@@ -136,7 +145,7 @@ class FlowTests(unittest.TestCase):
         (self.sync / "run.gpx").write_bytes(gpx_with_points())
         for _ in range(2):
             ingest.scan_folder(self.store, self.archive, P0, self.sync)
-        self.assertEqual(self.store.counts(), {P0: {"stored": 1, "skipped_no_gps": 1}})
+        self.assertEqual(counts(self.store), {P0: {"stored": 1, "skipped_no_gps": 1}})
         self.assertEqual((self.archive / P0 / archived(TRACK)).read_bytes(), gpx_with_points())
 
     def test_unreadable_gpx_in_folder_is_retried_when_it_changes(self):
@@ -145,10 +154,10 @@ class FlowTests(unittest.TestCase):
         with self.assertLogs("custom_components.fitbridge", "WARNING") as logs:
             ingest.scan_folder(self.store, self.archive, P0, self.sync)
         self.assertEqual(logs.output, ["WARNING:custom_components.fitbridge.engine.ingest:unreadable GPX half.gpx: ParseError"])
-        self.assertEqual(self.store.counts(), {})
+        self.assertEqual(counts(self.store), {})
         path.write_bytes(gpx_with_points())  # synced in full: new size
         ingest.scan_folder(self.store, self.archive, P0, self.sync)
-        self.assertEqual(self.store.counts(), {P0: {"stored": 1}})
+        self.assertEqual(counts(self.store), {P0: {"stored": 1}})
 
     def test_ingest_gpx_twice_stores_one_row(self):
         self.assertTrue(ingest.ingest_gpx(self.store, self.archive, P0, gpx_with_points()))
@@ -190,7 +199,7 @@ class FlowTests(unittest.TestCase):
         body = hex_zip([hex_workout("A"), hex_workout("R", "running")])
         self.assertEqual(ingest.ingest_export(self.store, self.archive, P1, body), (2, 2))
         self.assertEqual(ingest.ingest_export(self.store, self.archive, P1, body), (2, 0))
-        self.assertEqual(self.store.counts(), {P1: {"archived": 1, "awaiting_route": 1}})
+        self.assertEqual(counts(self.store), {P1: {"archived": 1, "awaiting_route": 1}})
         self.assertEqual(len(list((self.archive / P1).glob("export-*.body"))), 1)  # an exact repeat brings nothing new
 
     def test_a_zip_expanding_past_32_mb_is_unreadable_and_writes_nothing(self):
@@ -214,7 +223,7 @@ class FlowTests(unittest.TestCase):
         self.assertEqual(ingest.ingest_body(self.store, self.archive, P1, b"\xef\xbb\xbf" + bare), {"workouts": 1, "new": 1})
         self.assertEqual(ingest.ingest_body(self.store, self.archive, P0, b"\xef\xbb\xbf" + gpx_with_points()), {"new": True})
         self.assertEqual(ingest.ingest_body(self.store, self.archive, P0, gpx_with_points()), {"new": False})
-        self.assertEqual(self.store.counts(), {P0: {"stored": 1}, P1: {"archived": 2}})
+        self.assertEqual(counts(self.store), {P0: {"stored": 1}, P1: {"archived": 2}})
 
     def test_unusable_bodies_raise_unreadable_and_store_nothing(self):
         no_json = io.BytesIO()
@@ -255,18 +264,18 @@ class FlowTests(unittest.TestCase):
 
     def test_export_route_is_linked_and_stored(self):
         self.route_export()
-        self.assertEqual(self.store.counts(), {P1: {"stored": 1}})
-        self.assertEqual(Path(self.store.rows("stored")[0]["file"]).read_bytes(), gpx_with_points())
+        self.assertEqual(counts(self.store), {P1: {"stored": 1}})
+        self.assertEqual(Path(self.store.all_rows()[0]["file"]).read_bytes(), gpx_with_points())
 
     def test_late_route_attaches_once(self):
         def bodies():
             return len(list((self.archive / P1).glob("export-*.body")))
         self.route_export(with_gpx=False)
-        self.assertEqual((self.store.counts(), bodies()), ({P1: {"awaiting_route": 1}}, 1))
+        self.assertEqual((counts(self.store), bodies()), ({P1: {"awaiting_route": 1}}, 1))
         self.route_export()
-        self.assertEqual((self.store.counts(), bodies()), ({P1: {"stored": 1}}, 2))  # the route is news: kept
+        self.assertEqual((counts(self.store), bodies()), ({P1: {"stored": 1}}, 2))  # the route is news: kept
         self.route_export()
-        self.assertEqual((self.store.counts(), bodies()), ({P1: {"stored": 1}}, 2))
+        self.assertEqual((counts(self.store), bodies()), ({P1: {"stored": 1}}, 2))
 
     def test_an_unreadable_route_is_logged_by_class_only(self):
         with self.assertLogs("custom_components.fitbridge", "WARNING") as logs:
@@ -278,7 +287,7 @@ class FlowTests(unittest.TestCase):
         with self.assertLogs("custom_components.fitbridge", "INFO") as logs:
             self.route_export()
         self.assertTrue(any("route attached" in m for m in logs.output))
-        path = Path(self.store.rows("stored")[0]["file"])
+        path = Path(self.store.all_rows()[0]["file"])
         path.write_bytes(b"in use")
         self.route_export()
         self.assertEqual(path.read_bytes(), b"in use")
@@ -286,12 +295,12 @@ class FlowTests(unittest.TestCase):
     def test_indoor_workout_has_no_route_but_still_scores(self):
         w = dict(hex_workout("W", "walking"), indoor=True)
         ingest.ingest_export(self.store, self.archive, P1, hex_zip([w]))
-        self.assertEqual(self.store.counts(), {P1: {"no_route": 1}})
+        self.assertEqual(counts(self.store), {P1: {"no_route": 1}})
         self.assertEqual([x["kind"] for x in ingest.db_workouts(self.store, PEOPLE)[P1]], ["walk"])
 
     def test_route_without_points_is_skipped(self):
         self.route_export(gpx=EMPTY_GPX)
-        self.assertEqual(self.store.counts(), {P1: {"skipped_no_gps": 1}})
+        self.assertEqual(counts(self.store), {P1: {"skipped_no_gps": 1}})
 
     def test_db_workouts_keys_rows_and_skips(self):
         t = dict(start="2026-10-27T18:00:00+01:00", end="2026-10-27T18:30:00+01:00", duration_s=1800)

@@ -6,6 +6,7 @@ from pathlib import Path
 from custom_components.fitbridge.engine.scoring_config import load_config
 from custom_components.fitbridge.engine.store import Store
 from .test_config import DEFAULT
+from .test_ingest import counts
 
 PEOPLE = tuple(load_config(DEFAULT)["people"])
 P0, P1 = PEOPLE[0], PEOPLE[-1]
@@ -26,7 +27,7 @@ class StoreTests(unittest.TestCase):
         self.store.add(P1, "OUT", "health_exporter", "awaiting_route", activity_type="running", indoor=0)
         self.store.db.close()
         self.store = Store(self.path)
-        self.assertEqual(self.store.counts(), {P1: {"no_route": 1, "awaiting_route": 1}})
+        self.assertEqual(counts(self.store), {P1: {"no_route": 1, "awaiting_route": 1}})
 
     def test_badges_first_scoring_is_silent_and_unseen_is_read_only(self):
         b = [{"id": "a", "unlocked_at": "2026-10-28"}, {"id": "b", "unlocked_at": "2026-10-28"}]

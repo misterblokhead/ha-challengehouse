@@ -5,7 +5,7 @@ from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from engine.test_ingest import P0, P1, TRACK, gpx_with_points, hex_workout, hex_zip
+from engine.test_ingest import P0, P1, TRACK, counts, gpx_with_points, hex_workout, hex_zip
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.network import NoURLAvailableError
 from homeassistant.setup import async_setup_component
@@ -40,7 +40,7 @@ async def _post(hass, client, hook, body, status=200):
 
 
 def _counts(hass):
-    return hass.data[DOMAIN].runner.store.counts()
+    return counts(hass.data[DOMAIN].runner.store)
 
 
 async def test_each_person_gets_a_kept_webhook_and_bodies_land_as_their_rows(hass, setup, client, cycles):

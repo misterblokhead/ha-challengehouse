@@ -70,16 +70,6 @@ class Store:
                                   [*fields.values(), person, key])
             return cur.rowcount == 1
 
-    def update(self, person, key, **fields):
-        fields["updated"] = now_iso()
-        with self.lock, self.db:
-            self.db.execute(f"UPDATE workouts SET {','.join(f'{k}=?' for k in fields)} WHERE person=? AND key=?",
-                            [*fields.values(), person, key])
-
-    def rows(self, status):
-        with self.lock:
-            return self.db.execute("SELECT * FROM workouts WHERE status=?", (status,)).fetchall()
-
     def file_seen(self, path: Path):
         st = path.stat()
         with self.lock:
@@ -90,14 +80,6 @@ class Store:
         st = path.stat()
         with self.lock, self.db:
             self.db.execute("INSERT OR REPLACE INTO seen_files VALUES(?,?,?)", (str(path), st.st_mtime, st.st_size))
-
-    def counts(self):
-        with self.lock:
-            rows = self.db.execute("SELECT person, status, COUNT(*) n FROM workouts GROUP BY person, status").fetchall()
-        out = {}
-        for r in rows:
-            out.setdefault(r["person"], {})[r["status"]] = r["n"]
-        return out
 
     def all_rows(self):
         with self.lock:
