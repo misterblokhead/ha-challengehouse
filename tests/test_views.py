@@ -82,7 +82,7 @@ async def test_feed_refusals(hass, client, send):
     await send({"people": {"p1": {"feed": []}}})
     assert (await c.get(f"{UI}/feed", params={"person": "nobody", "before": "2027-03-01"})).status == 404
     assert (await c.get(f"{UI}/feed", params={"before": "2027-03-01"})).status == 404
-    for before in ({}, {"before": "yesterday"}, {"before": "2027-13-01"}):
+    for before in ({}, {"before": "yesterday"}, {"before": "2027-13-01"}, {"before": "0001-01-01"}):
         assert (await c.get(f"{UI}/feed", params={"person": "p1", **before})).status == 400
     body = await (await c.get(f"{UI}/feed", params={"person": "p1", "before": "2027-03-01"})).json()
     assert body == {"items": [], "more": False}                         # no older at all (e.g. the LXC's payload)

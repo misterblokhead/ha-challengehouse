@@ -13,7 +13,7 @@
 
   async function load() {
     busy = true;
-    const day = before ?? shown.at(-1)?.start.slice(0, 10) ?? minusDays(localDay(), 89); // the feed's own date: the household's
+    const day = before ?? shown.at(-1)?.start.slice(0, 10) ?? minusDays(localDay(), 88); // the feed's own date: the household's; one day of slack for a browser behind the household's timezone
     const page = await loadOlder(person, day);
     busy = false;
     if (!page) return; // refused: the toast said why, the button stays

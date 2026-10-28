@@ -3107,7 +3107,7 @@ function Ho(e, t) {
 	let n = Wi(t, "shoes", 3, null), r = /* @__PURE__ */ L(Qt([])), i = /* @__PURE__ */ L(!0), a = /* @__PURE__ */ L(!1), o = null, s = /* @__PURE__ */ F(() => pa(t.items, ma(K(r), t.person, Ja)));
 	async function c() {
 		R(a, !0);
-		let e = o ?? K(s).at(-1)?.start.slice(0, 10) ?? ha(Ia(), 89), n = await oo(t.person, e);
+		let e = o ?? K(s).at(-1)?.start.slice(0, 10) ?? ha(Ia(), 88), n = await oo(t.person, e);
 		R(a, !1), n && (R(r, pa(K(r), n.items), !0), o = ha(e, 90), R(i, n.more, !0));
 	}
 	var l = Vo(), u = B(l), d = (e) => {

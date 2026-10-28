@@ -113,6 +113,8 @@ class UiView(HomeAssistantView):
                 return _detail(self, "unknown person", HTTPStatus.NOT_FOUND)
             try:
                 before = date.fromisoformat(request.query.get("before", ""))
+                if before.year < 1900:  # paging 90 days back must not overflow date.min
+                    raise ValueError
             except ValueError:
                 return _detail(self, "before: a date, YYYY-MM-DD", HTTPStatus.BAD_REQUEST)
             return self.json(older_feed(data.scores, request.query["person"], before))
