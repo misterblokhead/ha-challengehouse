@@ -87,7 +87,7 @@ export const feedRow = (item) => ({
   detail: {
     km: item.km == null ? null : `${item.km.toFixed(1)} km`,
     pace: pace(item),
-    hr: item.avg_hr == null ? null : `${item.avg_hr} bpm`,
+    hr: item.avg_hr == null ? null : `${Math.round(item.avg_hr)} bpm`,
     plan: item.plan ?? null,
     url: item.url ?? null,
   },

@@ -92,7 +92,7 @@ test("staleSince: local HH:MM once older than the limit, else null", () => {
   assert.equal(staleSince(at8, new Date(2026, 9, 26, 22, 20), 5), "Updated 22:10");
 });
 
-const run = { key: "endurain:1", kind: "run", name: "Morning Run", start: "2026-10-26T07:30:00+01:00", minutes: 28, km: 3.1, avg_hr: 151, plan: "W1D2", xp: 24, excluded: false, url: "https://e/1" };
+const run = { key: "endurain:1", kind: "run", name: "Morning Run", start: "2026-10-26T07:30:00+01:00", minutes: 28, km: 3.1, avg_hr: 150.6552059052059, plan: "W1D2", xp: 24, excluded: false, url: "https://e/1" };
 
 test("feedRow: a run with pace, hr, plan and link", () => {
   assert.deepEqual(feedRow(run), {

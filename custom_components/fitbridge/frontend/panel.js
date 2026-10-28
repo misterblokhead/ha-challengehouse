@@ -2540,7 +2540,7 @@ var ua = (e) => ({
 	detail: {
 		km: e.km == null ? null : `${e.km.toFixed(1)} km`,
 		pace: la(e),
-		hr: e.avg_hr == null ? null : `${e.avg_hr} bpm`,
+		hr: e.avg_hr == null ? null : `${Math.round(e.avg_hr)} bpm`,
 		plan: e.plan ?? null,
 		url: e.url ?? null
 	},
