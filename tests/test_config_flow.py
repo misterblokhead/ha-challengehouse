@@ -101,7 +101,8 @@ async def test_inputs_show_each_persons_url_and_take_existing_folders_only(hass,
     assert result["type"] is FlowResultType.FORM and result["step_id"] == "inputs"
     urls = result["description_placeholders"]["urls"]
     assert all(f"https://ha.example.test/api/webhook/{hook}" in urls for hook in e.data[WEBHOOKS].values())
-    first, second = (str(k) for k in result["data_schema"].schema)
+    first, second, new_urls = (str(k) for k in result["data_schema"].schema)
+    assert new_urls == "new_urls"
     for bad in (str(tmp_path / "gone"), "share/relative"):
         result = await hass.config_entries.options.async_configure(result["flow_id"], {first: bad})
         assert result["type"] is FlowResultType.FORM and result["errors"] == {first: "folder_missing"}
@@ -110,6 +111,18 @@ async def test_inputs_show_each_persons_url_and_take_existing_folders_only(hass,
     assert e.options == {OPT_SHADOW: False, OPT_VIEWERS: {"u1": P0}, OPT_FOLDERS: {P0: str(tmp_path)}}
     await hass.async_block_till_done(wait_background_tasks=True)
     assert hass.data[DOMAIN].runner.folders == {P0: tmp_path}  # reloaded with it
+
+
+async def test_inputs_make_new_webhook_urls_and_retire_the_old_ones(hass, setup):
+    e = await setup({OPT_SHADOW: False})
+    old = dict(e.data[WEBHOOKS])
+    result = await _open(hass, e, "inputs")
+    result = await hass.config_entries.options.async_configure(result["flow_id"], {"new_urls": True})
+    assert result["type"] is FlowResultType.CREATE_ENTRY and "new_urls" not in e.options
+    await hass.async_block_till_done(wait_background_tasks=True)
+    new = e.data[WEBHOOKS]
+    assert new.keys() == old.keys() and not set(new.values()) & set(old.values())
+    assert not set(old.values()) & set(hass.data["webhook"]) and set(new.values()) <= set(hass.data["webhook"])
 
 
 async def test_mode_turns_shadow_on_and_off_and_keeps_the_other_options(hass, setup, mqtt_mock, send):

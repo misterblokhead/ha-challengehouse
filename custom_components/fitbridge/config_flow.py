@@ -34,6 +34,7 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 CODE = re.compile(r"[A-Za-z0-9]{4,16}")  # as opengym-pair.sh checked it
 GYM_TIMEOUT = aiohttp.ClientTimeout(total=30)
+NEW_URLS = "new_urls"
 
 
 def _labels(names: dict[str, str], tag=lambda k: k) -> dict[str, str]:
@@ -155,7 +156,7 @@ class FitbridgeOptionsFlow(config_entries.OptionsFlowWithReload):
             vol.Optional(label, default=old.get(p) if old.get(p) in offered else ""): select for p, label in labels.items()}))
 
     async def async_step_inputs(self, user_input=None):
-        """Each person's webhook URL (shown) and optional watch folder (must exist)."""
+        """Each person's webhook URL (shown, can be replaced) and optional watch folder (must exist)."""
         labels = await self._people()
         errors = {}
         if user_input is not None:
@@ -163,12 +164,16 @@ class FitbridgeOptionsFlow(config_entries.OptionsFlowWithReload):
             missing = await self.hass.async_add_executor_job(
                 lambda: [p for p, f in folders.items() if not (Path(f).is_absolute() and Path(f).is_dir())])
             if not missing:
+                if user_input.get(NEW_URLS):  # the old ids stop now; the reload below makes new ones
+                    webhooks.async_unregister(self.hass, self.config_entry)
+                    self.hass.config_entries.async_update_entry(self.config_entry, data={**self.config_entry.data, WEBHOOKS: {}})
                 return self.async_create_entry(data={**self.config_entry.options, OPT_FOLDERS: folders})
             errors = {labels[p]: "folder_missing" for p in missing}
         hooks = self.config_entry.data.get(WEBHOOKS, {})
         urls = [f"- {label}: {webhooks.async_url(self.hass, hooks[p])}" for p, label in labels.items() if p in hooks]
         old = self.config_entry.options.get(OPT_FOLDERS, {})
-        schema = vol.Schema({vol.Optional(label): TextSelector() for label in labels.values()})
+        schema = vol.Schema({**{vol.Optional(label): TextSelector() for label in labels.values()},
+                             vol.Optional(NEW_URLS, default=False): bool})
         return self.async_show_form(
             step_id="inputs", errors=errors, description_placeholders={"urls": "\n".join(urls)},
             data_schema=self.add_suggested_values_to_schema(schema, user_input or {labels[p]: f for p, f in old.items() if p in labels}))

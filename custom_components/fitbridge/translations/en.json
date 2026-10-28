@@ -44,7 +44,10 @@
       },
       "inputs": {
         "title": "Webhooks and watch folders",
-        "description": "Each person's phone posts workouts to their own webhook: a Health Exporter export (ZIP or JSON) or an OpenTracks GPX file as the request body.\n\n{urls}\n\nOptionally, give a person a folder (for example under /share or /media) that is scanned for GPX files every minute. Leave it empty for none."
+        "description": "Each person's phone posts workouts to their own webhook: a Health Exporter export (ZIP or JSON) or an OpenTracks GPX file as the request body.\n\n{urls}\n\nOptionally, give a person a folder (for example under /share or /media) that is scanned for GPX files every minute. Leave it empty for none.",
+        "data": {
+          "new_urls": "Make new webhook URLs (the current ones stop working; open this step again to see the new ones)"
+        }
       },
       "mode": {
         "title": "Shadow mode",
