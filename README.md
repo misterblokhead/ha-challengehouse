@@ -16,11 +16,11 @@ People, the optional two-person group, plans, XP values and badges all live in `
 
 | Path | What |
 |---|---|
-| `fitbridge/fitbridge.py` | Service: ingestion, Endurain upload, store, 5-minute scoring cycle, `GET /scores` |
-| `fitbridge/scoring.py` | Pure scoring rules (no I/O) |
-| `fitbridge/scoring_config.py`, `scoring.toml` | Rule file loader/validator and the default rules |
-| `fitbridge/mqtt.py`, `opengym.py`, `publish.py`, `records.py` | Minimal MQTT client, openGym client, HA discovery payloads, record maths (best sets, fastest 1 km) |
-| `fitbridge/deploy.sh`, `fitbridge.service`, `env.example`, `opengym-pair.sh` | Install on a Debian host/LXC with systemd |
+| `custom_components/fitbridge/engine/fitbridge.py` | Service: ingestion, Endurain upload, store, 5-minute scoring cycle, `GET /scores` |
+| `custom_components/fitbridge/engine/scoring.py` | Pure scoring rules (no I/O) |
+| `custom_components/fitbridge/engine/scoring_config.py`, `scoring.toml` | Rule file loader/validator and the default rules |
+| `custom_components/fitbridge/engine/{mqtt,opengym,publish,records}.py` | Minimal MQTT client, openGym client, HA discovery payloads, record maths (best sets, fastest 1 km) |
+| `lxc-final` (git tag) | The last commit with the standalone LXC service and its `deploy.sh`, `fitbridge.service`, `env.example`, `opengym-pair.sh`; the setup steps below describe that install |
 | `custom_components/fitbridge/` | Home Assistant integration: the Fitness page in the sidebar, its per-user API and Remove/Restore; `frontend/` is the built page (committed) |
 | `web/` | Source of the Fitness page (Svelte + Vite); builds into `custom_components/fitbridge/frontend/` |
 | `tests/` | Integration tests (pytest-homeassistant-custom-component) |
@@ -30,7 +30,7 @@ People, the optional two-person group, plans, XP values and badges all live in `
 ## Setup (outline)
 
 1. Run Endurain and (optionally) openGym; expose fitbridge's port to the phones, e.g. with `tailscale serve`.
-2. Copy `fitbridge/` to the host and run `deploy.sh` as root. It installs to `/opt/fitbridge`, creates `/opt/fitbridge/.env` from `env.example` (mode 600) and never overwrites an existing one.
+2. From the `lxc-final` tag, copy `fitbridge/` to the host and run `deploy.sh` as root. It installs to `/opt/fitbridge`, creates `/opt/fitbridge/.env` from `env.example` (mode 600) and never overwrites an existing one.
 3. Edit `/opt/fitbridge/scoring.toml` (people, group, plans) and `.env` (per person: `ENDURAIN_KEY_<ID>`, `SYNC_DIR_<ID>`, `TAILSCALE_LOGIN_<ID>`, `OPENGYM_UID_<ID>`; MQTT broker and user).
 4. openGym: `bash /root/opengym-pair.sh` with a pairing code from openGym's settings.
 5. Home Assistant: an MQTT user for fitbridge, plus the pause-feed automation and the log/remove/restore scripts described in `specs/2026-10-26-scoring-design.md` §7.
@@ -45,7 +45,7 @@ Edit `web/`, then `cd web && npm run build` and commit the rebuilt `custom_compo
 ## Tests
 
 ```bash
-cd fitbridge && python -m unittest -v      # fitbridge, stdlib only
+python -m pytest tests/engine -q            # the moved service (stdlib only; no HA fixtures)
 cd web && npm test                          # the page's pure logic (node:test)
 python -m pytest tests -q                   # the integration: Linux or WSL, with tests/requirements.txt installed
 ```

@@ -68,7 +68,7 @@ def test_monday_of():
 
 
 def test_a_published_history_passes_fitbridges_own_parser():
-    from fitbridge.scoring_config import parse_settings
+    from custom_components.fitbridge.engine.scoring_config import parse_settings
     entry = validate(BODY, ["p1", "p2"])
     history = put(put([], entry, NEXT), entry, MON)  # out-of-order saves still publish sorted
     assert parse_settings(json.loads(json.dumps({"history": history})), {"p1", "p2"}) == {"history": history}

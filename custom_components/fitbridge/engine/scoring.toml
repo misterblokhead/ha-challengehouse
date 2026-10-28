@@ -1,0 +1,256 @@
+# fitbridge scoring rules. Rules are config, code is mechanism (spec 2026-10-26-scoring-design.md).
+
+[rules]
+start = 2026-10-26
+timezone = "Europe/Amsterdam"
+merge_gap_min = 30
+min_run_min = 10
+min_gym_min = 20
+min_home_min = 15
+
+[goal]
+runs = 2
+workouts = 2
+active_days = 0
+steps = 10000
+
+[xp]
+per_min = { run = 1, walk = 1, gym = 1, home = 1 }
+session_cap_min = 180
+day_cap_min = 240
+joint_factor = 1.5
+plan_session = 20
+pr_session = 25
+bonus = 30
+active_day = 15
+level_base = 50
+
+[joint]
+start_window_min = 10
+overlap = 0.7
+
+[pause]
+min_days = 4
+
+[plan]
+max_sessions_per_day = 1
+
+[people.person1]
+name = "Person1"
+plan_history = [{ plan = "c25k", from = 2026-10-26 }]
+
+[people.person2]
+name = "Person2"
+plan_history = [{ plan = "c25k", from = 2026-10-26 }]
+
+[group]
+name = "couple"
+members = ["person1", "person2"]
+
+# NHS Couch to 5K. Each session starts with a 5-minute warm-up walk. `times` repeats the
+# interval list; `repeat = 3` on a week stands for 3 identical sessions.
+[plans.c25k]
+name = "Couch to 5K"
+
+[[plans.c25k.weeks]]
+repeat = 3
+sessions = [{ warmup_s = 300, intervals = [["run", 60], ["walk", 90]], times = 8, target = { type = "duration", fraction = 0.8 } }]
+
+[[plans.c25k.weeks]]
+repeat = 3
+sessions = [{ warmup_s = 300, intervals = [["run", 90], ["walk", 120]], times = 6, target = { type = "duration", fraction = 0.8 } }]
+
+[[plans.c25k.weeks]]
+repeat = 3
+sessions = [{ warmup_s = 300, intervals = [["run", 90], ["walk", 90], ["run", 180], ["walk", 180]], times = 2, target = { type = "duration", fraction = 0.8 } }]
+
+[[plans.c25k.weeks]]
+repeat = 3
+sessions = [{ warmup_s = 300, intervals = [["run", 180], ["walk", 90], ["run", 300], ["walk", 150], ["run", 180], ["walk", 90], ["run", 300]], target = { type = "duration", fraction = 0.8 } }]
+
+[[plans.c25k.weeks]]
+sessions = [
+  { warmup_s = 300, intervals = [["run", 300], ["walk", 180]], times = 3, target = { type = "duration", fraction = 0.8 } },
+  { warmup_s = 300, intervals = [["run", 480], ["walk", 300], ["run", 480]], target = { type = "duration", fraction = 0.8 } },
+  { warmup_s = 300, intervals = [["run", 1200]], target = { type = "duration", fraction = 0.8 } },
+]
+
+[[plans.c25k.weeks]]
+sessions = [
+  { warmup_s = 300, intervals = [["run", 300], ["walk", 180], ["run", 480], ["walk", 180], ["run", 300]], target = { type = "duration", fraction = 0.8 } },
+  { warmup_s = 300, intervals = [["run", 600], ["walk", 180], ["run", 600]], target = { type = "duration", fraction = 0.8 } },
+  { warmup_s = 300, intervals = [["run", 1500]], target = { type = "duration", fraction = 0.8 } },
+]
+
+[[plans.c25k.weeks]]
+repeat = 3
+sessions = [{ warmup_s = 300, intervals = [["run", 1500]], target = { type = "duration", fraction = 0.8 } }]
+
+[[plans.c25k.weeks]]
+repeat = 3
+sessions = [{ warmup_s = 300, intervals = [["run", 1680]], target = { type = "duration", fraction = 0.8 } }]
+
+[[plans.c25k.weeks]]
+repeat = 3
+sessions = [{ warmup_s = 300, intervals = [["run", 1800]], target = { type = "duration", fraction = 0.8 } }]
+
+[[badges]]
+id = "runs"
+counter = "runs"
+thresholds = [1, 5, 10, 25, 50, 100]
+title = "{t} runs"
+titles = { "1" = "First Steps" }
+icon = "mdi:run"
+category = "running"
+
+[[badges]]
+id = "run_km"
+counter = "run_km"
+thresholds = [10, 25, 50, 100, 250, 500]
+title = "{t} km run"
+icon = "mdi:map-marker-distance"
+category = "running"
+
+[[badges]]
+id = "long_session"
+counter = "longest_session_km"
+thresholds = [5, 7.5, 10]
+title = "Session of {t} km"
+icon = "mdi:ruler"
+category = "running"
+
+[[badges]]
+id = "plan_week"
+counter = "plan_weeks"
+thresholds = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+title = "C25K week {t}"
+titles = { "5" = "Halfway", "9" = "C25K Graduate" }
+icon = "mdi:calendar-check"
+category = "plan"
+
+[[badges]]
+id = "gym"
+counter = "gym"
+thresholds = [1, 10, 25, 50, 100, 250]
+title = "{t} gym sessions"
+titles = { "1" = "First session" }
+icon = "mdi:dumbbell"
+category = "gym"
+
+[[badges]]
+id = "home"
+counter = "home"
+thresholds = [1, 5, 10, 25, 50]
+title = "{t} home workouts"
+titles = { "1" = "First home workout" }
+icon = "mdi:yoga"
+category = "home"
+
+[[badges]]
+id = "active_days"
+counter = "active_days"
+thresholds = [1, 5, 10, 25, 50, 100]
+title = "{t} active days"
+titles = { "1" = "First active day" }
+icon = "mdi:shoe-print"
+category = "steps"
+
+[[badges]]
+id = "tonnes"
+counter = "tonnes"
+thresholds = [10, 50, 100, 250, 1000]
+title = "{t} t lifted"
+icon = "mdi:weight-lifter"
+category = "gym"
+
+[[badges]]
+id = "prs"
+counter = "prs"
+thresholds = [1, 10, 25, 50]
+title = "{t} PRs"
+titles = { "1" = "First PR" }
+icon = "mdi:trophy"
+category = "gym"
+
+[[badges]]
+id = "pr_week"
+counter = "max_prs_in_week"
+thresholds = [3]
+title = "PR Week"
+icon = "mdi:trophy-award"
+category = "gym"
+
+[[badges]]
+id = "goal_weeks"
+counter = "goal_weeks"
+thresholds = [1, 10, 25, 50]
+title = "Goal met {t} weeks"
+titles = { "1" = "Goal met" }
+icon = "mdi:target"
+category = "consistency"
+
+[[badges]]
+id = "streak"
+counter = "best_streak"
+thresholds = [2, 4, 8, 12, 26, 52]
+title = "{t}-week streak"
+icon = "mdi:fire"
+category = "consistency"
+
+[[badges]]
+id = "perfect_week"
+counter = "perfect_weeks"
+thresholds = [1]
+title = "Perfect Week"
+icon = "mdi:star-circle"
+category = "consistency"
+
+[[badges]]
+id = "holiday_hero"
+counter = "paused_week_workouts"
+thresholds = [1]
+title = "Holiday Hero"
+icon = "mdi:beach"
+category = "consistency"
+
+[[badges]]
+id = "early_bird"
+counter = "early"
+thresholds = [5]
+title = "Early Bird"
+icon = "mdi:weather-sunset-up"
+category = "habits"
+
+[[badges]]
+id = "night_owl"
+counter = "late"
+thresholds = [5]
+title = "Night Owl"
+icon = "mdi:weather-night"
+category = "habits"
+
+[[badges]]
+id = "together"
+counter = "joint"
+thresholds = [1, 10, 25, 50]
+title = "{t} workouts together"
+titles = { "1" = "Together" }
+icon = "mdi:account-multiple"
+category = "together"
+
+[[badges]]
+id = "together_km"
+counter = "joint_km"
+thresholds = [10, 50, 100]
+title = "{t} km run together"
+icon = "mdi:run-fast"
+category = "together"
+
+[[badges]]
+id = "centurion"
+counter = "workouts"
+thresholds = [100]
+title = "{t} workouts"
+icon = "mdi:medal"
+category = "consistency"
+hidden = true
