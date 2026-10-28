@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { counts, goals, ringFractions, stepsLine, togetherLine, rewardLine, levelProgress, weekLabel, staleSince, feedRow, planBar, layout, shortDate, pendingDone, PENDING_MS, serial, shoeRow, goalsDraft, clampGoal, isoWeek, goalsDone, withPendingGoals } from "./model.js";
+import { counts, goals, ringFractions, stepsLine, togetherLine, rewardLine, levelProgress, weekLabel, staleSince, feedRow, planBar, layout, shortDate, pendingDone, PENDING_MS, serial, shoeRow, goalsDraft, clampGoal, isoWeek, goalsDone, withPendingGoals, weekBars, stepsSummary, liftLine, recentLifts, allLifts, paceText, recordKeys } from "./model.js";
 
 const week = { runs: 1, workouts: 2, active_days: 3, bonus: 1, goal: { runs: 2, workouts: 2, active_days: 4, steps: 10000 }, days_left: 3, week: "2026-W44" };
 
@@ -272,4 +272,85 @@ test("withPendingGoals: the people with their pending goals shown, flagged; unch
   assert.deepEqual(shown.person1.week, { runs: 1, goal: { runs: 3, gym: 1, workouts: 2, active_days: 4, steps: 12000 }, goal_pending: true });
   assert.equal(shown.sam, people.sam);
   assert.equal(people.person1.week.goal.runs, 2); // the payload itself is untouched
+});
+
+const wed = { "2026-10-26": 8412, "2026-10-27": 12034, "2026-10-28": 3000 };
+
+test("weekBars: Monday to Sunday of today's week, the days after today future", () => {
+  const bars = weekBars(wed, 10000, "2026-10-28");
+  assert.deepEqual(bars.map((b) => b.label), ["M", "T", "W", "T", "F", "S", "S"]);
+  assert.deepEqual(bars.map((b) => b.date), ["2026-10-26", "2026-10-27", "2026-10-28", "2026-10-29", "2026-10-30", "2026-10-31", "2026-11-01"]);
+  assert.deepEqual(bars.map((b) => b.future), [false, false, false, true, true, true, true]);
+  assert.deepEqual(bars.map((b) => b.isToday), [false, false, true, false, false, false, false]);
+  assert.deepEqual(bars.map((b) => b.active), [false, true, false, false, false, false, false]);
+  assert.deepEqual(bars.map((b) => b.steps), [8412, 12034, 3000, null, null, null, null]);
+  assert.equal(bars[0].frac, 8412 / 12034); // the tallest bar fills the chart when it passes the goal
+  assert.equal(bars[3].frac, 0);
+});
+
+test("weekBars: the goal sets the scale, a missing past day is 0 steps, goal 0 activates nothing", () => {
+  const bars = weekBars({ "2026-10-28": 2500 }, 10000, "2026-10-28");
+  assert.equal(bars[2].frac, 0.25);
+  assert.equal(bars[0].steps, 0);
+  assert.equal(bars[0].future, false);
+  assert.ok(weekBars(wed, 0, "2026-10-28").every((b) => !b.active));
+  assert.ok(weekBars({}, 0, "2026-10-28").every((b) => b.frac === 0));
+});
+
+test("weekBars: Sunday closes the week, Monday opens a new one; no step sensor or an older payload gives null", () => {
+  assert.equal(weekBars({}, 10000, "2026-11-01")[6].isToday, true);
+  assert.equal(weekBars({}, 10000, "2026-11-01")[0].date, "2026-10-26");
+  assert.equal(weekBars({}, 10000, "2026-11-02")[0].isToday, true);
+  assert.equal(weekBars(null, 10000, "2026-10-28"), null);
+  assert.equal(weekBars(undefined, 10000, "2026-10-28"), null);
+});
+
+test("stepsSummary: active days and the week's steps, singular for one", () => {
+  assert.equal(stepsSummary(weekBars(wed, 10000, "2026-10-28")), "1 active day · 23,446 steps");
+  assert.equal(stepsSummary(weekBars({ ...wed, "2026-10-28": 11000 }, 10000, "2026-10-28")), "2 active days · 31,446 steps");
+  assert.equal(stepsSummary(weekBars({}, 10000, "2026-10-28")), "0 active days · 0 steps");
+});
+
+const lifts = [
+  { id: "1", name: "Barbell row", w: 40, r: 8, unit: "kg", date: "2026-10-12", key: "lift:1" },
+  { id: "2", name: "Goblet squat", w: 22.5, r: 5, unit: "lb", date: "2026-10-05", key: "lift:2" },
+  { id: "3", name: "Bench press", w: 50, r: 5, unit: "kg", date: "2026-09-30", key: "lift:3" },
+  { id: "4", name: "Deadlift", w: 80, r: 3, unit: "kg", date: "2026-09-20", key: "lift:4" },
+  { id: "5", name: "Curl", w: 12.5, r: 10, unit: "kg", date: "2026-09-10", key: "lift:5" },
+  { id: "6", name: "Overhead press", w: 30, r: 6, unit: "kg", date: "2026-09-01", key: "lift:6" },
+];
+
+test("liftLine: name, weight without a trailing .0, reps, day and short month", () => {
+  assert.equal(liftLine(lifts[0]), "Barbell row · 40 kg × 8 · 12 Oct");
+  assert.equal(liftLine(lifts[1]), "Goblet squat · 22.5 lb × 5 · 5 Oct");
+  assert.equal(liftLine({ ...lifts[0], w: 40.0, date: "2026-09-03" }), "Barbell row · 40 kg × 8 · 3 Sep");
+});
+
+test("recentLifts: the first n as sent (newest first); allLifts: A-Z by name, input untouched", () => {
+  assert.deepEqual(recentLifts(lifts).map((l) => l.id), ["1", "2", "3", "4", "5"]);
+  assert.deepEqual(recentLifts(lifts, 2).map((l) => l.id), ["1", "2"]);
+  assert.deepEqual(allLifts(lifts).map((l) => l.name), ["Barbell row", "Bench press", "Curl", "Deadlift", "Goblet squat", "Overhead press"]);
+  assert.equal(lifts[0].id, "1");
+});
+
+test("paceText: m:ss", () => {
+  assert.equal(paceText(372), "6:12");
+  assert.equal(paceText(600), "10:00");
+  assert.equal(paceText(245), "4:05");
+});
+
+test("recordKeys: the keys of the lift records and the fastest 1 km", () => {
+  const pbs = { lifts: lifts.slice(0, 2), fastest_1k: { seconds: 372, date: "2026-10-20", key: "endurain:7", url: null } };
+  assert.deepEqual([...recordKeys(pbs)].sort(), ["endurain:7", "lift:1", "lift:2"]);
+  assert.deepEqual([...recordKeys({ lifts: [], fastest_1k: null })], []);
+});
+
+test("an older payload without steps_week, pbs.lifts or pbs.fastest_1k never throws", () => {
+  assert.equal(weekBars(undefined, undefined, "2026-10-28"), null);
+  assert.deepEqual(recentLifts(undefined), []);
+  assert.deepEqual(allLifts(undefined), []);
+  const old = { longest_session_km: 6.2, prs: 2, gym_tonnes: 0 };
+  assert.deepEqual([...recordKeys(old)], []);
+  assert.deepEqual([...recordKeys({ ...old, lifts: lifts.slice(0, 1) })], ["lift:1"]);
+  assert.deepEqual([...recordKeys(undefined)], []);
 });

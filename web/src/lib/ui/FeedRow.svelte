@@ -8,7 +8,7 @@
   // One workout of the feed. Tap opens it in place (a height spring, from wherever it is, so a second tap reverses it mid-way):
   // the details, "Open in Endurain", and Remove / Restore / Delete when `canEdit`. A sent change shows at once, dimmed with a spinner
   // until a payload confirms it (actions.svelte.js).
-  let { person, item, canEdit } = $props();
+  let { person, item, canEdit, record } = $props(); // record: this workout holds a personal record
 
   const ICONS = { run: "🏃", walk: "🚶", gym: "🏋️", home: "🧘", active_day: "👟" };
   const uid = $props.id();
@@ -58,6 +58,7 @@
         {row.title}
         {#if item.plan}<span class="mini">{item.plan}</span>{/if}
         {#if item.joint}<span class="mini">Together</span>{/if}
+        {#if record}<span role="img" aria-label="Holds a record">🏆</span>{/if}
       </span>
       <span class="t2">{row.when} · {row.duration}</span>
     </span>

@@ -159,7 +159,78 @@
       "pbs": {
         "longest_session_km": 6.2,
         "prs": 2,
-        "gym_tonnes": 0
+        "gym_tonnes": 0,
+        "lifts": [
+          {
+            "id": "0001",
+            "name": "Barbell row",
+            "w": 40,
+            "r": 8,
+            "unit": "kg",
+            "date": "2026-10-26",
+            "key": "opengym:55"
+          },
+          {
+            "id": "0002",
+            "name": "Bench press",
+            "w": 52.5,
+            "r": 5,
+            "unit": "kg",
+            "date": "2026-10-22",
+            "key": "lift:0002"
+          },
+          {
+            "id": "0003",
+            "name": "Goblet squat",
+            "w": 22.5,
+            "r": 10,
+            "unit": "kg",
+            "date": "2026-10-19",
+            "key": "lift:0003"
+          },
+          {
+            "id": "0004",
+            "name": "Deadlift",
+            "w": 80,
+            "r": 3,
+            "unit": "kg",
+            "date": "2026-10-15",
+            "key": "lift:0004"
+          },
+          {
+            "id": "0005",
+            "name": "Overhead press",
+            "w": 30,
+            "r": 6,
+            "unit": "kg",
+            "date": "2026-10-12",
+            "key": "lift:0005"
+          },
+          {
+            "id": "0006",
+            "name": "Leg press",
+            "w": 120,
+            "r": 10,
+            "unit": "kg",
+            "date": "2026-10-05",
+            "key": "lift:0006"
+          },
+          {
+            "id": "0007",
+            "name": "Cable curl",
+            "w": 25,
+            "r": 12,
+            "unit": "kg",
+            "date": "2026-09-28",
+            "key": "lift:0007"
+          }
+        ],
+        "fastest_1k": {
+          "seconds": 372,
+          "date": "2026-10-26",
+          "key": "endurain:101",
+          "url": "https://endurain.example/activity/101"
+        }
       },
       "recent": [
         {
@@ -416,7 +487,12 @@
           "last_run": "2026-09-30T17:00:00Z"
         }
       ],
-      "steps_today": 6820
+      "steps_today": 6820,
+      "steps_week": {
+        "2026-10-26": 12034,
+        "2026-10-27": 8412,
+        "2026-10-28": 3100
+      }
     },
     "sam": {
       "name": "Sam",
@@ -480,7 +556,9 @@
       "pbs": {
         "longest_session_km": 5.0,
         "prs": 1,
-        "gym_tonnes": 0
+        "gym_tonnes": 0,
+        "lifts": [],
+        "fastest_1k": null
       },
       "recent": [
         {
@@ -592,7 +670,8 @@
           "last_run": null
         }
       ],
-      "steps_today": null
+      "steps_today": null,
+      "steps_week": null
     }
   },
   "group": {
