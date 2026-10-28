@@ -57,6 +57,10 @@ class Store:
                 list(row.values()))
             return cur.rowcount == 1
 
+    def has(self, person, key):
+        with self.lock:
+            return self.db.execute("SELECT 1 FROM workouts WHERE person=? AND key=?", (person, key)).fetchone() is not None
+
     def attach_route(self, person, key, status, **fields):
         """A route that arrived after its workout; only a row still awaiting one changes."""
         fields.update(status=status, updated=now_iso())

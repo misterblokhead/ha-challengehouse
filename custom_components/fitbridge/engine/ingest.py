@@ -151,13 +151,17 @@ def ingest_body(store, archive: Path, person: str, body: bytes) -> dict:
 
 
 def ingest_gpx(store, archive: Path, person: str, data: bytes) -> bool:
-    """One OpenTracks GPX, archived under its trackid (or content hash) and stored once; True when it is new.
+    """One OpenTracks GPX, keyed by its trackid (or content hash), archived and stored once; True when it is new.
     Raises Unreadable for a file that cannot be read."""
     info = _parsed(parse_gpx, data)
     key = info.pop("trackid") or "sha256:" + hashlib.sha256(data).hexdigest()
-    (archive / person).mkdir(parents=True, exist_ok=True)
-    target = archive / person / f"{key.replace(':', '_')}.gpx"
-    target.write_bytes(data)
+    if store.has(person, key):
+        return False
+    # the trackid comes from the phone: hashed, it can never name a path outside the archive
+    target = archive / person / f"{hashlib.sha256(key.encode()).hexdigest()}.gpx"
+    target.parent.mkdir(parents=True, exist_ok=True)
+    if not target.exists():
+        target.write_bytes(data)
     status = "stored" if info["points"] else "skipped_no_gps"
     if store.add(person, key, "opentracks", status, file=str(target), **info):
         log.info("%s: %s %s (%s points, %s)", person, key, info["activity_type"], info["points"], status)

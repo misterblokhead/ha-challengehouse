@@ -1,4 +1,5 @@
 """Tests for ingest (synthetic data only)."""
+import hashlib
 import io
 import json
 import tempfile
@@ -34,6 +35,11 @@ def gpx_with_points(trackid=TRACK, hrs=(100, 120, 140)):
         for i, hr in enumerate(hrs))
     return EMPTY_GPX.replace(b"00000000-0000-0000-0000-00000000e0e0", trackid.encode()).replace(
         b"<trkseg>\n</trkseg>", f"<trkseg>{pts}</trkseg>".encode())
+
+
+def archived(key):
+    """The archive file name of a GPX stored under key."""
+    return hashlib.sha256(key.encode()).hexdigest() + ".gpx"
 
 
 def hex_workout(uid, activity="traditionalStrengthTraining", **stats):
@@ -131,7 +137,7 @@ class FlowTests(unittest.TestCase):
         for _ in range(2):
             ingest.scan_folder(self.store, self.archive, P0, self.sync)
         self.assertEqual(self.store.counts(), {P0: {"stored": 1, "skipped_no_gps": 1}})
-        self.assertEqual((self.archive / P0 / f"{TRACK}.gpx").read_bytes(), gpx_with_points())
+        self.assertEqual((self.archive / P0 / archived(TRACK)).read_bytes(), gpx_with_points())
 
     def test_unreadable_gpx_in_folder_is_retried_when_it_changes(self):
         path = self.sync / "half.gpx"
@@ -148,14 +154,31 @@ class FlowTests(unittest.TestCase):
         self.assertFalse(ingest.ingest_gpx(self.store, self.archive, P0, gpx_with_points()))
         (row,) = self.store.all_rows()
         self.assertEqual((row["key"], row["source"], row["status"], row["points"]), (TRACK, "opentracks", "stored", 3))
-        self.assertEqual(Path(row["file"]), self.archive / P0 / f"{TRACK}.gpx")
+        self.assertEqual(Path(row["file"]), self.archive / P0 / archived(TRACK))
 
     def test_ingest_gpx_without_trackid_is_keyed_by_hash(self):
         data = gpx_with_points().replace(b"<opentracks:trackid>" + TRACK.encode() + b"</opentracks:trackid>", b"")
         self.assertTrue(ingest.ingest_gpx(self.store, self.archive, P0, data))
         (row,) = self.store.all_rows()
         self.assertTrue(row["key"].startswith("sha256:"))
-        self.assertEqual(Path(row["file"]).name, row["key"].replace(":", "_") + ".gpx")
+        self.assertEqual(Path(row["file"]).name, archived(row["key"]))
+
+    def test_a_trackid_never_names_a_file_outside_the_persons_archive(self):
+        for trackid in ("../../x", "/abs/x", "a/../../../y", ".."):
+            with self.subTest(trackid=trackid):
+                self.assertTrue(ingest.ingest_gpx(self.store, self.archive, P0, gpx_with_points(trackid)))
+        self.assertEqual({Path(r["file"]).parent for r in self.store.all_rows()}, {self.archive / P0})
+        root = Path(self.tmp.name)
+        written = {p for p in root.rglob("*") if p.is_file()} - {root / "db.sqlite"}
+        self.assertEqual({p.parent for p in written}, {self.archive / P0})
+        self.assertEqual(len(written), 4)
+
+    def test_a_resent_track_is_not_rewritten(self):
+        ingest.ingest_gpx(self.store, self.archive, P0, gpx_with_points())
+        (row,) = self.store.all_rows()
+        Path(row["file"]).write_bytes(b"in use")
+        self.assertFalse(ingest.ingest_gpx(self.store, self.archive, P0, gpx_with_points(hrs=(90, 91, 92))))
+        self.assertEqual(Path(row["file"]).read_bytes(), b"in use")
 
     def test_ingest_gpx_raises_on_junk(self):
         with self.assertRaises(Exception):
