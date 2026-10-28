@@ -65,7 +65,7 @@ class RouteTests(unittest.TestCase):
             self.assertAlmostEqual(x["pace"], 300, delta=1)
 
     def test_gap_splits_and_series(self):
-        d = route_details(gpx(loop(), gap_after=160), None)
+        d = route_details(gpx(loop(ele=lambda i: 5, hr=lambda i: 130), gap_after=160), None)
         self.assertEqual(len(d["route"]), 2)
         self.assertEqual(sum(len(r) > 1 for r in d["route"]), 2)
         self.assertAlmostEqual(sum(x["s"] for x in d["splits"]), 957, delta=1)  # 960 s minus the 3 s step the pause replaced
@@ -73,6 +73,9 @@ class RouteTests(unittest.TestCase):
         after = [i for i in range(1, len(t)) if t[i] - t[i - 1] > 60]
         self.assertEqual(len(after), 1)  # the break survives thinning
         self.assertIsNone(pace[after[0]])
+        for col in ("hr", "ele"):  # no line across the pause in any graph
+            self.assertIsNone(d["series"][col][after[0]], col)
+            self.assertIsNotNone(d["series"][col][after[0] - 1], col)
         self.assertLess(max(p for p in pace if p is not None), 1000)
 
     def test_series_keeps_first_and_last_row(self):

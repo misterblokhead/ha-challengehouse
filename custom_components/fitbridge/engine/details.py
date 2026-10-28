@@ -165,7 +165,7 @@ def _zones(segs, max_hr):
 def route_details(gpx, max_hr):
     """{"route": [polyline per segment], "series": t (s), dist (m), pace (s/km), hr, ele as equal-length lists,
     "splits", "zones", "gain_m", "max_hr"}. A pause never joins two segments: no line, no split time, no pace
-    across it (the first row after one has no pace)."""
+    across it (the first row after one has no pace, hr or ele)."""
     segs = track(gpx)
     pts = [p for seg in segs for p in seg]
     D, T, starts, wall, pace = [], [], [], [], []
@@ -198,8 +198,8 @@ def route_details(gpx, max_hr):
     return {
         "route": _fit([[p[1:3] for p in seg] for seg in segs if len(seg) > 1], 5.0, ROUTE_POINTS),
         "series": {"t": [round(wall[i]) for i in rows], "dist": [round(D[i]) for i in rows],
-                   "pace": [pace[i] for i in rows], "hr": [hr[i] for i in rows],
-                   "ele": [None if ele[i] is None else round(ele[i], 1) for i in rows]},
+                   "pace": [pace[i] for i in rows], "hr": [None if i in firsts else hr[i] for i in rows],
+                   "ele": [None if i in firsts or ele[i] is None else round(ele[i], 1) for i in rows]},
         "splits": _splits(D, T, hr, ele) if pts else [],
         "zones": _zones(segs, max_hr),
         "gain_m": None if gain is None else round(gain, 1),
