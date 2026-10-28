@@ -67,7 +67,7 @@
     {#each groups as g (g.group)}
       <h3 data-group={g.group}>{g.group}</h3>
       <ul>
-        {#each g.lifts as l (l.id)}<li><span class="dot" aria-hidden="true"></span><span>{l.name} · <b>{liftSet(l)}</b> · {shortDate(l.date)}</span></li>{/each}
+        {#each g.lifts as l (l.id)}<li><span>{l.name} · <b>{liftSet(l)}</b> · {shortDate(l.date)}</span></li>{/each}
       </ul>
     {/each}
   </div>
@@ -100,6 +100,5 @@
   ul { margin: 0; padding: 0; list-style: none; }
   li { display: flex; align-items: baseline; gap: 0.625rem; padding: 0.625rem 0; }
   li + li { border-top: 1px solid var(--line); }
-  .dot { flex: none; width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--gym); transform: translateY(-0.0625rem); }
-  b { font-weight: 600; font-variant-numeric: tabular-nums; }
+  b { font-weight: 600; font-variant-numeric: tabular-nums; color: var(--soon-text); } /* the workouts orange, in its readable text shade */
 </style>

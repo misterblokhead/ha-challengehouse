@@ -2999,7 +2999,7 @@ function bo(e) {
 	let t = e[0], n = e[e.length - 1];
 	return t && n && n.t > t.t ? (n.x - t.x) / (n.t - t.t) * 1e3 : 0;
 }
-var xo = (e, t, n = .55) => e * t * n / (t + n * Math.abs(e)), So = /* @__PURE__ */ K("<li class=\"svelte-18znx9k\"><span class=\"dot svelte-18znx9k\" aria-hidden=\"true\"></span><span> <b class=\"svelte-18znx9k\"> </b> </span></li>"), Co = /* @__PURE__ */ K("<h3 class=\"svelte-18znx9k\"> </h3> <ul class=\"svelte-18znx9k\"></ul>", 1), wo = /* @__PURE__ */ K("<dialog><div class=\"grab svelte-18znx9k\"><h2 class=\"svelte-18znx9k\">All records</h2> <button type=\"button\" class=\"close press svelte-18znx9k\" aria-label=\"Close\">✕</button></div> <div class=\"body svelte-18znx9k\"></div></dialog>");
+var xo = (e, t, n = .55) => e * t * n / (t + n * Math.abs(e)), So = /* @__PURE__ */ K("<li class=\"svelte-18znx9k\"><span> <b class=\"svelte-18znx9k\"> </b> </span></li>"), Co = /* @__PURE__ */ K("<h3 class=\"svelte-18znx9k\"> </h3> <ul class=\"svelte-18znx9k\"></ul>", 1), wo = /* @__PURE__ */ K("<dialog><div class=\"grab svelte-18znx9k\"><h2 class=\"svelte-18znx9k\">All records</h2> <button type=\"button\" class=\"close press svelte-18znx9k\" aria-label=\"Close\">✕</button></div> <div class=\"body svelte-18znx9k\"></div></dialog>");
 function To(e, t) {
 	let n = Ir();
 	A(t, !0);
@@ -3041,7 +3041,7 @@ function To(e, t) {
 	return X(x, 21, () => t.groups, (e) => e.group, (e, t) => {
 		var n = Co(), r = R(n), i = z(r, !0), a = B(r, 2);
 		X(a, 21, () => W(t).lifts, (e) => e.id, (e, t) => {
-			var n = So(), r = B(L(n)), i = L(r), a = B(i), o = z(a, !0), s = B(a);
+			var n = So(), r = L(n), i = L(r), a = B(i), o = z(a, !0), s = B(a);
 			O(r), O(n), V((e, n) => {
 				J(i, `${W(t).name ?? ""} · `), J(o, e), J(s, ` · ${n ?? ""}`);
 			}, [() => ba(W(t)), () => ia(W(t).date)]), q(e, n);
@@ -3092,7 +3092,7 @@ function ko(e, t) {
 	}), O(i), q(e, i), j();
 }
 // src/lib/ui/Progress.svelte
-var Ao = /* @__PURE__ */ K("<div class=\"card steps svelte-kr1x1f\"><!> <p class=\"caption svelte-kr1x1f\"> </p></div>"), jo = /* @__PURE__ */ K("<li class=\"svelte-kr1x1f\"><button type=\"button\" class=\"grp svelte-kr1x1f\"><span class=\"dot svelte-kr1x1f\" aria-hidden=\"true\"></span><span class=\"g svelte-kr1x1f\"> </span><span> <b class=\"svelte-kr1x1f\"> </b></span></button></li>"), Mo = /* @__PURE__ */ K("<ul class=\"svelte-kr1x1f\"></ul> <button type=\"button\" class=\"btn more svelte-kr1x1f\"> </button>", 1), No = /* @__PURE__ */ K("<p class=\"caption empty svelte-kr1x1f\">Your heaviest sets appear here after your first gym session.</p>"), Po = /* @__PURE__ */ K("<div class=\"row svelte-kr1x1f\"><span class=\"k svelte-kr1x1f\"><span class=\"chip svelte-kr1x1f\" aria-hidden=\"true\">⚡</span>Fastest 1 km</span> <span class=\"v run svelte-kr1x1f\"> </span></div>"), Fo = /* @__PURE__ */ K("<p class=\"caption empty svelte-kr1x1f\">Run 1 km with GPS to set your first time.</p>"), Io = /* @__PURE__ */ K("<!> <div class=\"card svelte-kr1x1f\"><!></div> <div class=\"card rows svelte-kr1x1f\"><!> <div class=\"row svelte-kr1x1f\"><span class=\"k svelte-kr1x1f\">Longest session</span><span class=\"v svelte-kr1x1f\"> </span></div> <div class=\"row svelte-kr1x1f\"><span class=\"k svelte-kr1x1f\">Total lifted</span><span class=\"v svelte-kr1x1f\"> </span></div></div> <!>", 1);
+var Ao = /* @__PURE__ */ K("<div class=\"card steps svelte-kr1x1f\"><!> <p class=\"caption svelte-kr1x1f\"> </p></div>"), jo = /* @__PURE__ */ K("<li class=\"svelte-kr1x1f\"><button type=\"button\" class=\"grp svelte-kr1x1f\"><span class=\"g svelte-kr1x1f\"> </span><span> <b class=\"svelte-kr1x1f\"> </b></span></button></li>"), Mo = /* @__PURE__ */ K("<ul class=\"svelte-kr1x1f\"></ul> <button type=\"button\" class=\"btn more svelte-kr1x1f\"> </button>", 1), No = /* @__PURE__ */ K("<p class=\"caption empty svelte-kr1x1f\">Your heaviest sets appear here after your first gym session.</p>"), Po = /* @__PURE__ */ K("<div class=\"row svelte-kr1x1f\"><span class=\"k svelte-kr1x1f\"><span class=\"chip svelte-kr1x1f\" aria-hidden=\"true\">⚡</span>Fastest 1 km</span> <span class=\"v run svelte-kr1x1f\"> </span></div>"), Fo = /* @__PURE__ */ K("<p class=\"caption empty svelte-kr1x1f\">Run 1 km with GPS to set your first time.</p>"), Io = /* @__PURE__ */ K("<!> <div class=\"card svelte-kr1x1f\"><!></div> <div class=\"card rows svelte-kr1x1f\"><!> <div class=\"row svelte-kr1x1f\"><span class=\"k svelte-kr1x1f\">Longest session</span><span class=\"v svelte-kr1x1f\"> </span></div> <div class=\"row svelte-kr1x1f\"><span class=\"k svelte-kr1x1f\">Total lifted</span><span class=\"v svelte-kr1x1f\"> </span></div></div> <!>", 1);
 function Lo(e, t) {
 	A(t, !0);
 	let n = /* @__PURE__ */ N(() => t.person.week.goal.steps ?? 0), r = /* @__PURE__ */ N(() => va(t.person.steps_week, W(n), _a())), i = /* @__PURE__ */ N(() => t.person.pbs.lifts ?? []), a = /* @__PURE__ */ N(() => Ca(W(i))), o, s = /* @__PURE__ */ N(() => t.person.pbs.fastest_1k), c = /* @__PURE__ */ N(() => t.person.pbs.gym_tonnes.toLocaleString(void 0, { maximumFractionDigits: 1 }));
@@ -3115,7 +3115,7 @@ function Lo(e, t) {
 	var f = B(u, 2), p = L(f), m = (e) => {
 		var t = Mo(), n = R(t);
 		X(n, 21, () => W(a), (e) => e.group, (e, t) => {
-			var n = jo(), r = L(n), i = B(L(r)), a = z(i, !0), s = B(i), c = L(s), l = z(B(c), !0);
+			var n = jo(), r = L(n), i = L(r), a = z(i, !0), s = B(i), c = L(s), l = z(B(c), !0);
 			O(s), O(r), O(n), V((e) => {
 				J(a, W(t).group), J(c, `${W(t).lift.name ?? ""} · `), J(l, e);
 			}, [() => ba(W(t).lift)]), G("click", r, () => o.open(W(t).group)), q(e, n);

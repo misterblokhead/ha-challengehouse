@@ -28,7 +28,7 @@
     <ul>
       {#each rows as r (r.group)}
         <li><button type="button" class="grp" onclick={() => dialog.open(r.group)}>
-          <span class="dot" aria-hidden="true"></span><span class="g">{r.group}</span><span>{r.lift.name} · <b>{liftSet(r.lift)}</b></span>
+          <span class="g">{r.group}</span><span>{r.lift.name} · <b>{liftSet(r.lift)}</b></span>
         </button></li>
       {/each}
     </ul>
@@ -61,8 +61,7 @@
   .grp { display: flex; align-items: baseline; gap: 0.625rem; width: 100%; min-height: 2.75rem; box-sizing: border-box; padding: 0.625rem 0; border: 0; background: none; color: inherit; font: inherit; text-align: start; }
   .grp:active { background: var(--fill); }
   .g { color: var(--muted); }
-  .dot { flex: none; width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--gym); transform: translateY(-0.0625rem); }
-  b { font-weight: 600; font-variant-numeric: tabular-nums; }
+  b { font-weight: 600; font-variant-numeric: tabular-nums; color: var(--soon-text); } /* the workouts orange, in its readable text shade */
   .chip { display: inline-grid; place-items: center; width: 1.5rem; height: 1.5rem; margin-inline-end: 0.5rem; border-radius: 50%; background: var(--run); font-size: 0.8125rem; vertical-align: middle; }
   li + li { border-top: 1px solid var(--line); }
   .more { margin: 0.25rem 0 0.5rem; }
