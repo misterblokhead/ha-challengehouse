@@ -100,6 +100,11 @@ export function mergeOlder(feed, items) {
   return [...feed, ...items.filter((w) => !have.has(w.key))];
 }
 
+// The loaded older rows with the Remove / Restore / Delete the integration took (`done`: {"person/key": excluded, or null for a delete}).
+// The payload's feed never carries these rows, so nothing else would show the change.
+export const olderState = (items, person, done) =>
+  items.flatMap((w) => { const d = done[`${person}/${w.key}`]; return d === null ? [] : d === undefined ? [w] : [{ ...w, excluded: d }]; });
+
 // "YYYY-MM-DD" minus `n` days
 export const minusDays = (day, n) => new Date(Date.parse(`${day}T00:00:00Z`) - n * 864e5).toISOString().slice(0, 10);
 

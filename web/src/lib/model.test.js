@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { counts, goals, ringFractions, stepsLine, togetherLine, rewardLine, levelProgress, weekLabel, staleSince, feedRow, planBar, layout, shortDate, pendingDone, PENDING_MS, serial, shoeRow, goalsDraft, maxHrText, clampGoal, isoWeek, goalsDone, withPendingGoals, weekBars, localDay, stepsSummary, liftSet, liftLine, GROUPS, groupRows, groupedLifts, paceText, recordKeys, SHOE_LIMITS, SHOE_DEFAULT_KM, shoesManageable, shoeForm, shoePicker, mergeOlder, minusDays } from "./model.js";
+import { counts, goals, ringFractions, stepsLine, togetherLine, rewardLine, levelProgress, weekLabel, staleSince, feedRow, planBar, layout, shortDate, pendingDone, PENDING_MS, serial, shoeRow, goalsDraft, maxHrText, clampGoal, isoWeek, goalsDone, withPendingGoals, weekBars, localDay, stepsSummary, liftSet, liftLine, GROUPS, groupRows, groupedLifts, paceText, recordKeys, SHOE_LIMITS, SHOE_DEFAULT_KM, shoesManageable, shoeForm, shoePicker, mergeOlder, minusDays, olderState } from "./model.js";
 
 const week = { runs: 1, workouts: 2, active_days: 3, bonus: 1, goal: { runs: 2, workouts: 2, active_days: 4, steps: 10000 }, days_left: 3, week: "2026-W44" };
 
@@ -475,4 +475,11 @@ test("minusDays: calendar days back across a month and a year end", () => {
   assert.equal(minusDays("2027-03-01", 90), "2026-12-01");
   assert.equal(minusDays("2027-01-05", 10), "2026-12-26");
   assert.equal(minusDays("2026-11-01", 0), "2026-11-01");
+});
+
+test("olderState: a Remove/Restore/Delete the integration took shows on the loaded older rows, and only on those", () => {
+  const older = [{ key: "a", excluded: false }, { key: "b", excluded: true }, { key: "manual:c", excluded: false }, { key: "d", excluded: false }];
+  const done = { "p1/a": true, "p1/b": false, "p1/manual:c": null, "p2/d": true };
+  assert.deepEqual(olderState(older, "p1", done), [{ key: "a", excluded: true }, { key: "b", excluded: false }, { key: "d", excluded: false }]);
+  assert.deepEqual(olderState(older, "p1", {}), older);
 });

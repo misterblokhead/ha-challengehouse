@@ -1,6 +1,6 @@
 <script>
-  import { loadOlder } from "../actions.svelte.js";
-  import { localDay, mergeOlder, minusDays } from "../model.js";
+  import { done, loadOlder } from "../actions.svelte.js";
+  import { localDay, mergeOlder, minusDays, olderState } from "../model.js";
   import FeedRow from "./FeedRow.svelte";
 
   // The 90-day feed, newest first, then what "Load older" brought in; excluded workouts stay in it, dimmed, so they can be restored.
@@ -9,7 +9,7 @@
 
   let older = $state([]), more = $state(true), busy = $state(false);
   let before = null; // the day the next request asks for what is before: set by the first one, then 90 days further back each time
-  const shown = $derived(mergeOlder(items, older));
+  const shown = $derived(mergeOlder(items, olderState(older, person, done)));
 
   async function load() {
     busy = true;

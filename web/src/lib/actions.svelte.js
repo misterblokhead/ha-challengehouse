@@ -5,6 +5,8 @@ import { goalsDone, pendingDone, serial } from "./model.js";
 // `pending`: by "person/key", {person, key, want, at, n}; see pendingDone. `toast`: the one message at the bottom, with an optional Undo.
 export const TOAST_MS = 5000;
 export const pending = $state({});
+// What the integration took, by "person/key": the `excluded` it set, or null for a delete. Only the loaded older rows read it (olderState).
+export const done = $state({});
 export const toast = $state({ on: false, text: "", undo: null });
 // Goals saved from the Goals sheet: {entry, at} until a payload's week.goal carries them (goalsDone); the tiles show them meanwhile.
 export const pendingGoals = $state({ entry: null, at: 0 });
@@ -44,10 +46,12 @@ export async function saveGoals(entry, people) {
 export async function act(person, key, action) {
   const id = `${person}/${key}`, prev = pending[id], n = ++seq;
   const manual = key.startsWith("manual:");
-  pending[id] = { person, key, want: manual && action === "remove" ? null : action === "remove", at: Date.now(), n };
+  const want = manual && action === "remove" ? null : action === "remove";
+  pending[id] = { person, key, want, at: Date.now(), n };
   if (action === "remove" && !manual) say("Removed", () => act(person, key, "restore"));
   try {
     await serial(sending, id, () => send("POST", "workouts", { person, key, action }));
+    done[id] = want;
   } catch (e) {
     if (pending[id]?.n === n) { // unless a later tap (Undo) already replaced it
       if (prev) pending[id] = prev;
