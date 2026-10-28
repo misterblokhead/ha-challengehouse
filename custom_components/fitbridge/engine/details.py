@@ -104,11 +104,6 @@ def _fit(chunks, tol_m, cap):
         tol_m *= 1.5
 
 
-def simplify(points, tol_m=5.0, cap=ROUTE_POINTS):
-    """[[lat, lon], ...] of at most cap points: Ramer-Douglas-Peucker, tolerance raised until it fits."""
-    return _fit([points], tol_m, cap)[0]
-
-
 def _gain(eles):
     """Metres climbed, a rise or fall counting only once it reaches HYSTERESIS_M; None without any elevation."""
     eles = [e for e in eles if e is not None]

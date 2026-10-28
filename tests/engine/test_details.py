@@ -9,7 +9,7 @@ from pathlib import Path
 
 from custom_components.fitbridge.engine.cycle import workout_details
 from custom_components.fitbridge.engine.store import Store
-from custom_components.fitbridge.engine.details import gym_summary, route_details, simplify, track
+from custom_components.fitbridge.engine.details import _fit, gym_summary, route_details, track
 
 R = 6371000  # metres, the radius haversine_m uses
 
@@ -55,14 +55,14 @@ class RouteTests(unittest.TestCase):
 
     def test_simplify_raises_tolerance_until_cap(self):
         pts = [p[1:3] for p in loop()]
-        self.assertGreater(len(simplify(pts, 5.0, cap=300)), 10)
-        self.assertLessEqual(len(simplify(pts, 5.0, cap=10)), 10)
-        self.assertEqual(len(simplify(pts[:2])), 2)
+        self.assertGreater(len(_fit([pts], 5.0, 300)[0]), 10)
+        self.assertLessEqual(len(_fit([pts], 5.0, 10)[0]), 10)
+        self.assertEqual(len(_fit([pts[:2]], 5.0, 300)[0]), 2)
 
     def test_long_track_stays_bounded(self):
         # a slightly wavy near-straight line, then a loop: both are 20 000 points
         wavy = [(i, i * 1e-5, 1e-5 * math.sin(i / 7), None, None) for i in range(20000)]
-        self.assertLessEqual(len(simplify([p[1:3] for p in wavy], 5.0, cap=300)), 300)
+        self.assertLessEqual(len(_fit([[p[1:3] for p in wavy]], 5.0, 300)[0]), 300)
         d = details_of(gpx(loop(n=20000, step_s=1)), None)
         self.assertLessEqual(sum(map(len, d["route"])), 300)
         self.assertLessEqual(len(d["series"]["t"]), 200)

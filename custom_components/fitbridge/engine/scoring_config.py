@@ -153,8 +153,9 @@ def _check_group(errs, group, people):
         errs.append("group.members must be two distinct configured people ids")
 
 
-def _check_types(errs, types, rules):
-    """Validates [types] and fills each entry's defaults: min_min from rules.min_<kind>_min (None for a walk), effort false."""
+def _check_types(errs, types):
+    """Validates [types] and fills each entry's effort default (false). A missing min_min stays missing: the scorer then uses
+    the kind's rules.min_<kind>_min."""
     if not isinstance(types, dict):
         return errs.append("missing table [types]")
     for source in TYPE_SOURCES:
@@ -182,7 +183,6 @@ def _check_types(errs, types, rules):
                 errs.append(f"{where}: min_min must be a number > 0")
             if not isinstance(e.setdefault("effort", False), bool):
                 errs.append(f"{where}: effort must be true or false")
-            e.setdefault("min_min", rules.get(f"min_{e.get('kind')}_min"))
 
 
 def _validate(cfg, errs):
@@ -205,7 +205,7 @@ def _validate(cfg, errs):
     for k, default in (("effort_hr_pct", 60), ("max_hr_fit_pct", 70)):  # optional: a copy from before them lacks both
         rules.setdefault(k, default)
     _check_numbers(errs, "rules", rules, ("effort_hr_pct", "max_hr_fit_pct"))
-    _check_types(errs, cfg.get("types"), rules)
+    _check_types(errs, cfg.get("types"))
     per_min = cfg.get("xp", {}).get("per_min", {})
     _check_numbers(errs, "xp.per_min", per_min if isinstance(per_min, dict) else {}, KINDS, False)
 

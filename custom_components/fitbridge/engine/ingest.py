@@ -239,7 +239,7 @@ MANUAL_NAMES = {"run": "Run", "walk": "Walk", "gym": "Gym session", "home": "Hom
 
 def classify(source, activity_type, points, types):
     """{"kind", "name", "min_min", "effort"} of a workout from the type table (config["types"]), or None when its
-    type does not count. A manual entry names its own kind (min_min None: the rules decide)."""
+    type does not count. A manual entry names its own kind. min_min None: the kind's rules.min_<kind>_min decides."""
     t = str(activity_type or "").lower()
     if source == "manual":
         return {"kind": t, "name": MANUAL_NAMES[t], "min_min": None, "effort": False} if t in KINDS else None
@@ -247,7 +247,7 @@ def classify(source, activity_type, points, types):
         if (t == e["match"]) if source == "health_exporter" else (e["match"] in t):  # opentracks: first substring hit wins
             if e["kind"] == "run" and source == "opentracks" and not points:
                 return None  # a run needs GPS points
-            return {k: e[k] for k in ("kind", "name", "min_min", "effort")}
+            return {"kind": e["kind"], "name": e["name"], "min_min": e.get("min_min"), "effort": e["effort"]}
     return None
 
 

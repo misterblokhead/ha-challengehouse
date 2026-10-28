@@ -6,7 +6,9 @@ from pathlib import Path
 from custom_components.fitbridge.engine import ingest
 from custom_components.fitbridge.engine.scoring_config import ConfigError, load_config
 from custom_components.fitbridge.engine.store import Store
+from custom_components.fitbridge.engine.scoring import score
 from .test_config import DEFAULT
+from .test_scoring import NOW, wk
 
 CONFIG = load_config(DEFAULT)
 TYPES = CONFIG["types"]
@@ -42,9 +44,9 @@ class ClassifyTests(unittest.TestCase):
         c = ingest.classify("health_exporter", "cycling", 0, TYPES)
         self.assertEqual(c, {"kind": "home", "name": "Cycling", "min_min": 20, "effort": True})
         c = ingest.classify("health_exporter", "yoga", 0, TYPES)
-        self.assertEqual(c, {"kind": "home", "name": "Yoga", "min_min": 15, "effort": False})
+        self.assertEqual(c, {"kind": "home", "name": "Yoga", "min_min": None, "effort": False})  # the scorer: rules.min_home_min
         self.assertEqual(self.kind("health_exporter", "running", 0), "run")
-        self.assertEqual(ingest.classify("health_exporter", "running", 0, TYPES)["min_min"], 10)
+        self.assertEqual(ingest.classify("health_exporter", "running", 0, TYPES)["min_min"], None)
         self.assertEqual(self.kind("health_exporter", "walking", 0), "walk")
         self.assertEqual(self.kind("health_exporter", "hiking", 0), "walk")
         self.assertIsNone(ingest.classify("health_exporter", "golf", 0, TYPES))
@@ -105,8 +107,9 @@ class TableTests(unittest.TestCase):
 
     def test_min_min_defaults_from_the_rules(self):
         cfg = load_config(DEFAULT.replace("min_home_min = 15", "min_home_min = 25"))
-        yoga = next(e for e in cfg["types"]["health_exporter"] if e["match"] == "yoga")
-        self.assertEqual(yoga["min_min"], 25)
+        c = ingest.classify("health_exporter", "yoga", 0, cfg["types"])  # the shipped yoga entry sets no min_min
+        yoga = wk(P0, c["kind"], 0, 18, 0, 20, min_min=c["min_min"], effort=c["effort"])
+        self.assertEqual(score({P0: [yoga]}, [], cfg, NOW(1))["people"][P0]["feed"][0]["reason"], "short")  # 20 < 25
 
 
 class UncountedTests(unittest.TestCase):
@@ -126,7 +129,7 @@ class UncountedTests(unittest.TestCase):
         counted, uncounted = ingest.db_workouts(self.store, PEOPLE, TYPES)
         (y,), (g,) = counted[P0], uncounted[P0]
         self.assertEqual((y["key"], y["kind"], y["name"], y["min_min"], y["effort"], y["max_hr"], y["kcal"]),
-                         ("y", "home", "Yoga", 15, False, 150.0, 200.0))
+                         ("y", "home", "Yoga", None, False, 150.0, 200.0))
         self.assertEqual((g["key"], g["kind"], g["name"], g["duration_s"], g["avg_hr"]), ("g", None, "Golf", 1800.0, 120.0))
         self.assertEqual(uncounted[PEOPLE[1]], [])
 

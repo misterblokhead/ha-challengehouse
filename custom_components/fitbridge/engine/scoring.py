@@ -275,7 +275,7 @@ def score_person(workouts, paused, cfg, person, now, steps=None, settings=None, 
                 bump(d, "late")
             if paused_wk:
                 bump(d, "paused_week_workouts")
-            min_min = w.get("min_min") or rules.get(f"min_{kind}_min")  # None (manual entry): the kind's default; a walk has none
+            min_min = w.get("min_min") or rules.get(f"min_{kind}_min")  # None (manual entry, a type without its own): the kind's; a walk has none
             effort_ok = not (w.get("effort") and max_bpm and w["avg_hr"] is not None
                              and w["avg_hr"] < rules["effort_hr_pct"] / 100 * max_bpm)
             long_enough = kind != "walk" and mins >= min_min and effort_ok
