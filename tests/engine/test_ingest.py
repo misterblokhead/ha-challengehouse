@@ -290,6 +290,12 @@ class FlowTests(unittest.TestCase):
         self.assertEqual(counts(self.store), {P1: {"stored": 1}})
         self.assertEqual(Path(self.store.all_rows()[0]["file"]).read_bytes(), gpx_with_points())
 
+    def test_a_cycling_export_stores_its_route_too(self):
+        w = dict(hex_workout("C", "cycling"), routeFile="routes/cycling-c.gpx")
+        ingest.ingest_export(self.store, self.archive, P1, hex_zip([w], {"routes/cycling-c.gpx": gpx_with_points()}))
+        self.assertEqual(counts(self.store), {P1: {"stored": 1}})
+        self.assertEqual(Path(self.store.all_rows()[0]["file"]).read_bytes(), gpx_with_points())
+
     def test_late_route_attaches_once(self):
         def bodies():
             return len(list((self.archive / P1).glob("export-*.body")))

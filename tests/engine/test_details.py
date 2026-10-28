@@ -75,6 +75,18 @@ class RouteTests(unittest.TestCase):
             self.assertAlmostEqual(x["s"], 300, delta=1)
             self.assertAlmostEqual(x["pace"], 300, delta=1)
 
+    def test_a_tail_shorter_than_tail_m_is_no_split(self):
+        for length_m, kms in ((2005.0, [1, 1]), (2015.0, [1, 1, 0.01])):  # TAIL_M = 10
+            with self.subTest(length_m):
+                s = details_of(gpx(loop(n=401, length_m=length_m)), None)["splits"]
+                self.assertEqual([x["km"] for x in s], kms)
+
+    def test_many_segments_stay_within_the_route_cap(self):
+        t0 = datetime(2026, 1, 1, tzinfo=timezone.utc)
+        segs = [[(t0 + timedelta(seconds=10 * k + i), k * 1e-4, i * 1e-4 * (-1) ** k, None, None) for i in range(3)]
+                for k in range(400)]  # 400 pieces: even their endpoints alone are more than 300 points
+        self.assertLessEqual(sum(map(len, route_details(segs, None)["route"])), 300)
+
     def test_gap_splits_and_series(self):
         d = details_of(gpx(loop(ele=lambda i: 5, hr=lambda i: 130), gap_after=160), None)
         self.assertEqual(len(d["route"]), 2)

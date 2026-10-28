@@ -122,14 +122,16 @@ async def test_scores_carry_this_weeks_steps_with_today_from_the_live_sensor(has
     assert body["people"]["p1"]["steps_week"]["2026-10-28"] == 9000
 
 
-async def test_remove_works_on_a_workout_only_in_older(hass, client, send):
-    await send({"people": {"p1": {"feed": [{"key": "k1"}], "older": _older(100)}}})
+async def test_remove_and_restore_work_on_a_workout_only_in_older(hass, client, send):
+    await send({"people": {"p1": {"feed": [{"key": "k1"}], "older": _older(100)}, "p2": {"feed": [], "older": _older(120)}}})
     c = await client("alex")
     with patch.object(hass.data[DOMAIN].runner, "async_manual") as manual:
-        resp = await c.post(f"{UI}/workouts", json={"person": "p1", "key": "o100", "action": "remove"})
-        assert resp.status == 202
-        manual.assert_awaited_once_with({"action": "remove", "person": "p1", "key": "o100"})
+        for action in ("remove", "restore"):
+            assert (await c.post(f"{UI}/workouts", json={"person": "p1", "key": "o100", "action": action})).status == 202
         assert (await c.post(f"{UI}/workouts", json={"person": "p1", "key": "o999", "action": "remove"})).status == 404
+        assert (await c.post(f"{UI}/workouts", json={"person": "p2", "key": "o120", "action": "remove"})).status == 403  # the partner's
+    assert [call.args[0] for call in manual.await_args_list] == [
+        {"action": "remove", "person": "p1", "key": "o100"}, {"action": "restore", "person": "p1", "key": "o100"}]
 
 
 async def test_remove_goes_through_the_runner(hass, client, send):
@@ -446,6 +448,20 @@ async def test_moving_a_run_moves_its_km(hass, live):
     body = await (await c.get(f"{UI}/scores")).json()
     assert [(s["km"], s["runs"]) for s in body["people"]["person1"]["shoes"]] == [(0.0, 0), (5.0, 1)]
     assert body["people"]["person1"]["run_shoes"] == {"r1": b}
+
+
+async def test_a_run_only_in_older_moves_too_but_not_the_partners(hass, live):
+    person1 = await live("person1")
+    a, b = await _add(person1, name="A"), await _add(person1, name="B")
+    _run(hass, "person1", "r1", 5, 120)
+    _run(hass, "person2", "r2", 5, 120)
+    await hass.data[DOMAIN].runner.async_score_now()
+    people = hass.data[DOMAIN].scores["people"]
+    assert [w["key"] for w in people["person1"]["older"]] == ["r1"] and people["person1"]["run_shoes"] == {"r1": a}
+    resp = await person1.post(f"{UI}/workouts", json={"action": "shoe", "person": "person1", "key": "r1", "shoe_id": b})
+    assert resp.status == 202 and hass.data[DOMAIN].scores["people"]["person1"]["run_shoes"] == {"r1": b}
+    resp = await person1.post(f"{UI}/workouts", json={"action": "shoe", "person": "person2", "key": "r2", "shoe_id": b})
+    assert resp.status == 403
 
 
 async def test_moving_a_run_is_refused_when_it_should(hass, live):
