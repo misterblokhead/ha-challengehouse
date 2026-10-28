@@ -138,7 +138,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    runner = hass.data[DOMAIN].runner
+    runner.stopping = True  # before the handlers go: a cycle still in the executor must not commit what they never got
     if not await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
+        runner.stopping = False
         return False
     webhooks.async_unregister(hass, entry)
     remove_panel(hass)

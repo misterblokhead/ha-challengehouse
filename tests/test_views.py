@@ -332,7 +332,7 @@ async def test_the_first_shoe_added_becomes_current_a_second_does_not(hass, live
 async def test_a_shoe_op_scores_before_it_answers(hass, live):
     c = await live("person1")
     runner = hass.data[DOMAIN].runner
-    with patch.object(runner, "async_score_now", wraps=runner.async_score_now) as score:
+    with patch.object(runner, "_score", wraps=runner._score) as score:
         await _add(c)
     score.assert_awaited_once()
 

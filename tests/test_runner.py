@@ -3,6 +3,7 @@ import asyncio
 import dataclasses
 import json
 import sqlite3
+import threading
 from datetime import timedelta
 from pathlib import Path
 from unittest.mock import patch
@@ -110,6 +111,47 @@ async def test_a_scan_or_upload_in_progress_delays_the_score_tick_but_never_skip
     runner._lock.release()
     await hass.async_block_till_done(wait_background_tasks=True)
     assert cycles.call_count == 2
+
+
+async def test_uploads_while_a_cycle_waits_share_that_cycle(hass, setup, cycles):
+    await setup()
+    runner = _runner(hass)
+    await runner._lock.acquire()  # a cycle, scan or upload running
+    for _ in range(3):  # a burst of uploads
+        hass.async_create_task(runner.async_score_now())
+    for _ in range(5):
+        await asyncio.sleep(0)
+    runner._lock.release()
+    await hass.async_block_till_done(wait_background_tasks=True)
+    assert cycles.call_count == 2  # setup, then one for the whole burst
+    await runner.async_score_now()
+    assert cycles.call_count == 3
+
+
+async def test_an_unload_during_a_cycle_neither_announces_nor_commits(hass, setup, order):
+    async_dispatcher_connect(hass, SIGNAL_SCORES, callback(lambda cycle: order.append("signal")))
+    e = await setup()
+    runner, scored = _runner(hass), runner_mod.score_cycle
+    order.clear()
+    started, go = threading.Event(), threading.Event()
+
+    def slow(*args):  # a cycle still in the executor when the unload starts
+        started.set()
+        go.wait(5)
+        return scored(*args)
+    with patch.object(runner_mod, "score_cycle", side_effect=slow):
+        cycle = hass.async_create_task(runner.async_score_now())
+        assert await hass.async_add_executor_job(started.wait, 5)
+        unload = hass.async_create_task(hass.config_entries.async_unload(e.entry_id))
+        for _ in range(20):
+            await asyncio.sleep(0)
+        go.set()
+        assert await unload
+        await cycle
+    assert order == []  # the next runner announces these
+    for change in (runner.async_manual({"action": "remove", "person": "p1", "key": "k"}), runner.async_shoes(lambda st: 1)):
+        with pytest.raises(ValueError, match="stopping"):  # a page or action call that raced the unload
+            await change
 
 
 async def test_shadow_writes_the_json_and_never_signals_or_commits(hass, setup, mqtt_mock, order):

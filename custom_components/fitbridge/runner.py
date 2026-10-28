@@ -48,6 +48,8 @@ class Runner:
         self.scores: dict | None = None
         self._lock = asyncio.Lock()
         self._scoring = 0  # cycles running or waiting for the lock
+        self._queued = False  # a cycle waits for the lock
+        self.stopping = False  # set when the unload starts: its signal handlers are going
         self._unsubs: list = []
 
     async def async_start(self) -> None:
@@ -59,6 +61,7 @@ class Runner:
         ]
 
     async def async_stop(self) -> None:
+        self.stopping = True
         for unsub in self._unsubs:
             unsub()
         async with self._lock:  # a cycle still running finishes first
@@ -69,10 +72,15 @@ class Runner:
             ir.async_delete_issue(self.hass, DOMAIN, f"folder_missing_{person}")
 
     async def async_score_now(self) -> None:
-        """One cycle now, after the one still running."""
+        """One cycle now, after the one still running. While another already waits for the lock, that one is this
+        cycle too: it starts later, so it scores whatever the caller stored (a burst of uploads, one cycle)."""
+        if self._queued:
+            return
+        self._queued = True  # a call cancelled while waiting (unload) leaves it set: that runner is done
         self._scoring += 1
         try:
             async with self._lock:
+                self._queued = False
                 await self._score()
         finally:
             self._scoring -= 1
@@ -101,18 +109,20 @@ class Runner:
 
     async def async_manual(self, msg: dict) -> None:
         """One remove / restore / add (engine.manual), then a cycle. ValueError (short reason) when it is invalid."""
-        async with self._lock:
-            await self.hass.async_add_executor_job(self._manual, msg)
-            await self._score()
+        await self._change(self._manual, msg)
 
     async def async_shoes(self, fn):
-        """fn(store) (engine.shoes calls) in the executor, then a cycle so the next scores carry the new km. ValueError
-        (short reason) when invalid; returns what fn returned."""
+        """fn(store) (engine.shoes calls), then a cycle so the next scores carry the new km. ValueError (short reason)
+        when invalid; returns what fn returned."""
+        return await self._change(fn)
+
+    async def _change(self, fn, *args):
+        """fn(store, *args) in the executor, then a cycle; returns what fn returned. ValueError when stopping."""
         async with self._lock:
-            if self.store is None:
+            if self.store is None or self.stopping:
                 raise ValueError("fitness is stopping")
-            result = await self.hass.async_add_executor_job(fn, self.store)
-        await self.async_score_now()
+            result = await self.hass.async_add_executor_job(fn, self.store, *args)
+            await self._score()
         return result
 
     async def _score_tick(self, _now=None) -> None:
@@ -156,7 +166,7 @@ class Runner:
         self._token_issue(og, cycle.gym_error)
         if not self.shadow and isinstance(cycle.scores.get("people"), dict):  # no valid scoring config: the page keeps the last
             data.scores = cycle.scores
-        if not self.live:
+        if not self.live or self.stopping:  # stopping: no handler would get it, so nothing is recorded; the next runner announces
             return
         async_dispatcher_send(self.hass, SIGNAL_SCORES, cycle)
         try:  # only after the handlers ran: a restart in between repeats an announcement, never loses one
@@ -225,9 +235,9 @@ class Runner:
                 scan_folder(self.store, self.dir / "archive", person, Path(folder))
         return missing
 
-    def _manual(self, msg: dict) -> None:
+    def _manual(self, store: Store, msg: dict) -> None:
         config, _ = self.holder.get()
         if config is None:
             raise ValueError("no valid scoring config")
         msg_id = f"{time.time_ns() // 1_000_000:013d}-{secrets.token_hex(3)}"  # as the page's MQTT ids were
-        manual.apply(self.store, msg, msg_id, dt_util.utcnow(), tuple(config["people"]))
+        manual.apply(store, msg, msg_id, dt_util.utcnow(), tuple(config["people"]))
