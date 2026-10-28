@@ -104,6 +104,7 @@ test("feedRow: an uncounted workout says why", () => {
   assert.equal(feedRow({ ...run, counts: false, reason: "short", xp: 0 }).label, "Too short");
   assert.equal(feedRow({ ...run, counts: false, reason: "easy", xp: 0 }).label, "Too easy");
   assert.equal(feedRow({ ...run, counts: false, reason: "type", xp: 0 }).label, "Type not counted");
+  assert.equal(feedRow({ ...run, counts: false, reason: "no_gps", xp: 0 }).label, "No GPS");
   assert.equal(feedRow(run).label, null); // an older payload without `counts`
 });
 

@@ -398,7 +398,7 @@ def _badges(cfg, counters, unlocked_at):
 
 def _feed(workouts, plan_done, workout_xp, not_counted, cfg, since, limit):
     """Workouts on or after local date `since` (at most `limit`), excluded ones included, newest first.
-    `not_counted`: {key: "short" | "easy" | "type" | None (before rules.start)}, why a row fills no ring (counts False)."""
+    `not_counted`: {key: "short" | "easy" | "type" | "no_gps" | None (before rules.start)}, why a row fills no ring (counts False)."""
     tz = ZoneInfo(cfg["rules"]["timezone"])
     ws = [w for w in workouts if local_date(w["start"], tz) >= since][::-1][:limit]
     return [{"key": w["key"], "aliases": w.get("aliases", []), "kind": w["kind"], "name": w["name"], "source": w["source"], "indoor": w["indoor"],
@@ -478,7 +478,7 @@ def score(by_person, pauses, cfg, now, steps=None, settings=None, catalog=None, 
 
     `steps`: {person: {"YYYY-MM-DD": steps}}; `settings`: the settings payload (goals spec section 3); None = none;
     `catalog`: {exercise id: {"name", "bp"}} for the lift records;
-    `uncounted`: {person: [workout of a type that does not count]}, shown in `feed` only."""
+    `uncounted`: {person: [workout that counts nothing, its `reason` "type" unless given]}, shown in `feed` only."""
     cleaned = {p: clean([dict(w) for w in by_person.get(p, [])], cfg) for p in cfg["people"]}
     mark_joint(cleaned, cfg)
     tz = ZoneInfo(cfg["rules"]["timezone"])
@@ -495,7 +495,7 @@ def score(by_person, pauses, cfg, now, steps=None, settings=None, catalog=None, 
         lifts, fastest_1k = _records(cleaned[p], tz, catalog)
         other = (uncounted or {}).get(p, [])  # added after scoring: they touch nothing but the feed (not `recent`)
         early = clean(by_person.get(p, []), cfg, early=True)  # before rules.start: likewise, and no reason to show
-        reasons = r["not_counted"] | {w["key"]: None for w in early} | {w["key"]: "type" for w in other}
+        reasons = r["not_counted"] | {w["key"]: None for w in early} | {w["key"]: w.get("reason", "type") for w in other}
         rows = _feed(sorted(cleaned[p] + early + r["active_rows"] + other, key=lambda w: w["start"]),
                      r["plan_done"], r["workout_xp"], reasons, cfg, date.min, None)
         people[p] = {k: v for k, v in r.items() if k not in ("weekly", "counters", "unlocked_at", "plan_done", "workout_xp", "active_rows", "not_counted")} | {

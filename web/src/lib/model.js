@@ -74,7 +74,7 @@ export function when(start, time = true) {
 export const duration = (m) => (m < 60 ? `${m} min` : m % 60 ? `${Math.floor(m / 60)} h ${pad(m % 60)} min` : `${m / 60} h`);
 
 // Why a workout earns nothing (`reason` of an uncounted one); the row shows it greyed, in place of its XP.
-const UNCOUNTED = { short: "Too short", easy: "Too easy", type: "Type not counted" };
+const UNCOUNTED = { short: "Too short", easy: "Too easy", type: "Type not counted", no_gps: "No GPS" };
 
 export const feedRow = (item) => ({
   title: item.name,

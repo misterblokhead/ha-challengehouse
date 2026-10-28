@@ -243,6 +243,15 @@ class ScoringCycleTests(unittest.TestCase):
         self.assertEqual(self.workouts, [])
         self.assertEqual(self.store.unseen_workouts(P0, res["people"][P0]["feed"])[0], [])  # recorded as seen
 
+    def test_a_run_without_gps_is_in_the_feed_as_no_gps_but_never_announced(self):
+        self.run_cycle()  # seeds
+        self.store.add(P0, "t0", "opentracks", "skipped_no_gps", activity_type="running", points=0,
+                       start="2026-10-28T09:00:00+01:00", end="2026-10-28T09:30:00+01:00", duration_s=1800)
+        res = self.scores()
+        row = next(w for w in res["people"][P0]["feed"] if w["key"] == "t0")
+        self.assertEqual((row["counts"], row["reason"], row["xp"]), (False, "no_gps", 0))
+        self.assertEqual(self.workouts, [])
+
     def test_excluded_workout_not_announced(self):
         self.run_cycle()  # seeds
         self.add_run("t1")

@@ -197,7 +197,7 @@ def score_cycle(store, holder, og, inputs: Inputs, now) -> Cycle:
     announce = [(p, b) for p, fresh, loud in unseen if loud for b in fresh]
     stale = now - timedelta(hours=48)  # older news (home workouts stored before they were scored) is only recorded
     announce_workouts = [(p, w) for p, _, news, loud in workouts_unseen if loud for w in news
-                         if not w["excluded"] and w["kind"] != "active_day" and w["reason"] != "type"  # these only get recorded
+                         if not w["excluded"] and w["kind"] != "active_day" and w["reason"] not in ("type", "no_gps")  # these only get recorded
                          and datetime.fromisoformat(w["start"]) >= stale]
     recs = []  # (person, record events, record values to save, (record id, workout key) pairs to remember)
     for p, r in result["people"].items():

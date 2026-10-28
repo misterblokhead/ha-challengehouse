@@ -2552,7 +2552,8 @@ function da(e, t = !0) {
 var fa = (e) => e < 60 ? `${e} min` : e % 60 ? `${Math.floor(e / 60)} h ${Xi(e % 60)} min` : `${e / 60} h`, pa = {
 	short: "Too short",
 	easy: "Too easy",
-	type: "Type not counted"
+	type: "Type not counted",
+	no_gps: "No GPS"
 }, ma = (e) => ({
 	title: e.name,
 	when: da(e.start, e.kind !== "active_day"),

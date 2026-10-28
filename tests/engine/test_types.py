@@ -52,7 +52,8 @@ class ClassifyTests(unittest.TestCase):
         self.assertIsNone(ingest.classify("health_exporter", "golf", 0, TYPES))
         c = ingest.classify("opentracks", "Fietsen", 400, TYPES)
         self.assertEqual((c["kind"], c["effort"], c["min_min"]), ("home", True, 20))
-        self.assertIsNone(ingest.classify("opentracks", "hardlopen", 0, TYPES))  # a run needs GPS points
+        c = ingest.classify("opentracks", "hardlopen", 0, TYPES)  # a run needs GPS points
+        self.assertEqual((c["kind"], c["reason"]), (None, "no_gps"))
         self.assertEqual(self.kind("opentracks", "Hardlopen", 10), "run")
 
     def test_every_default_type_is_in_the_spec_lists(self):
@@ -132,6 +133,14 @@ class UncountedTests(unittest.TestCase):
                          ("y", "home", "Yoga", None, False, 150.0, 200.0))
         self.assertEqual((g["key"], g["kind"], g["name"], g["duration_s"], g["avg_hr"]), ("g", None, "Golf", 1800.0, 120.0))
         self.assertEqual(uncounted[PEOPLE[1]], [])
+        self.assertEqual((g["reason"], y["reason"]), ("type", None))
+
+    def test_an_opentracks_run_without_gps_is_uncounted_as_no_gps(self):
+        self.store.add(P0, "r", "opentracks", "skipped_no_gps", activity_type="running", points=0,
+                       start="2026-10-27T18:00:00+01:00", end="2026-10-27T18:30:00+01:00", duration_s=1800)
+        counted, uncounted = ingest.db_workouts(self.store, PEOPLE, TYPES)
+        (r,) = uncounted[P0]
+        self.assertEqual((counted[P0], r["kind"], r["name"], r["reason"]), ([], None, "Run", "no_gps"))
 
 
 if __name__ == "__main__":

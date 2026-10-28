@@ -239,14 +239,15 @@ MANUAL_NAMES = {"run": "Run", "walk": "Walk", "gym": "Gym session", "home": "Hom
 
 def classify(source, activity_type, points, types):
     """{"kind", "name", "min_min", "effort"} of a workout from the type table (config["types"]), or None when its
-    type does not count. A manual entry names its own kind. min_min None: the kind's rules.min_<kind>_min decides."""
+    type does not count. A manual entry names its own kind. min_min None: the kind's rules.min_<kind>_min decides.
+    An OpenTracks run without GPS points counts nothing either: kind None, reason "no_gps"."""
     t = str(activity_type or "").lower()
     if source == "manual":
         return {"kind": t, "name": MANUAL_NAMES[t], "min_min": None, "effort": False} if t in KINDS else None
     for e in types.get(source, ()):
         if (t == e["match"]) if source == "health_exporter" else (e["match"] in t):  # opentracks: first substring hit wins
             if e["kind"] == "run" and source == "opentracks" and not points:
-                return None  # a run needs GPS points
+                return {"kind": None, "name": e["name"], "min_min": None, "effort": False, "reason": "no_gps"}
             return {"kind": e["kind"], "name": e["name"], "min_min": e.get("min_min"), "effort": e["effort"]}
     return None
 
@@ -265,8 +266,8 @@ def aware(text):
 
 
 def db_workouts(store, people, types):
-    """All stored workouts as scorer dicts: (counted, uncounted), each {person: [workout]}. An uncounted one is of a type
-    the table does not know (kind None, name = its type). Rows we cannot place in time are skipped; a number stored as
+    """All stored workouts as scorer dicts: (counted, uncounted), each {person: [workout]}. An uncounted one has kind None
+    and a reason: "type" when the table does not know its type (name = its type), or "no_gps" (classify). Rows we cannot place in time are skipped; a number stored as
     text (rows from before map_hex_workout checked them) counts as missing."""
     out, uncounted = {p: [] for p in people}, {p: [] for p in people}
     excluded, best_km = store.exclusions(), store.best_km()
@@ -281,7 +282,7 @@ def db_workouts(store, people, types):
         if dur is None or dur <= 0:
             continue
         end = end or start + timedelta(seconds=dur)
-        c = c or {"kind": None, "name": str(r["activity_type"] or "Unknown").title(), "min_min": None, "effort": False}
+        c = c or {"kind": None, "name": str(r["activity_type"] or "Unknown").title(), "min_min": None, "effort": False, "reason": "type"}
         (out if c["kind"] else uncounted)[r["person"]].append({
             "person": r["person"], "key": r["key"], "source": r["source"], "kind": c["kind"],
             "indoor": bool(r["indoor"]), "start": start, "end": end, "duration_s": float(dur),
@@ -289,6 +290,6 @@ def db_workouts(store, people, types):
             "max_hr": _number(r["max_hr"]), "kcal": _number(r["kcal"]), "min_min": c["min_min"], "effort": c["effort"],
             "name": c["name"], "best_1k_s": best_km.get((r["person"], r["key"])), "lifts": {}, "unit": "kg",
             "url": None,  # no links since Endurain went
-            "excluded": (r["person"], r["key"]) in excluded,
+            "excluded": (r["person"], r["key"]) in excluded, "reason": c.get("reason"),
         })
     return out, uncounted
