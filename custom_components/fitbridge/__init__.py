@@ -144,7 +144,3 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     remove_panel(hass)
     hass.data.pop(DOMAIN, None)
     return True
-
-
-async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    await webhooks.async_remove(hass, entry)

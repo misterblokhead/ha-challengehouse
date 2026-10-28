@@ -1,7 +1,7 @@
 {
   "domain": "fitbridge",
   "name": "Fitness (fitbridge)",
-  "after_dependencies": ["cloud", "mqtt"],
+  "after_dependencies": ["mqtt"],
   "codeowners": ["@misterblokhead"],
   "config_flow": true,
   "dependencies": ["http", "frontend", "panel_custom", "webhook"],

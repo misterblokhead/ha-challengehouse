@@ -158,7 +158,7 @@ class FitbridgeOptionsFlow(config_entries.OptionsFlowWithReload):
                 return self.async_create_entry(data={**self.config_entry.options, OPT_FOLDERS: folders})
             errors = {labels[p]: "folder_missing" for p in missing}
         hooks = self.config_entry.data.get(WEBHOOKS, {})
-        urls = [f"- {label}: {await webhooks.async_url(self.hass, hooks[p])}" for p, label in labels.items() if p in hooks]
+        urls = [f"- {label}: {webhooks.async_url(self.hass, hooks[p])}" for p, label in labels.items() if p in hooks]
         old = self.config_entry.options.get(OPT_FOLDERS, {})
         schema = vol.Schema({vol.Optional(label): TextSelector() for label in labels.values()})
         return self.async_show_form(

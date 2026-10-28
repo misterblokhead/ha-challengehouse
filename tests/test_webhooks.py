@@ -10,7 +10,7 @@ from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.network import NoURLAvailableError
 from homeassistant.setup import async_setup_component
 from homeassistant.util import dt as dt_util
-from pytest_homeassistant_custom_component.common import MockConfigEntry, async_fire_time_changed
+from pytest_homeassistant_custom_component.common import async_fire_time_changed
 
 from custom_components.fitbridge import runner as runner_mod
 from custom_components.fitbridge import webhooks
@@ -166,27 +166,13 @@ async def test_a_missing_folder_raises_its_issue_and_other_inputs_go_on(hass, se
     assert registry.async_get_issue(DOMAIN, f"folder_missing_{p0}") is None  # a reload without that folder must not keep it
 
 
-async def test_urls_are_cloudhooks_with_nabu_casa_else_the_external_url(hass, setup):
+async def test_urls_are_homeassistants_own_never_a_cloudhook(hass, setup):
     hook = list((await setup()).data[WEBHOOKS].values())[0]
-    assert (await webhooks.async_url(hass, hook)).endswith(f":8123/api/webhook/{hook}")  # no external URL: the internal one
+    assert webhooks.async_url(hass, hook).endswith(f":8123/api/webhook/{hook}")  # no external URL: the internal one
     with patch.object(webhooks.webhook, "async_generate_url", side_effect=NoURLAvailableError):
-        assert await webhooks.async_url(hass, hook) == f"/api/webhook/{hook}"  # none at all: the path to put a host before
+        assert webhooks.async_url(hass, hook) == f"/api/webhook/{hook}"  # none at all: the path to put a host before
     hass.config.external_url = "https://ha.example.test"
-    assert await webhooks.async_url(hass, hook) == f"https://ha.example.test/api/webhook/{hook}"
-    cloudhook = AsyncMock(return_value="https://hooks.example.test/abc")
-    with patch.object(webhooks, "_uses_cloud", return_value=True), \
-            patch.object(webhooks.cloud, "async_get_or_create_cloudhook", cloudhook):
-        assert await webhooks.async_url(hass, hook) == "https://hooks.example.test/abc"
-    cloudhook.assert_awaited_once_with(hass, hook)
-
-
-async def test_removing_the_entry_deletes_its_cloudhooks(hass, enable_custom_integrations):
-    e = MockConfigEntry(domain=DOMAIN, unique_id=DOMAIN, minor_version=2, options={OPT_SHADOW: False})
-    e.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(e.entry_id)
-    await hass.async_block_till_done(wait_background_tasks=True)
-    hooks = list(e.data[WEBHOOKS].values())
-    delete = AsyncMock(side_effect=[None, ValueError("gone")])  # one already deleted is fine
-    with patch.object(webhooks, "_uses_cloud", return_value=True), patch.object(webhooks.cloud, "async_delete_cloudhook", delete):
-        await hass.config_entries.async_remove(e.entry_id)
-    assert [c.args[1] for c in delete.await_args_list] == hooks
+    hass.config.components.add("cloud")  # Nabu Casa subscribed: its relay carries bodies as text, a ZIP would break
+    with patch("homeassistant.components.cloud.async_active_subscription", return_value=True),             patch("homeassistant.components.cloud.async_get_or_create_cloudhook",
+                  AsyncMock(return_value="https://hooks.example.test/abc")):
+        assert webhooks.async_url(hass, hook) == f"https://ha.example.test/api/webhook/{hook}"
