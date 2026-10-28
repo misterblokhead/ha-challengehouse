@@ -3,6 +3,7 @@ import math
 import re
 import tomllib
 from datetime import date, datetime
+from pathlib import Path
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 COUNTERS = frozenset({
@@ -242,6 +243,8 @@ def load_config(text):
         cfg = tomllib.loads(text)
     except tomllib.TOMLDecodeError as e:
         raise ConfigError(f"invalid TOML: {e}") from e
+    if "types" not in cfg:  # a copy from before the type table: use the shipped one
+        cfg["types"] = tomllib.loads(Path(__file__).with_name("scoring.toml").read_text(encoding="utf-8"))["types"]
     errs = []
     try:
         _validate(cfg, errs)

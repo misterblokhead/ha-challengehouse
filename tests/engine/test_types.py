@@ -89,11 +89,19 @@ class TableTests(unittest.TestCase):
             ("effort not bool", DEFAULT.replace("effort = true", 'effort = "yes"', 1)),
             ("upper-case match", DEFAULT.replace('match = "yoga"', 'match = "Yoga"')),
             ("no name", DEFAULT.replace('name = "Yoga"', 'name = ""')),
-            ("no types", DEFAULT.replace("[types]", "[typez]")),
+            ("source missing from [types]", DEFAULT.replace("health_exporter = [", "garbage = [")),
             ("source not a list", DEFAULT.replace("opentracks = [", "opentracks = 3\nunused = [")),
         ]:
             with self.subTest(what), self.assertRaises(ConfigError):
                 load_config(broken)
+
+    def test_missing_types_uses_shipped_table(self):
+        before, rest = DEFAULT.split("# Which workout types count.", 1)  # a config from before the table existed
+        old = before + rest[rest.index("[goal]"):]
+        self.assertNotIn("[types]", old)
+        cfg = load_config(old)
+        self.assertEqual(cfg["types"], TYPES)
+        self.assertEqual(ingest.classify("health_exporter", "yoga", 0, cfg["types"])["name"], "Yoga")
 
     def test_min_min_defaults_from_the_rules(self):
         cfg = load_config(DEFAULT.replace("min_home_min = 15", "min_home_min = 25"))
