@@ -22,6 +22,7 @@
   let drag = null;
   let dragging = $state(false); // no transition while the finger moves it
   let locked = false, seq = 0;
+  let downOnBackdrop = false; // a press that ends on the backdrop closes only if it began there (not a map drag let go outside)
 
   export async function open(item) {
     if (dlg.open) return;
@@ -109,7 +110,7 @@
 <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions (Esc and × are the keyboard way; the backdrop click is a pointer shortcut) -->
 <dialog
   bind:this={dlg} aria-labelledby="{uid}-t" class:dragging style:transform={y ? `translateY(${y}px)` : null}
-  onclick={(e) => e.target === dlg && dlg.close()} onclose={closed}
+  onpointerdown={(e) => (downOnBackdrop = e.target === dlg)} onclick={(e) => e.target === dlg && downOnBackdrop && dlg.close()} onclose={closed}
   onkeydown={(e) => e.key === "Escape" && e.stopPropagation()}
 >
   <!-- svelte-ignore a11y_no_static_element_interactions (dragging is pointer-only; × and Esc dismiss from the keyboard) -->

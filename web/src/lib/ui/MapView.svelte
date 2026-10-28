@@ -1,5 +1,6 @@
 <script>
   import L from "leaflet";
+  import { screen } from "../media.svelte.js";
   import { MAX_Z, TILE_TEMPLATE } from "../tiles.js";
   import { authedUrl } from "../authed.js";
 
@@ -24,7 +25,8 @@
     const colour = getComputedStyle(el).getPropertyValue(`--${kind}`).trim();
     // on touch, a map that drags would trap the pop-up's vertical scroll, so it pans only after a tap (like the wheel)
     const coarse = matchMedia("(pointer: coarse)").matches;
-    const map = L.map(el, { scrollWheelZoom: false, dragging: !coarse });
+    const motion = !screen.reducedMotion;
+    const map = L.map(el, { scrollWheelZoom: false, dragging: !coarse, zoomAnimation: motion, fadeAnimation: motion, markerZoomAnimation: motion });
     map.attributionControl.setPrefix(false);
     new SignedTiles(TILE_TEMPLATE, {
       maxZoom: 19,
@@ -32,13 +34,14 @@
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors',
     }).addTo(map);
 
+    const segs = route.filter((s) => s.length);
     const bounds = L.latLngBounds([]);
-    for (const points of route) {
+    for (const points of segs) {
       L.polyline(points, { color: colour, weight: 4 }).addTo(map);
       bounds.extend(points);
     }
     // start: a filled dot; finish: the same with a white ring
-    const ends = [route[0][0], route.at(-1).at(-1)];
+    const ends = segs.length ? [segs[0][0], segs.at(-1).at(-1)] : [];
     ends.forEach((p, i) => L.circleMarker(p, { radius: 6, fillColor: colour, fillOpacity: 1, color: "#fff", weight: i ? 2 : 0 }).addTo(map));
     if (bounds.isValid()) map.fitBounds(bounds, { padding: [16, 16], maxZoom: MAX_Z });
 
@@ -48,8 +51,12 @@
     const deactivate = () => (wheelOff(), coarse && map.dragging.disable());
     const listeners = [["click", activate], ["focus", activate], ["blur", deactivate], ["mouseleave", wheelOff]];
     for (const [type, fn] of listeners) el.addEventListener(type, fn, { passive: true });
+    // a container sized after the map was made (or resized since) would leave the route clipped away: Leaflet does not watch it
+    const ro = new ResizeObserver(() => map.invalidateSize());
+    ro.observe(el);
 
     return () => {
+      ro.disconnect();
       for (const [type, fn] of listeners) el.removeEventListener(type, fn);
       map.remove();
     };

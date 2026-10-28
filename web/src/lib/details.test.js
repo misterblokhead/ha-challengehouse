@@ -62,6 +62,9 @@ test("splitRows: per km, the last partial km with its distance", () => {
     { km: "0.43 km", time: "2:50", pace: "6:35", hr: "—", climb: "3 m" },
   ]);
   assert.deepEqual(splitRows(ride).map((r) => r.pace), ["10.0", "9.7", "9.1"]); // km/h
+  const odd = [{ km: 1, s: 0, pace: 0, hr: null, climb: null }, { km: 1, s: 300, pace: null, hr: null, climb: null }];
+  assert.deepEqual(splitRows({ ...ride, splits: odd }).map((r) => r.pace), ["—", "—"]); // no pace: no speed, not a throw
+  assert.deepEqual(splitRows({ ...run, splits: odd }).map((r) => r.pace), ["—", "—"]);
 });
 
 test("zoneRows: time and share per zone, bpm from max HR; null without zones", () => {

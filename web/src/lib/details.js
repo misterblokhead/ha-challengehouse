@@ -46,7 +46,7 @@ export function splitRows(d) {
   return d.splits.map((s, i) => ({
     km: s.km === 1 ? String(i + 1) : `${s.km} km`,
     time: clock(s.s),
-    pace: speed ? kmh(s.pace).toFixed(1) : clock(s.pace),
+    pace: !s.pace ? "—" : speed ? kmh(s.pace).toFixed(1) : clock(s.pace),
     hr: s.hr == null ? "—" : String(s.hr),
     climb: s.climb == null ? "—" : `${Math.round(s.climb)} m`,
   }));
