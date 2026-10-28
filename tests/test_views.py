@@ -1,6 +1,3 @@
-import json
-import re
-import time
 from datetime import date, timedelta
 from unittest.mock import patch
 
@@ -11,7 +8,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import MockUser
 
-from custom_components.fitbridge.const import DOMAIN, OPT_SHADOW, OPT_STEPS, OPT_VIEWERS
+from custom_components.fitbridge.const import DOMAIN, OPT_STEPS, OPT_VIEWERS
 from custom_components.fitbridge.settings import monday_of
 
 UI = "/api/fitbridge/ui"
@@ -125,34 +122,19 @@ async def test_scores_carry_this_weeks_steps_with_today_from_the_live_sensor(has
     assert body["people"]["p1"]["steps_week"]["2026-10-28"] == 9000
 
 
-@pytest.mark.parametrize("key,action", [("k1", "remove"), ("manual:a/b", "restore")])
-async def test_own_workout_publishes_retained_manual_message(hass, client, send, mqtt_mock, key, action):
-    await send(SCORES)
-    mqtt_mock.async_publish.reset_mock()
-    resp = await (await client("alex")).post(f"{UI}/workouts", json={"person": "p1", "key": key, "action": action})
-    assert resp.status == 202 and await resp.json() == {"ok": True}
-    mqtt_mock.async_publish.assert_called_once()
-    topic, payload, qos, retain = mqtt_mock.async_publish.call_args.args
-    assert re.fullmatch(r"fitbridge/manual/\d{13}-[0-9a-f]{6}", topic)  # ms: an Undo sorts after its Remove
-    assert abs(int(topic.rsplit("/", 1)[1][:13]) - time.time() * 1000) < 60000
-    assert payload == json.dumps({"action": action, "person": "p1", "key": key}) and qos == 1 and retain is True
-
-
-async def test_remove_works_on_a_workout_only_in_older(hass, client, send, mqtt_mock):
+async def test_remove_works_on_a_workout_only_in_older(hass, client, send):
     await send({"people": {"p1": {"feed": [{"key": "k1"}], "older": _older(100)}}})
-    mqtt_mock.async_publish.reset_mock()
     c = await client("alex")
-    resp = await c.post(f"{UI}/workouts", json={"person": "p1", "key": "o100", "action": "remove"})
-    assert resp.status == 202
-    assert json.loads(mqtt_mock.async_publish.call_args.args[1]) == {"action": "remove", "person": "p1", "key": "o100"}
-    assert (await c.post(f"{UI}/workouts", json={"person": "p1", "key": "o999", "action": "remove"})).status == 404
+    with patch.object(hass.data[DOMAIN].runner, "async_manual") as manual:
+        resp = await c.post(f"{UI}/workouts", json={"person": "p1", "key": "o100", "action": "remove"})
+        assert resp.status == 202
+        manual.assert_awaited_once_with({"action": "remove", "person": "p1", "key": "o100"})
+        assert (await c.post(f"{UI}/workouts", json={"person": "p1", "key": "o999", "action": "remove"})).status == 404
 
 
-async def test_live_remove_goes_through_the_runner(hass, client, send, mqtt_mock):
+async def test_remove_goes_through_the_runner(hass, client, send):
     await send(SCORES)
     data = hass.data[DOMAIN]
-    data.shadow = False  # live: no MQTT, the runner applies it
-    mqtt_mock.async_publish.reset_mock()
     c = await client("alex")
     with patch.object(data.runner, "async_manual") as manual:
         resp = await c.post(f"{UI}/workouts", json={"person": "p1", "key": "k1", "action": "remove"})
@@ -161,11 +143,11 @@ async def test_live_remove_goes_through_the_runner(hass, client, send, mqtt_mock
     with patch.object(data.runner, "async_manual", side_effect=ValueError("unknown person")):
         resp = await c.post(f"{UI}/workouts", json={"person": "p1", "key": "k1", "action": "restore"})
     assert resp.status == 400 and await resp.json() == {"detail": "unknown person"}
-    mqtt_mock.async_publish.assert_not_called()
 
-async def test_mapped_admin_may_edit_partner(hass, client, send, mqtt_mock):
+async def test_mapped_admin_may_edit_partner(hass, client, send):
     await send(SCORES)
-    resp = await (await client("sam")).post(f"{UI}/workouts", json={"person": "p1", "key": "k1", "action": "remove"})
+    with patch.object(hass.data[DOMAIN].runner, "async_manual"):
+        resp = await (await client("sam")).post(f"{UI}/workouts", json={"person": "p1", "key": "k1", "action": "remove"})
     assert resp.status == 202
 
 
@@ -178,12 +160,12 @@ async def test_mapped_admin_may_edit_partner(hass, client, send, mqtt_mock):
     ("alex", ["p1", "k1", "remove"], 400),
     ("alex", {"person": "p1", "key": "steps:p1:2026-10-27", "action": "remove"}, 400),  # an active day is not removable
 ])
-async def test_refused_edits_publish_nothing(hass, client, send, mqtt_mock, who, body, status):
+async def test_refused_edits_change_nothing(hass, client, send, who, body, status):
     await send(SCORES)
-    mqtt_mock.async_publish.reset_mock()
-    resp = await (await client(who)).post(f"{UI}/workouts", json=body)
+    with patch.object(hass.data[DOMAIN].runner, "async_manual") as manual:
+        resp = await (await client(who)).post(f"{UI}/workouts", json=body)
     assert resp.status == status
-    mqtt_mock.async_publish.assert_not_called()
+    manual.assert_not_called()
 
 
 @pytest.mark.parametrize("raw,status", [(b"{nope", 400), (b"\xff\xfe", 400), (b'{"key": NaN}', 400), (b" " * 4097, 413)],
@@ -214,18 +196,12 @@ def _this_monday():
     return monday_of(dt_util.now().date()).isoformat()
 
 
-def _settings_publishes(mqtt_mock):
-    return [c.args for c in mqtt_mock.async_publish.call_args_list if c.args[0] == "fitbridge/settings"]
-
-
-async def test_settings_publish_retained_with_this_mondays_entry(hass, client, send, mqtt_mock, hass_storage):
+async def test_settings_store_this_mondays_entry(hass, client, send, hass_storage):
     await send(SCORES)
-    mqtt_mock.async_publish.reset_mock()
     resp = await (await client("alex")).post(f"{UI}/settings", json=SETTINGS)
     monday = _this_monday()
     assert resp.status == 202 and await resp.json() == {"ok": True, "from": monday}
     history = [{"from": monday, **SETTINGS}]
-    assert _settings_publishes(mqtt_mock) == [("fitbridge/settings", json.dumps({"history": history}), 1, True)]
     assert hass_storage["fitbridge.settings"]["data"] == {"history": history, "profiles": {}}
 
 
@@ -244,10 +220,10 @@ async def test_second_save_in_a_week_replaces_and_a_later_week_appends(hass, cli
 
 
 
-async def test_a_failed_publish_keeps_the_old_settings(hass, client, send):
+async def test_a_failed_save_keeps_the_old_settings(hass, client, send):
     await send(SCORES)
     c = await client("alex")
-    with patch("custom_components.fitbridge.settings.publish", side_effect=HomeAssistantError("broker down")):
+    with patch.object(hass.data[DOMAIN].settings_store, "async_save", side_effect=HomeAssistantError("disk full")):
         assert (await c.post(f"{UI}/settings", json=SETTINGS)).status == 500
     assert (await (await c.get(f"{UI}/settings")).json())["current"] is None
 
@@ -257,12 +233,11 @@ async def test_a_failed_publish_keeps_the_old_settings(hass, client, send):
     ("alex", {"people": {"p1": P}, "couple": SETTINGS["couple"]}, 400, "people.p2: required"),
     ("alex", ["x"], 400, "body: must be an object"),
 ])
-async def test_refused_settings_publish_nothing(hass, client, send, mqtt_mock, hass_storage, who, body, status, detail):
+async def test_refused_settings_store_nothing(hass, client, send, hass_storage, who, body, status, detail):
     await send(SCORES)
-    mqtt_mock.async_publish.reset_mock()
     resp = await (await client(who)).post(f"{UI}/settings", json=body)
     assert resp.status == status and (await resp.json())["detail"] == detail
-    assert _settings_publishes(mqtt_mock) == [] and "fitbridge.settings" not in hass_storage
+    assert "fitbridge.settings" not in hass_storage
 
 
 async def test_settings_wait_for_the_first_scores(hass, client):
@@ -283,15 +258,13 @@ async def test_settings_get_returns_current_week_start_and_defaults(hass, client
     assert body["current"] == {"from": _this_monday(), **SETTINGS} and body["history"] == [body["current"]]
 
 
-async def test_birth_years_are_stored_returned_kept_and_cleared(hass, client, send, mqtt_mock, hass_storage):
+async def test_birth_years_are_stored_returned_kept_and_cleared(hass, client, send, hass_storage):
     await send(SCORES)
     c = await client("alex")
-    mqtt_mock.async_publish.reset_mock()
     both = {"profiles": {"p1": {"birth_year": 1990}, "p2": {"birth_year": 1985}}}
     assert (await c.post(f"{UI}/settings", json={**SETTINGS, **both})).status == 202
     assert (await (await c.get(f"{UI}/settings")).json())["profiles"] == both["profiles"]
     assert hass_storage["fitbridge.settings"]["data"]["profiles"] == both["profiles"]
-    assert _settings_publishes(mqtt_mock) == [("fitbridge/settings", json.dumps({"history": [{"from": _this_monday(), **SETTINGS}]}), 1, True)]  # profiles stay local
     assert (await c.post(f"{UI}/settings", json=SETTINGS)).status == 202  # an older page sends none: they stay
     assert (await (await c.get(f"{UI}/settings")).json())["profiles"] == both["profiles"]
     assert (await c.post(f"{UI}/settings", json={**SETTINGS, "profiles": {"p1": {"birth_year": None}}})).status == 202  # null clears, p2 untouched
@@ -314,13 +287,11 @@ async def test_a_bad_birth_year_is_refused_and_nothing_is_stored(hass, client, s
     assert "fitbridge.settings" not in hass_storage
 
 
-async def test_settings_survive_a_reload_and_are_published_at_startup(hass, entry, client, send, mqtt_mock, hass_storage):
+async def test_settings_survive_a_reload(hass, entry, client, send, hass_storage):
     await send(SCORES)
     await (await client("alex")).post(f"{UI}/settings", json=SETTINGS)
-    mqtt_mock.async_publish.reset_mock()
     await hass.config_entries.async_reload(entry.entry_id)
     await hass.async_block_till_done()
-    assert _settings_publishes(mqtt_mock) == [("fitbridge/settings", json.dumps({"history": [{"from": _this_monday(), **SETTINGS}]}), 1, True)]
     await send(SCORES)
     body = await (await (await client("alex")).get(f"{UI}/settings")).json()
     assert body["current"] == {"from": _this_monday(), **SETTINGS}
@@ -336,7 +307,7 @@ async def live(hass, setup, hass_client):
             "robin": MockUser(name="Robin", groups=[admin])}
     for u in made.values():
         u.add_to_hass(hass)
-    await setup({OPT_SHADOW: False, OPT_VIEWERS: {made["person1"].id: "person1", made["person2"].id: "person2"}})
+    await setup({OPT_VIEWERS: {made["person1"].id: "person1", made["person2"].id: "person2"}})
 
     async def _client(name):
         token = await hass.auth.async_create_refresh_token(made[name], "https://fit.example.test")
@@ -499,18 +470,6 @@ async def test_moving_a_run_is_refused_when_it_should(hass, live):
         resp = await who.post(f"{UI}/workouts", json={"action": "shoe", **body})
         assert (resp.status, (await resp.json())["detail"]) == (status, detail), body
     assert (await person2.post(f"{UI}/workouts", json={"action": "shoe", "person": "person2", "key": "r2", "shoe_id": theirs})).status == 202
-
-
-async def test_shoes_are_not_managed_during_shadow(hass, client, send, mqtt_mock):
-    await send(SCORES)  # the shadow entry: the page shows the LXC's scores, the engine's shoes are not what it counts
-    mqtt_mock.async_publish.reset_mock()
-    c = await client("alex")
-    for path, body in (("shoes", {"op": "add", "person": "p1", "name": "X", "replace_at_km": 700}),
-                       ("workouts", {"action": "shoe", "person": "p1", "key": "k1", "shoe_id": 1})):
-        resp = await c.post(f"{UI}/{path}", json=body)
-        assert resp.status == 409 and await resp.json() == {"detail": "shoes are managed after the switch"}
-    mqtt_mock.async_publish.assert_not_called()
-    assert (await c.get(f"{UI}/shoes")).status == 200
 
 
 def _gpx(path, points=700, hr=True):

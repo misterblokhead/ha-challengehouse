@@ -1,19 +1,16 @@
 """The page API through Home Assistant's own HTTP: HA authenticates, the payload in memory answers."""
 import json
-import secrets
-import time
 from datetime import date
 from http import HTTPStatus
 
 from aiohttp import web
-from homeassistant.components import mqtt
 from homeassistant.components.http import HomeAssistantView
 from homeassistant.helpers.http import KEY_HASS
 from homeassistant.util import dt as dt_util
 
 from . import settings
 from .const import DOMAIN, OPT_STEPS, OPT_VIEWERS
-from .core import can_edit, find_workout, manual_message, older_feed, shape, viewer_person
+from .core import can_edit, find_workout, older_feed, shape, viewer_person
 from .engine import shoes as shoe_engine
 from .steps import parse, week
 
@@ -160,8 +157,7 @@ class UiView(HomeAssistantView):
             return _detail(self, "expected person, key and action remove or restore", HTTPStatus.BAD_REQUEST)
         if body["key"].startswith("steps:"):  # an active day comes from steps: there is nothing to remove
             return _detail(self, "active days cannot be removed", HTTPStatus.BAD_REQUEST)
-        hass = request.app[KEY_HASS]
-        data = hass.data.get(DOMAIN)
+        data = request.app[KEY_HASS].data.get(DOMAIN)
         if data is None or data.scores is None:
             return _detail(self, "waiting", HTTPStatus.SERVICE_UNAVAILABLE)
         user, person, key = request["hass_user"], body["person"], body["key"]
@@ -170,22 +166,14 @@ class UiView(HomeAssistantView):
             return _detail(self, "not allowed", HTTPStatus.FORBIDDEN)
         if find_workout(data.scores, person, key) is None:
             return _detail(self, "not found", HTTPStatus.NOT_FOUND)
-        if not data.shadow:
-            try:
-                await data.runner.async_manual({"action": body["action"], "person": person, "key": key})
-            except ValueError as err:
-                return _detail(self, str(err), HTTPStatus.BAD_REQUEST)
-            return self.json({"ok": True}, status_code=HTTPStatus.ACCEPTED)
-        # shadow: the LXC's fitbridge is live (cleanup after the switch: this MQTT branch goes).
-        # ms, zero-padded: fitbridge applies messages in id-time order, so an Undo a second later follows its Remove
-        msg_id = f"{time.time_ns() // 1_000_000:013d}-{secrets.token_hex(3)}"
-        topic, payload = manual_message(body["action"], person, key, msg_id)
-        await mqtt.async_publish(hass, topic, payload, qos=1, retain=True)
+        try:
+            await data.runner.async_manual({"action": body["action"], "person": person, "key": key})
+        except ValueError as err:
+            return _detail(self, str(err), HTTPStatus.BAD_REQUEST)
         return self.json({"ok": True}, status_code=HTTPStatus.ACCEPTED)
 
     async def _post_settings(self, request: web.Request, body) -> web.Response:
-        hass = request.app[KEY_HASS]
-        data = hass.data.get(DOMAIN)
+        data = request.app[KEY_HASS].data.get(DOMAIN)
         if data is None or data.scores is None:
             return _detail(self, "waiting", HTTPStatus.SERVICE_UNAVAILABLE)
         user = request["hass_user"]
@@ -199,8 +187,7 @@ class UiView(HomeAssistantView):
         monday = settings.monday_of(dt_util.now().date())
         history = settings.put(data.settings_history, entry, monday)
         await data.settings_store.async_save({"history": history, "profiles": profiles})
-        await settings.publish(hass, history)
-        data.settings_history, data.settings_profiles = history, profiles  # only once stored and sent: a failed save leaves GET on the old goals
+        data.settings_history, data.settings_profiles = history, profiles  # only once stored: a failed save leaves GET on the old goals
         return self.json({"ok": True, "from": monday.isoformat()}, status_code=HTTPStatus.ACCEPTED)
 
     def _shoe_gate(self, request: web.Request):
@@ -208,8 +195,6 @@ class UiView(HomeAssistantView):
         data = request.app[KEY_HASS].data.get(DOMAIN)
         if data is None or data.scores is None:
             return None, None, _detail(self, "waiting", HTTPStatus.SERVICE_UNAVAILABLE)
-        if data.shadow:  # the LXC counts shoes (Endurain) until the switch
-            return None, None, _detail(self, "shoes are managed after the switch", HTTPStatus.CONFLICT)
         user = request["hass_user"]
         viewer = viewer_person(user.id, data.entry.options.get(OPT_VIEWERS, {}), data.scores)
         return data, lambda target: can_edit(viewer, user.is_admin, target), None

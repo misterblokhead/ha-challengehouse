@@ -1,23 +1,5 @@
-"""Pure logic for the fitness page: payload checks, who is who, who may edit. No Home Assistant imports."""
-import json
+"""Pure logic for the fitness page: who is who, who may edit. No Home Assistant imports."""
 from datetime import date, timedelta
-
-from .const import MANUAL_PREFIX
-
-
-def parse_scores(raw: str | bytes) -> dict | None:
-    """The retained scores payload, or None when it is not the shape the page needs."""
-    try:
-        data = json.loads(raw)
-    except ValueError:  # includes bad UTF-8 in bytes
-        return None
-    people = data.get("people") if isinstance(data, dict) else None
-    if not isinstance(people, dict):
-        return None
-    if not all(isinstance(p, dict) and isinstance(p.get("feed"), list) and all(isinstance(w, dict) for w in p["feed"])
-               for p in people.values()):
-        return None
-    return data
 
 
 def viewer_person(user_id: str, viewers: dict[str, str], scores: dict) -> str | None:
@@ -33,8 +15,8 @@ def can_edit(viewer_person: str | None, is_admin: bool, target: str) -> bool:
 
 
 def public(scores: dict) -> dict:
-    """The scores without each person's `older` feed: that stays in memory for GET feed (the page's Load older); /scores,
-    the page's payload and shadow-scores.json never carry it."""
+    """The scores without each person's `older` feed: that stays in memory for GET feed (the page's Load older); /scores
+    and the page's payload never carry it."""
     people = scores.get("people")
     if not isinstance(people, dict):
         return scores
@@ -66,8 +48,3 @@ def find_workout(scores: dict, person: str, key: str) -> dict | None:
     r = scores["people"].get(person, {})
     return next((w for w in r.get("feed", []) + r.get("older", []) if w.get("key") == key), None)
 
-
-def manual_message(action: str, person: str, key: str, msg_id: str) -> tuple[str, str]:
-    if action not in ("remove", "restore"):
-        raise ValueError(f"unknown action {action!r}")
-    return MANUAL_PREFIX + msg_id, json.dumps({"action": action, "person": person, "key": key})

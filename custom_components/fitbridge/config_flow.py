@@ -25,7 +25,6 @@ from .const import (
     OPT_FOLDERS,
     OPT_OPENGYM_UIDS,
     OPT_OPENGYM_URL,
-    OPT_SHADOW,
     OPT_STEPS,
     OPT_VIEWERS,
     WEBHOOKS,
@@ -44,7 +43,7 @@ def _labels(names: dict[str, str], tag=lambda k: k) -> dict[str, str]:
 
 class FitbridgeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
-    MINOR_VERSION = 2  # 2: options carry shadow (async_migrate_entry)
+    MINOR_VERSION = 3  # 3: options without shadow and shoes (async_migrate_entry)
 
     async def async_step_user(self, user_input=None):
         if self._async_current_entries():
@@ -52,7 +51,7 @@ class FitbridgeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is None:
             return self.async_show_form(step_id="user")
         await self.async_set_unique_id(DOMAIN)
-        return self.async_create_entry(title="Fitness", data={}, options={OPT_SHADOW: False})  # a new install is live
+        return self.async_create_entry(title="Fitness", data={})
 
     @staticmethod
     @callback
@@ -63,13 +62,13 @@ class FitbridgeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 class FitbridgeOptionsFlow(config_entries.OptionsFlowWithReload):
     """A menu: viewers (which fitbridge person each HA user is, nobody, "", meaning the read-only household view; then
     each person's phone step sensor),
-    the openGym pairing, each person's openGym user, each person's webhook URL and watch folder, and shadow mode."""
+    the openGym pairing, each person's openGym user, and each person's webhook URL and watch folder."""
 
     async def async_step_init(self, user_input=None):
         data = self.hass.data.get(DOMAIN)
         if data is None or data.scores is None:
             return self.async_abort(reason="waiting_for_fitbridge")
-        return self.async_show_menu(step_id="init", menu_options=["viewers", "opengym", "people", "inputs", "mode"])
+        return self.async_show_menu(step_id="init", menu_options=["viewers", "opengym", "people", "inputs"])
 
     async def async_step_viewers(self, user_input=None):
         data = self.hass.data[DOMAIN]
@@ -178,9 +177,3 @@ class FitbridgeOptionsFlow(config_entries.OptionsFlowWithReload):
             step_id="inputs", errors=errors, description_placeholders={"urls": "\n".join(urls)},
             data_schema=self.add_suggested_values_to_schema(schema, user_input or {labels[p]: f for p, f in old.items() if p in labels}))
 
-    async def async_step_mode(self, user_input=None):
-        """Shadow mode on or off: the switch from the LXC's fitbridge and back."""
-        if user_input is not None:
-            return self.async_create_entry(data={**self.config_entry.options, OPT_SHADOW: user_input[OPT_SHADOW]})
-        return self.async_show_form(step_id="mode", data_schema=vol.Schema({
-            vol.Required(OPT_SHADOW, default=self.config_entry.options.get(OPT_SHADOW, False)): bool}))

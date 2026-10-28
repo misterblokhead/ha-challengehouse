@@ -1,11 +1,10 @@
-import json
 from datetime import date, timedelta
 
 import pytest
 from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import async_fire_time_changed
 
-from custom_components.fitbridge.const import OPT_SHADOW, OPT_STEPS, OPT_VIEWERS
+from custom_components.fitbridge.const import DOMAIN, OPT_STEPS, OPT_VIEWERS
 from custom_components.fitbridge.steps import record, trim, week
 
 
@@ -34,18 +33,13 @@ def test_week_is_monday_up_to_today_and_drops_last_week():
 
 
 @pytest.fixture
-async def collector(hass, entry, hass_storage, mqtt_mock):
-    """The entry with p1 -> sensor.phone_steps, set up again so the collector reads the options."""
-    hass.config_entries.async_update_entry(entry, options={OPT_SHADOW: True, OPT_VIEWERS: {}, OPT_STEPS: {"p1": "sensor.phone_steps"}})
+async def saved(hass, entry, hass_storage):
+    """The entry with p1 -> sensor.phone_steps, set up again so the collector reads the options; returns what the Store holds."""
+    hass.config_entries.async_update_entry(entry, options={OPT_VIEWERS: {}, OPT_STEPS: {"p1": "sensor.phone_steps"}})
     hass.states.async_set("sensor.phone_steps", "4000")  # the phone's value at startup: the collector must not file it
-    mqtt_mock.async_publish.reset_mock()
     await hass.config_entries.async_reload(entry.entry_id)
     await hass.async_block_till_done()
-    return mqtt_mock
-
-
-def _steps_publishes(mqtt_mock):
-    return [c.args for c in mqtt_mock.async_publish.call_args_list if c.args[0] == "fitbridge/steps"]
+    return lambda: hass_storage["fitbridge.steps"]["data"]
 
 
 async def _tick(hass, seconds):
@@ -53,55 +47,53 @@ async def _tick(hass, seconds):
     await hass.async_block_till_done()
 
 
-async def test_state_change_is_published_retained_within_a_minute(hass, collector, hass_storage):
+async def test_state_change_is_saved_within_a_minute(hass, saved):
     today = dt_util.now().date().isoformat()
-    assert _steps_publishes(collector) == []  # nothing known at startup: nothing to publish
+    assert saved() == {}  # nothing known at startup
     hass.states.async_set("sensor.phone_steps", "812.0")
     hass.states.async_set("sensor.phone_steps", "unavailable")
     hass.states.async_set("sensor.phone_steps", "300")
     await hass.async_block_till_done()
-    assert _steps_publishes(collector) == []  # throttled
+    assert saved() == {}  # throttled
     await _tick(hass, 61)
-    assert _steps_publishes(collector) == [("fitbridge/steps", json.dumps({"p1": {today: 812}}), 1, True)]
-    assert hass_storage["fitbridge.steps"]["data"] == {"p1": {today: 812}}
+    assert saved() == {"p1": {today: 812}}
 
 
-async def test_restores_from_the_store_and_publishes_at_startup(hass, entry, collector, hass_storage):
+async def test_restores_from_the_store(hass, entry, saved):
     today = dt_util.now().date().isoformat()
     hass.states.async_set("sensor.phone_steps", "812")
     await hass.async_block_till_done()
     await _tick(hass, 61)
-    hass.states.async_remove("sensor.phone_steps")  # nothing live to record: the startup publish can only come from the Store
-    collector.async_publish.reset_mock()
+    hass.states.async_remove("sensor.phone_steps")  # nothing live to record: the days can only come from the Store
     await hass.config_entries.async_reload(entry.entry_id)
     await hass.async_block_till_done()
-    assert _steps_publishes(collector) == [("fitbridge/steps", json.dumps({"p1": {today: 812}}), 1, True)]
+    assert hass.data[DOMAIN].steps.snapshot() == {"p1": {today: 812}}
 
 
-async def test_only_the_phones_own_reports_count(hass, collector):
-    assert _steps_publishes(collector) == []  # the 4000 already set at startup is not recorded
+async def test_only_the_phones_own_reports_count(hass, saved):
+    assert saved() == {}  # the 4000 already set at startup is not recorded
     today = dt_util.now().date().isoformat()
     hass.states.async_remove("sensor.phone_steps")
     hass.states.async_set("sensor.phone_steps", "4100")  # old_state None: an initial or restored state
     hass.states.async_set("sensor.phone_steps", "unavailable")
     hass.states.async_set("sensor.phone_steps", "4200")  # back from unavailable: restored, not reported
     await _tick(hass, 61)
-    assert _steps_publishes(collector) == []
+    assert saved() == {}
     hass.states.async_set("sensor.phone_steps", "4300")  # the next real change counts
     await _tick(hass, 61)
-    assert [json.loads(p[1]) for p in _steps_publishes(collector)] == [{"p1": {today: 4300}}]
+    assert saved() == {"p1": {today: 4300}}
 
 
-async def test_unload_saves_a_pending_change(hass, entry, collector, hass_storage):
+async def test_unload_saves_a_pending_change(hass, entry, saved):
     today = dt_util.now().date().isoformat()
     hass.states.async_set("sensor.phone_steps", "90")
     await hass.async_block_till_done()
     await hass.config_entries.async_unload(entry.entry_id)  # before the minute is up
-    assert hass_storage["fitbridge.steps"]["data"] == {"p1": {today: 90}}
+    assert saved() == {"p1": {today: 90}}
     assert await hass.config_entries.async_setup(entry.entry_id)  # the fixture unloads it again
 
 
-async def test_a_value_after_midnight_belongs_to_the_new_day(hass, collector, freezer):
+async def test_a_value_after_midnight_belongs_to_the_new_day(hass, saved, freezer):
     await hass.config.async_set_time_zone("Europe/Amsterdam")
     freezer.move_to("2026-10-27 22:59:00+00:00")  # 23:59 local (CET, +1)
     hass.states.async_set("sensor.phone_steps", "9000")
@@ -109,4 +101,4 @@ async def test_a_value_after_midnight_belongs_to_the_new_day(hass, collector, fr
     hass.states.async_set("sensor.phone_steps", "120")
     await hass.async_block_till_done()
     await _tick(hass, 61)
-    assert json.loads(_steps_publishes(collector)[-1][1]) == {"p1": {"2026-10-27": 9000, "2026-10-28": 120}}
+    assert saved() == {"p1": {"2026-10-27": 9000, "2026-10-28": 120}}

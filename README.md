@@ -34,7 +34,7 @@ People, the optional two-person group, plans, XP values and badges all live in `
 3. Edit `/opt/fitbridge/scoring.toml` (people, group, plans) and `.env` (per person: `ENDURAIN_KEY_<ID>`, `SYNC_DIR_<ID>`, `TAILSCALE_LOGIN_<ID>`, `OPENGYM_UID_<ID>`; MQTT broker and user).
 4. openGym: `bash /root/opengym-pair.sh` with a pairing code from openGym's settings.
 5. Home Assistant: an MQTT user for fitbridge, plus the pause-feed automation and the log/remove/restore scripts described in `specs/2026-10-26-scoring-design.md` §7.
-6. Fitness page (optional): needs the MQTT integration. Add this repository to HACS as a custom repository (type Integration) and install it, or copy `custom_components/fitbridge` into HA's `custom_components/`; restart HA, then add the "Fitness (fitbridge)" integration. Once fitbridge has published scores, its options map each HA user to a fitbridge person; unmapped users see the household read-only.
+6. Fitness page (optional): add this repository to HACS as a custom repository (type Integration) and install it, or copy `custom_components/fitbridge` into HA's `custom_components/`; restart HA, then add the "Fitness (fitbridge)" integration. Once it has scored, its options map each HA user to a fitbridge person; unmapped users see the household read-only.
 
 Check the result with `curl -s http://127.0.0.1:8091/scores`; a broken `scoring.toml` keeps the last good one and shows up as `config_error`.
 

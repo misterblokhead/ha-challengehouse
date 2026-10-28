@@ -67,8 +67,8 @@ def test_monday_of():
     assert [monday_of(date(2026, 10, d)) for d in (26, 27, 31)] == [MON] * 3 and monday_of(date(2026, 11, 1)) == MON
 
 
-def test_a_published_history_passes_fitbridges_own_parser():
+def test_a_stored_history_passes_the_engines_parser():
     from custom_components.fitbridge.engine.scoring_config import parse_settings
     entry = validate(BODY, ["p1", "p2"])
-    history = put(put([], entry, NEXT), entry, MON)  # out-of-order saves still publish sorted
+    history = put(put([], entry, NEXT), entry, MON)  # out-of-order saves still come out sorted
     assert parse_settings(json.loads(json.dumps({"history": history})), {"p1", "p2"}) == {"history": history}

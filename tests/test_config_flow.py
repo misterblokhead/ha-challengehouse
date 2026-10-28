@@ -15,7 +15,6 @@ from custom_components.fitbridge.const import (
     OPT_FOLDERS,
     OPT_OPENGYM_UIDS,
     OPT_OPENGYM_URL,
-    OPT_SHADOW,
     OPT_STEPS,
     OPT_VIEWERS,
     WEBHOOKS,
@@ -27,17 +26,17 @@ GYM = "https://gym.example.test"
 async def _open(hass, entry, step):
     """The options flow, past its menu."""
     result = await hass.config_entries.options.async_init(entry.entry_id)
-    assert result["type"] is FlowResultType.MENU and result["menu_options"] == ["viewers", "opengym", "people", "inputs", "mode"]
+    assert result["type"] is FlowResultType.MENU and result["menu_options"] == ["viewers", "opengym", "people", "inputs"]
     return await hass.config_entries.options.async_configure(result["flow_id"], {"next_step_id": step})
 
 
-async def test_one_empty_step_creates_the_only_entry(hass, enable_custom_integrations, mqtt_mock):
+async def test_one_empty_step_creates_the_only_entry(hass, enable_custom_integrations):
     result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
     assert result["type"] is FlowResultType.FORM and result["step_id"] == "user"
     result = await hass.config_entries.flow.async_configure(result["flow_id"], {})
     assert result["type"] is FlowResultType.CREATE_ENTRY and result["data"] == {}
     assert result["result"].unique_id == DOMAIN
-    assert result["result"].options == {OPT_SHADOW: False} and result["result"].minor_version == 2  # a new install is live
+    assert result["result"].options == {} and result["result"].minor_version == 3
     await hass.async_block_till_done()
     again = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
     assert again["type"] is FlowResultType.ABORT and again["reason"] == "single_instance_allowed"
@@ -65,8 +64,7 @@ async def test_options_map_users_to_people(hass, entry, send):
     assert sorted(str(k) for k in result["data_schema"].schema) == ["Alex", "Sam"]  # the payload's people, by name
     result = await hass.config_entries.options.async_configure(result["flow_id"], {})
     assert result["type"] is FlowResultType.CREATE_ENTRY
-    assert entry.options == {OPT_SHADOW: True,  # options the flow does not show are kept
-                             OPT_VIEWERS: {alex.id: "p1", twins[1].id: "p2"}, OPT_STEPS: {}}
+    assert entry.options == {OPT_VIEWERS: {alex.id: "p1", twins[1].id: "p2"}, OPT_STEPS: {}}
     assert sam.id not in entry.options[OPT_VIEWERS]
 
 
@@ -84,7 +82,7 @@ async def test_options_step_sensors_after_viewers(hass, entry, send):
 
 
 async def test_inputs_show_each_persons_url_and_take_existing_folders_only(hass, setup, tmp_path):
-    e = await setup({OPT_SHADOW: False, OPT_VIEWERS: {"u1": P0}})
+    e = await setup({OPT_VIEWERS: {"u1": P0}})
     hass.config.external_url = "https://ha.example.test"
     result = await _open(hass, e, "inputs")
     assert result["type"] is FlowResultType.FORM and result["step_id"] == "inputs"
@@ -97,13 +95,13 @@ async def test_inputs_show_each_persons_url_and_take_existing_folders_only(hass,
         assert result["type"] is FlowResultType.FORM and result["errors"] == {first: "folder_missing"}
     result = await hass.config_entries.options.async_configure(result["flow_id"], {first: str(tmp_path), second: " "})
     assert result["type"] is FlowResultType.CREATE_ENTRY
-    assert e.options == {OPT_SHADOW: False, OPT_VIEWERS: {"u1": P0}, OPT_FOLDERS: {P0: str(tmp_path)}}
+    assert e.options == {OPT_VIEWERS: {"u1": P0}, OPT_FOLDERS: {P0: str(tmp_path)}}
     await hass.async_block_till_done(wait_background_tasks=True)
     assert hass.data[DOMAIN].runner.folders == {P0: tmp_path}  # reloaded with it
 
 
 async def test_inputs_make_new_webhook_urls_and_retire_the_old_ones(hass, setup):
-    e = await setup({OPT_SHADOW: False})
+    e = await setup({})
     old = dict(e.data[WEBHOOKS])
     result = await _open(hass, e, "inputs")
     result = await hass.config_entries.options.async_configure(result["flow_id"], {"new_urls": True})
@@ -114,24 +112,9 @@ async def test_inputs_make_new_webhook_urls_and_retire_the_old_ones(hass, setup)
     assert not set(old.values()) & set(hass.data["webhook"]) and set(new.values()) <= set(hass.data["webhook"])
 
 
-async def test_mode_turns_shadow_on_and_off_and_keeps_the_other_options(hass, setup, mqtt_mock, send):
-    e = await setup({OPT_SHADOW: False, OPT_VIEWERS: {"u1": P0}})
-    for shadow in (True, False):
-        if shadow is False:
-            await send(SCORES)  # in shadow the options wait for the LXC's scores
-        result = await _open(hass, e, "mode")
-        assert result["type"] is FlowResultType.FORM and result["step_id"] == "mode"
-        assert [k.default() for k in result["data_schema"].schema] == [not shadow]  # the current mode
-        result = await hass.config_entries.options.async_configure(result["flow_id"], {OPT_SHADOW: shadow})
-        assert result["type"] is FlowResultType.CREATE_ENTRY
-        await hass.async_block_till_done(wait_background_tasks=True)
-        assert e.options == {OPT_SHADOW: shadow, OPT_VIEWERS: {"u1": P0}}
-        assert hass.data[DOMAIN].runner.shadow is shadow  # reloaded in that mode
-
-
 async def test_opengym_pairing_stores_the_token_and_clears_the_issue(hass, setup, aioclient_mock, caplog):
     with patch.object(runner_mod.Runner, "_opengym", return_value=None):  # no real gym in tests
-        e = await setup({OPT_SHADOW: False, OPT_STEPS: {P0: "sensor.steps"}}, {"opengym_token": "tok-old"})
+        e = await setup({OPT_STEPS: {P0: "sensor.steps"}}, {"opengym_token": "tok-old"})
         ir.async_create_issue(hass, DOMAIN, "opengym_token", is_fixable=False, severity=ir.IssueSeverity.ERROR,
                               translation_key="opengym_token")
         aioclient_mock.post(f"{GYM}/api/pair/redeem", json={"token": "tok-new"})
@@ -142,7 +125,7 @@ async def test_opengym_pairing_stores_the_token_and_clears_the_issue(hass, setup
         await hass.async_block_till_done(wait_background_tasks=True)
     assert aioclient_mock.mock_calls[0][2] == {"code": "AB12cd"}
     assert e.data["opengym_token"] == "tok-new" and WEBHOOKS in e.data
-    assert e.options == {OPT_SHADOW: False, OPT_STEPS: {P0: "sensor.steps"}, OPT_OPENGYM_URL: GYM}
+    assert e.options == {OPT_STEPS: {P0: "sensor.steps"}, OPT_OPENGYM_URL: GYM}
     assert ir.async_get(hass).async_get_issue(DOMAIN, "opengym_token") is None
     assert "tok-" not in caplog.text and "AB12cd" not in caplog.text
 
@@ -183,7 +166,7 @@ async def test_pairing_waits_for_a_running_cycle_so_its_renewal_cannot_overwrite
 
 async def test_people_pick_their_opengym_user(hass, setup, aioclient_mock):
     with patch.object(runner_mod.Runner, "_opengym", return_value=None):
-        e = await setup({OPT_SHADOW: False, OPT_OPENGYM_URL: GYM, OPT_OPENGYM_UIDS: {P1: "gone"}}, {"opengym_token": "tok"})
+        e = await setup({OPT_OPENGYM_URL: GYM, OPT_OPENGYM_UIDS: {P1: "gone"}}, {"opengym_token": "tok"})
         aioclient_mock.get(f"{GYM}/api/admin/users", json={"users": [{"id": "u1", "name": "Synthetic A"}, {"id": "u2"}]})
         result = await _open(hass, e, "people")
         assert result["type"] is FlowResultType.FORM and result["step_id"] == "people"
@@ -195,7 +178,7 @@ async def test_people_pick_their_opengym_user(hass, setup, aioclient_mock):
         result = await hass.config_entries.options.async_configure(result["flow_id"], {first: "u2", second: ""})
         assert result["type"] is FlowResultType.CREATE_ENTRY
         await hass.async_block_till_done(wait_background_tasks=True)
-    assert e.options == {OPT_SHADOW: False, OPT_OPENGYM_URL: GYM, OPT_OPENGYM_UIDS: {P0: "u2"}}
+    assert e.options == {OPT_OPENGYM_URL: GYM, OPT_OPENGYM_UIDS: {P0: "u2"}}
 
 
 async def test_people_need_a_pairing_and_a_reachable_gym(hass, setup, aioclient_mock):

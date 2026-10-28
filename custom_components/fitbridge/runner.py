@@ -1,7 +1,6 @@
 """fitbridge's engine inside HA: the 5 min scoring cycle, the 60 s folder scan and webhook uploads, in the executor,
 never overlapping."""
 import asyncio
-import json
 import logging
 import secrets
 import shutil
@@ -17,8 +16,8 @@ from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.start import async_at_started
 from homeassistant.util import dt as dt_util
 
-from .const import DATA_DIR, DOMAIN, OPENGYM_TOKEN, OPT_FOLDERS, OPT_OPENGYM_UIDS, OPT_OPENGYM_URL, OPT_SHADOW, SIGNAL_SCORES
-from .core import find_workout, public
+from .const import DATA_DIR, DOMAIN, OPENGYM_TOKEN, OPT_FOLDERS, OPT_OPENGYM_UIDS, OPT_OPENGYM_URL, SIGNAL_SCORES
+from .core import find_workout
 from .engine import manual
 from .engine.cycle import ConfigHolder, Inputs, score_cycle, workout_details
 from .engine.ingest import ingest_body, scan_folder
@@ -34,14 +33,10 @@ DEFAULT_CONFIG = Path(__file__).parent / "engine" / "scoring.toml"
 
 
 class Runner:
-    """Shadow mode (the LXC's fitbridge is still the live system): scores into `scores` and shadow-scores.json only.
-    Live: after each cycle SIGNAL_SCORES carries the Cycle; handlers must be @callback, as commit() follows them.
-    Not shadow but not live (old entities in the way): scores for the page, announces and records nothing."""
+    """After each cycle SIGNAL_SCORES carries the Cycle; handlers must be @callback, as commit() follows them."""
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         self.hass, self.entry = hass, entry
-        self.shadow: bool = entry.options.get(OPT_SHADOW, False)
-        self.live: bool = not self.shadow  # entities and announcements; set before async_start
         self.dir = Path(hass.config.path(DATA_DIR))
         self.folders: dict[str, Path] = {p: Path(f) for p, f in entry.options.get(OPT_FOLDERS, {}).items()}  # scanned every minute
         self.store: Store | None = None
@@ -180,9 +175,9 @@ class Runner:
             return
         self.scores = cycle.scores
         self._token_issue(og, cycle.gym_error)
-        if not self.shadow and isinstance(cycle.scores.get("people"), dict):  # no valid scoring config: the page keeps the last
+        if isinstance(cycle.scores.get("people"), dict):  # no valid scoring config: the page keeps the last
             data.scores = cycle.scores
-        if not self.live or self.stopping:  # stopping: no handler would get it, so nothing is recorded; the next runner announces
+        if self.stopping:  # stopping: no handler would get it, so nothing is recorded; the next runner announces
             return
         async_dispatcher_send(self.hass, SIGNAL_SCORES, cycle)
         try:  # only after the handlers ran: a restart in between repeats an announcement, never loses one
@@ -238,10 +233,7 @@ class Runner:
         return Store(self.dir / "fitbridge.db")
 
     def _cycle(self, og, inputs):
-        cycle = score_cycle(self.store, self.holder, og, inputs, dt_util.utcnow(), self.live)
-        if self.shadow:  # compared with the LXC's /scores during the shadow run
-            (self.dir / "shadow-scores.json").write_text(json.dumps(public(cycle.scores), indent=2, sort_keys=True), encoding="utf-8")
-        return cycle
+        return score_cycle(self.store, self.holder, og, inputs, dt_util.utcnow())
 
     def _scan(self) -> set[str]:
         """Scans each person's folder; returns the people whose folder is not there."""
@@ -255,5 +247,5 @@ class Runner:
         config, _ = self.holder.get()
         if config is None:
             raise ValueError("no valid scoring config")
-        msg_id = f"{time.time_ns() // 1_000_000:013d}-{secrets.token_hex(3)}"  # as the page's MQTT ids were
+        msg_id = f"{time.time_ns() // 1_000_000:013d}-{secrets.token_hex(3)}"  # ms, zero-padded: ids sort in time order
         manual.apply(store, msg, msg_id, dt_util.utcnow(), tuple(config["people"]))

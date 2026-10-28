@@ -1,7 +1,6 @@
 """The runner: fitbridge's scoring cycle inside HA (synthetic data only)."""
 import asyncio
 import dataclasses
-import json
 import sqlite3
 import threading
 from datetime import timedelta
@@ -19,13 +18,12 @@ from custom_components.fitbridge import runner as runner_mod
 from custom_components.fitbridge.const import (
     DOMAIN,
     OPT_OPENGYM_URL,
-    OPT_SHADOW,
     OPT_VIEWERS,
     SIGNAL_SCORES,
 )
 from custom_components.fitbridge.engine.cycle import Cycle, score_cycle
 
-GYM = {OPT_SHADOW: False, OPT_OPENGYM_URL: "https://gym.example.test"}
+GYM = {OPT_OPENGYM_URL: "https://gym.example.test"}
 ALL_DAY = {"start": "2026-10-26", "end": "2026-10-28", "summary": "Sick"}  # end exclusive
 TIMED = {"start": "2026-10-28T08:00:00+01:00", "end": "2026-10-28T18:00:00+01:00", "summary": "Trip", "description": "x"}
 
@@ -50,7 +48,7 @@ def order():
 
 def _fake(errors=None, tokens=None):
     """A score_cycle stand-in: renews the token like OpenGym does (from the executor) and reports gym_error."""
-    def fake(store, holder, og, inputs, now, live):
+    def fake(store, holder, og, inputs, now):
         if tokens is not None:
             tokens.append(og.get_token())
             og.save_token(f"token-{len(tokens)}")
@@ -72,7 +70,7 @@ async def test_scores_at_start_every_5_minutes_and_scans_every_minute(hass, setu
     await setup()
     runner = _runner(hass)
     assert cycles.call_count == 1 and "people" in runner.scores
-    assert hass.data[DOMAIN].scores is runner.scores  # live: the page reads the runner's scores
+    assert hass.data[DOMAIN].scores is runner.scores  # the page reads the runner's scores
     assert cycles.call_args.args[3].pauses is None  # no pause calendar: the engine keeps its cache
     runner.folders = {"p1": tmp_path}
     with patch.object(runner_mod, "scan_folder") as scan:
@@ -154,23 +152,10 @@ async def test_an_unload_during_a_cycle_neither_announces_nor_commits(hass, setu
             await change
 
 
-async def test_shadow_writes_the_json_and_never_signals_or_commits(hass, setup, mqtt_mock, order):
-    signals = []
-    async_dispatcher_connect(hass, SIGNAL_SCORES, callback(lambda cycle: signals.append(cycle)))
-    await setup({OPT_SHADOW: True})
-    runner = _runner(hass)
-    written = json.loads(Path(hass.config.path("fitbridge", "shadow-scores.json")).read_text(encoding="utf-8"))
-    assert all("older" in r for r in runner.scores["people"].values()) and runner.scores["people"]
-    assert written == {**runner.scores, "people": {p: {k: v for k, v in r.items() if k != "older"} for p, r in runner.scores["people"].items()}}  # the LXC's /scores has no older
-    assert signals == [] and order == []
-    assert hass.data[DOMAIN].scores is None  # the page keeps reading fitbridge/scores from MQTT
-
-
-async def test_live_commits_only_after_the_signal_handlers_ran(hass, setup, order):
+async def test_commits_only_after_the_signal_handlers_ran(hass, setup, order):
     async_dispatcher_connect(hass, SIGNAL_SCORES, callback(lambda cycle: order.append("signal")))
     await setup()
     assert order == ["signal", "commit"]
-    assert not Path(hass.config.path("fitbridge", "shadow-scores.json")).exists()
 
 
 async def test_pauses_are_the_calendars_events_unchanged(hass, setup, cycles):
@@ -188,12 +173,12 @@ async def test_pauses_are_the_calendars_events_unchanged(hass, setup, cycles):
     assert asked["end_date_time"] - asked["start_date_time"] == timedelta(days=414)
 
 
-async def test_steps_and_settings_are_read_in_process_without_mqtt(hass, setup, cycles, hass_storage):
+async def test_steps_and_settings_are_read_in_process(hass, setup, cycles, hass_storage):
     today = dt_util.now().date().isoformat()
     history = [{"from": "2026-10-26", "people": {}, "couple": {}}]
     hass_storage["fitbridge.steps"] = {"version": 1, "key": "fitbridge.steps", "data": {"p1": {today: 812}}}
     hass_storage["fitbridge.settings"] = {"version": 1, "key": "fitbridge.settings", "data": {"history": history}}
-    await setup()  # live and no MQTT set up: any publish would fail the setup
+    await setup()
     inputs = cycles.call_args.args[3]
     assert inputs.steps == {"p1": {today: 812}} and inputs.settings == {"history": history, "profiles": {}}
 
@@ -236,7 +221,7 @@ async def test_a_renewed_token_lands_in_the_entry_without_a_reload(hass, setup, 
 
 
 async def test_no_url_or_token_means_no_opengym(hass, setup, cycles):
-    await setup({OPT_SHADOW: False, OPT_OPENGYM_URL: "https://gym.example.test"})
+    await setup({OPT_OPENGYM_URL: "https://gym.example.test"})
     assert cycles.call_args.args[2] is None
 
 
@@ -255,10 +240,11 @@ async def test_a_rejected_token_raises_one_repair_issue_until_the_gym_answers(ha
     assert registry.async_get_issue(DOMAIN, "opengym_token") is None
 
 
-async def test_an_entry_from_before_0_4_starts_in_shadow(hass, setup, mqtt_mock):
-    e = await setup({OPT_VIEWERS: {"u1": "p1"}}, minor_version=1)
-    assert e.minor_version == 2 and e.options == {OPT_VIEWERS: {"u1": "p1"}, OPT_SHADOW: True}
-    assert _runner(hass).shadow
+@pytest.mark.parametrize("minor_version", [1, 2])
+async def test_an_older_entry_loses_the_shadow_and_shoes_options(hass, setup, minor_version):
+    old = {OPT_VIEWERS: {"u1": "p1"}, "shadow": True, "shoes": {"p1": {"sensor.trail": 700}}}
+    e = await setup(old, minor_version=minor_version)
+    assert e.minor_version == 3 and e.options == {OPT_VIEWERS: {"u1": "p1"}}
 
 
 async def test_scoring_toml_is_copied_once_and_the_store_closes_on_unload(hass, setup):

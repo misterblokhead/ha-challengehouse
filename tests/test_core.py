@@ -1,29 +1,8 @@
-import json
-
 import pytest
 
 from custom_components.fitbridge import core
-from custom_components.fitbridge.const import MANUAL_PREFIX
 
 SCORES = {"people": {"p1": {"feed": []}, "p2": {"feed": [{"key": "k1"}, {"key": "k2", "excluded": True}]}}}
-
-
-def test_parse_scores_valid_str_and_bytes():
-    raw = json.dumps(SCORES)
-    assert core.parse_scores(raw) == SCORES
-    assert core.parse_scores(raw.encode()) == SCORES
-
-
-@pytest.mark.parametrize("raw", [
-    "not json", b"\xff\xfe", "[]", "null", "{}",
-    json.dumps({"people": []}),
-    json.dumps({"people": {"p1": {}}}),
-    json.dumps({"people": {"p1": {"feed": "x"}}}),
-    json.dumps({"people": {"p1": []}}),
-    json.dumps({"people": {"p1": {"feed": [{"key": "k1"}, "k2"]}}}),
-])
-def test_parse_scores_invalid(raw):
-    assert core.parse_scores(raw) is None
 
 
 def test_viewer_person():
@@ -70,18 +49,6 @@ def test_find_workout_reaches_a_workout_from_before_the_start():
     early = wk("p", "run", -30, 18, 0, 30)  # a month before the shipped rules.start
     scores = score({"person1": [early], "person2": []}, [], CFG, NOW(1))
     assert core.find_workout(scores, "person1", early["key"])["key"] == early["key"]
-
-
-@pytest.mark.parametrize("action", ["remove", "restore"])
-def test_manual_message(action):
-    topic, payload = core.manual_message(action, "p1", "k1", "m-1")
-    assert topic == MANUAL_PREFIX + "m-1" == "fitbridge/manual/m-1"
-    assert json.loads(payload) == {"action": action, "person": "p1", "key": "k1"}
-
-
-def test_manual_message_bad_action():
-    with pytest.raises(ValueError):
-        core.manual_message("delete", "p1", "k1", "m-1")
 
 
 def test_shape_adds_steps_today_per_person():

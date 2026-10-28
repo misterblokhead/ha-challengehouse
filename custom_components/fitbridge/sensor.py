@@ -1,5 +1,5 @@
 """Sensors per person and group (engine.entities), with the entity ids, states and attributes of the old MQTT ones.
-Live only; they appear with the first cycle, as the people come from scoring.toml."""
+They appear with the first cycle, as the people come from scoring.toml."""
 import logging
 
 from homeassistant.components.sensor import SensorEntity, SensorStateClass
@@ -16,8 +16,6 @@ _LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
-    if not hass.data[DOMAIN].runner.live:
-        return
     sensors: dict[str, FitSensor] = {}
 
     @callback

@@ -60,11 +60,11 @@ class ScoringCycleTests(unittest.TestCase):
         self.store.db.close()
         self.tmp.cleanup()
 
-    def run_cycle(self, og=None, now=NOW, live=True, commit=True, pauses=[], steps=None, settings=None):  # noqa: B006 (never mutated)
-        """One cycle; commit=True stands in for a successful announce (what the MQTT publish was)."""
+    def run_cycle(self, og=None, now=NOW, commit=True, pauses=[], steps=None, settings=None):  # noqa: B006 (never mutated)
+        """One cycle; commit=True stands in for a successful announce."""
         c = cycle.score_cycle(self.store, self.holder, og,
                               cycle.Inputs(pauses, steps, settings, {P0: GYM_UID}),
-                              now, live)
+                              now)
         if commit:
             self.badges += c.badges
             self.workouts += c.workouts
@@ -104,10 +104,9 @@ class ScoringCycleTests(unittest.TestCase):
     def test_gym_error_names_the_failure_by_class(self):
         self.assertIsNone(self.run_cycle().gym_error)  # no openGym: nothing failed
         self.assertIsNone(self.run_cycle(FakeOpenGym([GYM])).gym_error)
-        for live in (True, False):  # the runner raises its repair issue in shadow mode too
-            with self.assertLogs("custom_components.fitbridge", "WARNING"):
-                c = self.run_cycle(FakeOpenGym(raise_=opengym.OpenGymAuthError("rejected")), live=live)
-            self.assertEqual(c.gym_error, "OpenGymAuthError")
+        with self.assertLogs("custom_components.fitbridge", "WARNING"):
+            c = self.run_cycle(FakeOpenGym(raise_=opengym.OpenGymAuthError("rejected")))
+        self.assertEqual(c.gym_error, "OpenGymAuthError")
 
     def test_gym_items_have_no_url(self):
         res = self.scores(FakeOpenGym([GYM]))
@@ -203,21 +202,6 @@ class ScoringCycleTests(unittest.TestCase):
         self.assertLessEqual({"config_error", "gym_data_as_of", "pauses_as_of", "settings_error", "settings_as_of",
                               "steps_as_of", "scored_at"}, set(res))
         self.assertEqual(res["scored_at"], NOW.isoformat(timespec="seconds"))
-
-    def test_shadow_cycle_announces_and_records_nothing(self):
-        self.run_cycle(FakeOpenGym([self.gym(70, 5)]))  # seeds: the first live pass is silent
-        self.add_run("t1")
-        og = FakeOpenGym([self.gym(70, 5), self.gym(75, 5, "g2", hours=2)])
-        before = self.announce_state()
-        c = self.run_cycle(og, live=False)
-        self.assertEqual((c.badges, c.workouts, c.records), ([], [], []))
-        self.assertEqual(c.scores["people"][P0]["week"]["runs"], 1)
-        self.assertEqual(self.announce_state(), before)
-        c = self.run_cycle(og)
-        self.assertTrue(c.badges)
-        self.assertEqual(sorted(self.workout_keys()), [(P0, "opengym:g2"), (P0, "t1")])
-        self.assertEqual(self.record_keys(), ["opengym:g2"])
-        self.assertNotEqual(self.announce_state(), before)
 
     def test_uncommitted_cycle_does_not_record_badges(self):
         self.run_cycle(FakeOpenGym([]))  # seeds
@@ -443,12 +427,6 @@ class ScoringCycleTests(unittest.TestCase):
         self.gym_cycle(self.gym(70, 5), better)
         self.assertEqual(self.record_keys(), ["opengym:g2"])
         self.assertEqual(self.store.records(P0)[0], {"lift:0118": 75005})
-
-    def test_shadow_saves_nothing_so_the_first_live_pass_is_still_silent(self):
-        self.gym_cycle(self.gym(70, 5), live=False)
-        self.assertEqual(self.store.records(P0), ({}, False))
-        self.gym_cycle(self.gym(70, 5))
-        self.assertEqual((self.records, self.store.records(P0)), ([], ({"lift:0118": 70005}, True)))
 
     def test_improvement_in_a_workout_older_than_48_hours_is_stored_silently(self):
         later = NOW + timedelta(days=3)

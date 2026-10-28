@@ -8,11 +8,10 @@ import pytest
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
-from homeassistant.helpers import issue_registry as ir
 from homeassistant.util import dt as dt_util
 
 from custom_components.fitbridge import runner as runner_mod
-from custom_components.fitbridge.const import DOMAIN, OPT_SHADOW
+from custom_components.fitbridge.const import DOMAIN
 from custom_components.fitbridge.engine.cycle import Cycle
 
 FIX = json.loads((Path(__file__).parent / "fixtures" / "mqtt_discovery.json").read_text(encoding="utf-8"))
@@ -45,7 +44,7 @@ def commits():
 @pytest.fixture
 def scored(commits):
     """score_cycle stand-in: the fixture's scores and announcements; commit() notes itself in `commits`."""
-    def fake(store, holder, og, inputs, now, live):
+    def fake(store, holder, og, inputs, now):
         return Cycle(FIX["scores"], *(_announced(t) for t in TYPES), lambda: commits.append("commit"))
     with patch.object(runner_mod, "score_cycle", side_effect=fake) as m:
         yield m
@@ -95,30 +94,6 @@ async def test_the_next_cycle_updates_the_sensors_in_place(hass, setup, scored):
     assert _ours(hass) == set(CONFIGS)  # no duplicates
 
 
-async def test_shadow_creates_no_entities_and_fires_nothing(hass, setup, scored, commits, mqtt_mock):
-    await setup({OPT_SHADOW: True})
-    assert _ours(hass) == set()
-    assert not [e for e in hass.states.async_entity_ids() if e.startswith(("sensor.fit_", "event.fit_"))]
-    assert commits == []
-
-
-async def test_an_old_mqtt_entity_keeps_everything_off_until_it_is_gone(hass, setup, scored, commits):
-    registry = er.async_get(hass)
-    old = registry.async_get_or_create("sensor", "mqtt", "fit_person1_week", suggested_object_id="fit_person1_week")
-    assert old.entity_id == "sensor.fit_person1_week"
-    e = await setup()
-    assert _ours(hass) == set() and hass.states.get("event.fit_badge_unlocked") is None
-    issue = ir.async_get(hass).async_get_issue(DOMAIN, "old_entities")
-    assert issue is not None and issue.translation_key == "old_entities"
-    assert scored.call_args.args[5] is False and commits == []  # as in shadow: nothing announced, nothing recorded
-    assert hass.data[DOMAIN].scores == FIX["scores"]  # scoring goes on; the page shows it
-    registry.async_remove(old.entity_id)
-    await hass.config_entries.async_reload(e.entry_id)
-    await hass.async_block_till_done(wait_background_tasks=True)
-    assert _ours(hass) == set(CONFIGS) and hass.states.get("sensor.fit_person1_week").state == "100"
-    assert ir.async_get(hass).async_get_issue(DOMAIN, "old_entities") is None
-
-
 async def test_a_failing_handler_is_logged_by_class_and_the_rest_still_fire(hass, setup, commits, caplog):
     good = _announced("workout_scored")[0]
     bad = Cycle({"people": {"person1": {"name": "Person1", "note": "secret-a"}}, "group": None}, [],
@@ -146,9 +121,8 @@ async def test_sensors_a_failed_cycle_could_not_show_come_with_the_next(hass, se
         assert hass.states.get(entity_id).state == PAYLOADS[cfg["state_topic"]], entity_id
 
 
-@pytest.mark.parametrize("options", [{OPT_SHADOW: False}, {OPT_SHADOW: True}], ids=["live", "shadow"])
-async def test_actions_apply_through_the_runner(hass, setup, mqtt_mock, options):
-    await setup(options)
+async def test_actions_apply_through_the_runner(hass, setup):
+    await setup()
     store = hass.data[DOMAIN].runner.store
     with patch.object(runner_mod, "score_cycle", wraps=runner_mod.score_cycle) as cycles:
         await hass.services.async_call(DOMAIN, "remove_workout", {"person": "person1", "key": "opentracks:t1"}, blocking=True)

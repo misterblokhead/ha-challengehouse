@@ -1,19 +1,16 @@
-"""Daily steps per person: the highest value each phone sensor showed per local day, read by the runner
-(and published for the LXC's fitbridge in shadow mode)."""
-import json
+"""Daily steps per person: the highest value each phone sensor showed per local day, read by the runner."""
 import math
 from datetime import date, timedelta
 
-from homeassistant.components import mqtt
 from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.event import async_call_later, async_track_state_change_event
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
-from .const import KEEP_DAYS, OPT_SHADOW, OPT_STEPS, STEPS_TOPIC
+from .const import KEEP_DAYS, OPT_STEPS
 
-PUBLISH_EVERY = 60  # seconds
+SAVE_EVERY = 60  # seconds
 
 
 def parse(value: str) -> int | None:
@@ -53,7 +50,6 @@ class StepsCollector:
         self._days: dict[str, dict[str, int]] = {}
         self._timer = None
         self._dirty = False
-        self._publish = entry.options.get(OPT_SHADOW, False)  # live: the runner reads snapshot() instead
 
     async def async_start(self, entry) -> None:
         raw = await self._store.async_load()
@@ -69,7 +65,7 @@ class StepsCollector:
         return self._days.get(person, {})
 
     def snapshot(self) -> dict[str, dict[str, int]] | None:
-        """Every person's days, copied for the executor; None while nothing is known (nothing was published then)."""
+        """Every person's days, copied for the executor; None while nothing is known."""
         return {p: dict(days) for p, days in self._days.items()} if any(self._days.values()) else None
 
     def _record(self, person: str, value: str) -> None:
@@ -87,7 +83,7 @@ class StepsCollector:
             if sensor == event.data["entity_id"]:
                 self._record(person, state.state)
         if self._dirty and self._timer is None:
-            self._timer = async_call_later(self._hass, PUBLISH_EVERY, self._flush)
+            self._timer = async_call_later(self._hass, SAVE_EVERY, self._flush)
 
     async def _flush(self, _now=None) -> None:
         self._timer = None
@@ -95,12 +91,10 @@ class StepsCollector:
         self._days = {p: trim(days, today) for p, days in self._days.items()}
         await self._store.async_save(self._days)
         self._dirty = False
-        if self._publish and any(self._days.values()):
-            await mqtt.async_publish(self._hass, STEPS_TOPIC, json.dumps(self._days), qos=1, retain=True)
 
     async def _stop(self) -> None:
         if self._timer:
             self._timer()
             self._timer = None
-        if self._dirty:  # a reload within the minute must not lose steps; the restart's startup publish sends them on
+        if self._dirty:  # a reload within the minute must not lose steps
             await self._store.async_save(self._days)

@@ -14,7 +14,7 @@ from pytest_homeassistant_custom_component.common import async_fire_time_changed
 
 from custom_components.fitbridge import runner as runner_mod
 from custom_components.fitbridge import webhooks
-from custom_components.fitbridge.const import DOMAIN, OPT_FOLDERS, OPT_SHADOW, WEBHOOKS
+from custom_components.fitbridge.const import DOMAIN, OPT_FOLDERS, WEBHOOKS
 from custom_components.fitbridge.engine.cycle import score_cycle
 
 MB16 = 16 * 1024 * 1024
@@ -131,10 +131,6 @@ async def test_503_while_unloading_and_gone_after(hass, setup, client):
     assert DOMAIN not in hass.data
 
 
-async def test_works_in_shadow_mode(hass, setup, client, mqtt_mock):
-    hooks = (await setup({OPT_SHADOW: True})).data[WEBHOOKS]
-    assert await _post(hass, client, list(hooks.values())[0], gpx_with_points()) == {"new": True}
-
 
 async def test_a_missing_folder_raises_its_issue_and_other_inputs_go_on(hass, setup, client, tmp_path):
     folders = {"a": tmp_path / "a", "b": tmp_path / "b"}
@@ -142,7 +138,7 @@ async def test_a_missing_folder_raises_its_issue_and_other_inputs_go_on(hass, se
         f.mkdir()
     registry = ir.async_get(hass)
     p0, p1 = P0, P1
-    e = await setup({OPT_SHADOW: False, OPT_FOLDERS: {p0: str(folders["a"]), p1: str(folders["b"])}})
+    e = await setup({OPT_FOLDERS: {p0: str(folders["a"]), p1: str(folders["b"])}})
     folders["a"].rmdir()
     (folders["b"] / "run.gpx").write_bytes(gpx_with_points())
     async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=61))

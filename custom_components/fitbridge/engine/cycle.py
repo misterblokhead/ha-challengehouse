@@ -157,9 +157,8 @@ def _steps(raw, people, cached):
     return merged
 
 
-def score_cycle(store, holder, og, inputs: Inputs, now, live: bool) -> Cycle:
-    """Sources -> score -> what to announce. live=False (shadow mode): nothing to announce and commit() records nothing.
-    The caller announces, then calls commit(): a failed announce is retried next cycle."""
+def score_cycle(store, holder, og, inputs: Inputs, now) -> Cycle:
+    """Sources -> score -> what to announce. The caller announces, then calls commit(): a failed announce is retried next cycle."""
     config, config_error = holder.get()
     if config is None:
         log.error("no valid scoring config, scoring skipped: %s", config_error)
@@ -177,7 +176,7 @@ def score_cycle(store, holder, og, inputs: Inputs, now, live: bool) -> Cycle:
     fill_best_km(store, config["types"])
     workouts, uncounted = db_workouts(store, people, config["types"])
     excluded = store.exclusions()
-    for p, ws in workouts.items():  # assigning is not announcing: shadow mode does it too
+    for p, ws in workouts.items():
         shoes.assign_new(store, p, [w["key"] for w in ws if w["kind"] == "run"])
     for p, ws in (gym or {}).items():
         if p in workouts:
@@ -193,9 +192,6 @@ def score_cycle(store, holder, og, inputs: Inputs, now, live: bool) -> Cycle:
     scores = {**result, "config_error": config_error, "gym_data_as_of": gym_as_of,
               "pauses_as_of": pauses_as_of, "settings_error": settings_error,
               "settings_as_of": settings_as_of, "steps_as_of": steps_as_of, "scored_at": now.isoformat(timespec="seconds")}
-    if not live:
-        return Cycle(scores, [], [], [], lambda: None, gym_error)
-
     unseen = [(p, *store.unseen_badges(p, r["badges"]["unlocked"])) for p, r in result["people"].items()]
     workouts_unseen = [(p, *store.unseen_workouts(p, r["feed"])) for p, r in result["people"].items()]
     announce = [(p, b) for p, fresh, loud in unseen if loud for b in fresh]
@@ -209,7 +205,7 @@ def score_cycle(store, holder, og, inputs: Inputs, now, live: bool) -> Cycle:
         recs.append((p, *records.record_changes(r["pbs"], *store.records(p), store.record_holders(p), recent)))
 
     def commit():
-        for p, _, values, held in recs:  # only once announced; in shadow mode nothing is saved, so the first live pass stays silent
+        for p, _, values, held in recs:  # only once announced
             store.save_records(p, values, held)
         for p, fresh, _ in unseen:  # only after a successful announce: a failed one is announced next cycle
             store.record_badges(p, fresh)

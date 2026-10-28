@@ -1,4 +1,4 @@
-"""The three events (engine.entities), with the old MQTT entity ids, event types and fields. Live only."""
+"""The three events (engine.entities), with the old MQTT entity ids, event types and fields."""
 import logging
 
 from homeassistant.components.event import EventEntity
@@ -15,8 +15,6 @@ _LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
-    if not hass.data[DOMAIN].runner.live:
-        return
     events = {t: FitEvent(t, name, icon) for t, (name, icon) in EVENT_ENTITIES.items()}
     async_add_entities(events.values())
 

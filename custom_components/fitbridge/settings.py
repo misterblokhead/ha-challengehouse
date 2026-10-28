@@ -1,14 +1,8 @@
-"""Weekly goals and couple mode: validated, kept per week in a Store, read by the runner
-(and published retained for the LXC's fitbridge in shadow mode)."""
-import json
+"""Weekly goals and couple mode: validated, kept per week in a Store, read by the runner."""
 from collections.abc import Iterable
 from datetime import date, timedelta
 
-from homeassistant.components import mqtt
-from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
-
-from .const import DOMAIN, SETTINGS_TOPIC
 
 GOAL_KEYS = ("runs", "workouts", "active_days")
 MODES = ("own", "together", "team")
@@ -94,11 +88,6 @@ def current(history: list, monday: date) -> dict | None:
 
 def monday_of(day: date) -> date:
     return day - timedelta(days=day.weekday())
-
-
-async def publish(hass: HomeAssistant, history: list) -> None:
-    if hass.data[DOMAIN].shadow:  # live: the runner reads the history in-process
-        await mqtt.async_publish(hass, SETTINGS_TOPIC, json.dumps({"history": history}), qos=1, retain=True)
 
 
 async def load(store: Store) -> tuple[list, dict]:

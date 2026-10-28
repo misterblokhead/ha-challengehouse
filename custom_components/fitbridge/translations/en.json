@@ -18,8 +18,7 @@
           "viewers": "Who is who and step sensors",
           "opengym": "Pair with openGym",
           "people": "openGym users",
-          "inputs": "Webhooks and watch folders",
-          "mode": "Shadow mode"
+          "inputs": "Webhooks and watch folders"
         }
       },
       "viewers": {
@@ -48,17 +47,10 @@
         "data": {
           "new_urls": "Make new webhook URLs (the current ones stop working; open this step again to see the new ones)"
         }
-      },
-      "mode": {
-        "title": "Shadow mode",
-        "description": "In shadow mode fitbridge on the LXC stays the live system: Fitness scores silently into /config/fitbridge/shadow-scores.json, creates no sensors or events, and the page keeps the LXC's scores. Turn it off to switch to Fitness (stop the LXC's fitbridge first); turn it on to go back.",
-        "data": {
-          "shadow": "Shadow mode"
-        }
       }
     },
     "abort": {
-      "waiting_for_fitbridge": "Waiting for fitbridge: no scores have arrived over MQTT yet. Try again once fitbridge has published.",
+      "waiting_for_fitbridge": "Waiting for fitbridge: it has not scored yet. Try again in a minute; check the log if scoring.toml is invalid.",
       "not_paired": "Pair with openGym first.",
       "cannot_connect": "openGym could not be reached, or it rejected the token. Pair with openGym again if this persists."
     },
@@ -72,10 +64,6 @@
     "opengym_token": {
       "title": "openGym rejected the token",
       "description": "fitbridge could not read openGym because the token was rejected. Gym sessions come from the last good fetch until fitbridge is paired with openGym again."
-    },
-    "old_entities": {
-      "title": "Old fitness entities are in the way",
-      "description": "Fitness is not in shadow mode, but another integration (MQTT, from fitbridge on the LXC) still has entity ids the fitness sensors and events need, such as the sensor.fit_… sensors or event.fit_record_set. Until they are gone, Fitness scores for its page but creates no entities and announces nothing. Stop the LXC's fitbridge so it clears its MQTT entities (or delete them), then reload Fitness."
     },
     "folder_missing": {
       "title": "Watch folder for {person} is missing",

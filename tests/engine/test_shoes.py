@@ -188,17 +188,16 @@ class ShoeCycleTests(unittest.TestCase):
         self.store.db.close()
         self.tmp.cleanup()
 
-    def test_cycle_assigns_new_runs_in_live_and_shadow_and_serves_rows(self):
+    def test_cycle_assigns_new_runs_and_serves_rows(self):
         a = shoes.add(self.store, P0, "A", 600)
         shoes.set_current(self.store, P0, a)
         self.store.add(P0, "r1", "opentracks", "completed", activity_type="running", points=5, distance_m=6000,
                        start="2026-10-27T18:00:00+01:00", end="2026-10-27T18:30:00+01:00", duration_s=1800)
-        for live in (False, True):
-            c = cycle.score_cycle(self.store, self.holder, None, cycle.Inputs([], None, None, {}), NOW, live)
-            self.assertEqual(c.scores["people"][P0]["shoes"],
-                             [{"id": a, "name": "A", "km": 6.0, "limit": 600, "runs": 1, "last_run": "2026-10-27", "current": True}])
-            self.assertEqual(c.scores["people"][P1]["shoes"], [])
-            self.assertEqual((c.scores["people"][P0]["run_shoes"], c.scores["people"][P1]["run_shoes"]), ({"r1": a}, {}))
+        c = cycle.score_cycle(self.store, self.holder, None, cycle.Inputs([], None, None, {}), NOW)
+        self.assertEqual(c.scores["people"][P0]["shoes"],
+                         [{"id": a, "name": "A", "km": 6.0, "limit": 600, "runs": 1, "last_run": "2026-10-27", "current": True}])
+        self.assertEqual(c.scores["people"][P1]["shoes"], [])
+        self.assertEqual((c.scores["people"][P0]["run_shoes"], c.scores["people"][P1]["run_shoes"]), ({"r1": a}, {}))
 
 
 if __name__ == "__main__":

@@ -1,15 +1,10 @@
 DOMAIN = "fitbridge"
-SCORES_TOPIC = "fitbridge/scores"
-MANUAL_PREFIX = "fitbridge/manual/"
 PANEL = "fitness"
 STATIC_URL = "/fitbridge_static"
 OPT_VIEWERS = "viewers"
 OPT_STEPS = "steps"
-STEPS_TOPIC = "fitbridge/steps"
-SETTINGS_TOPIC = "fitbridge/settings"
 KEEP_DAYS = 35
-DATA_DIR = "fitbridge"  # under /config: fitbridge.db, archive/, scoring.toml, shadow-scores.json
-OPT_SHADOW = "shadow"
+DATA_DIR = "fitbridge"  # under /config: fitbridge.db, archive/, scoring.toml
 OPT_OPENGYM_URL = "opengym_url"
 OPT_OPENGYM_UIDS = "opengym_uids"
 OPENGYM_TOKEN = "opengym_token"  # in entry.data
