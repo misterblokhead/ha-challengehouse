@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Fitness (fitbridge)",
-        "description": "Adds the Fitness page to the sidebar. It reads fitbridge's scores through the MQTT integration, which must be set up first."
+        "description": "Adds the Fitness page to the sidebar and scores the household's workouts."
       }
     },
     "abort": {
@@ -31,6 +31,12 @@
     },
     "abort": {
       "waiting_for_fitbridge": "Waiting for fitbridge: no scores have arrived over MQTT yet. Try again once fitbridge has published."
+    }
+  },
+  "issues": {
+    "opengym_token": {
+      "title": "openGym rejected the token",
+      "description": "fitbridge could not read openGym because the token was rejected. Gym sessions come from the last good fetch until fitbridge is paired with openGym again."
     }
   }
 }

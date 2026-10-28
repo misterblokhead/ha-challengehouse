@@ -12,7 +12,7 @@ from homeassistant.helpers.selector import (
     SelectSelectorMode,
 )
 
-from .const import DOMAIN, OPT_SHOES, OPT_STEPS, OPT_VIEWERS, SHOE_LIMIT_KM
+from .const import DOMAIN, OPT_SHADOW, OPT_SHOES, OPT_STEPS, OPT_VIEWERS, SHOE_LIMIT_KM
 
 
 def _labels(names: dict[str, str], tag=lambda k: k) -> dict[str, str]:
@@ -22,6 +22,7 @@ def _labels(names: dict[str, str], tag=lambda k: k) -> dict[str, str]:
 
 class FitbridgeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
+    MINOR_VERSION = 2  # 2: options carry shadow (async_migrate_entry)
 
     async def async_step_user(self, user_input=None):
         if self._async_current_entries():
@@ -29,7 +30,7 @@ class FitbridgeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is None:
             return self.async_show_form(step_id="user")
         await self.async_set_unique_id(DOMAIN)
-        return self.async_create_entry(title="Fitness", data={})
+        return self.async_create_entry(title="Fitness", data={}, options={OPT_SHADOW: False})  # a new install is live
 
     @staticmethod
     @callback
@@ -86,7 +87,7 @@ class FitbridgeOptionsFlow(config_entries.OptionsFlowWithReload):
         labels = _labels({p: str(r.get("name") or p) for p, r in people.items()})
         if user_input is not None:
             steps = {p: user_input[label] for p, label in labels.items() if user_input.get(label)}
-            return self.async_create_entry(data={OPT_VIEWERS: self._viewers, OPT_SHOES: self._limits, OPT_STEPS: steps})
+            return self.async_create_entry(data={**self.config_entry.options, OPT_VIEWERS: self._viewers, OPT_SHOES: self._limits, OPT_STEPS: steps})
         old = self.config_entry.options.get(OPT_STEPS, {})
         select = EntitySelector(EntitySelectorConfig(domain="sensor"))
         return self.async_show_form(step_id="steps", data_schema=vol.Schema({  # a suggestion, not a default: the field can be cleared

@@ -3,7 +3,7 @@ from homeassistant import config_entries
 from homeassistant.data_entry_flow import FlowResultType
 from pytest_homeassistant_custom_component.common import MockUser
 
-from custom_components.fitbridge.const import DOMAIN, OPT_SHOES, OPT_STEPS, OPT_VIEWERS
+from custom_components.fitbridge.const import DOMAIN, OPT_SHADOW, OPT_SHOES, OPT_STEPS, OPT_VIEWERS
 
 
 async def test_one_empty_step_creates_the_only_entry(hass, enable_custom_integrations, mqtt_mock):
@@ -12,6 +12,7 @@ async def test_one_empty_step_creates_the_only_entry(hass, enable_custom_integra
     result = await hass.config_entries.flow.async_configure(result["flow_id"], {})
     assert result["type"] is FlowResultType.CREATE_ENTRY and result["data"] == {}
     assert result["result"].unique_id == DOMAIN
+    assert result["result"].options == {OPT_SHADOW: False} and result["result"].minor_version == 2  # a new install is live
     await hass.async_block_till_done()
     again = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
     assert again["type"] is FlowResultType.ABORT and again["reason"] == "single_instance_allowed"
@@ -41,7 +42,8 @@ async def test_options_map_users_to_people(hass, entry, send):
     assert result["type"] is FlowResultType.FORM and result["step_id"] == "steps"  # no shoes: no limits step, still steps
     result = await hass.config_entries.options.async_configure(result["flow_id"], {})
     assert result["type"] is FlowResultType.CREATE_ENTRY
-    assert entry.options == {OPT_VIEWERS: {alex.id: "p1", twins[1].id: "p2"}, OPT_SHOES: {}, OPT_STEPS: {}}
+    assert entry.options == {OPT_SHADOW: True,  # options the flow does not show are kept
+                             OPT_VIEWERS: {alex.id: "p1", twins[1].id: "p2"}, OPT_SHOES: {}, OPT_STEPS: {}}
     assert sam.id not in entry.options[OPT_VIEWERS]
 
 

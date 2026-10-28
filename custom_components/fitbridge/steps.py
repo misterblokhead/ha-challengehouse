@@ -1,4 +1,5 @@
-"""Daily steps per person: the highest value each phone sensor showed per local day, published for fitbridge."""
+"""Daily steps per person: the highest value each phone sensor showed per local day, read by the runner
+(and published for the LXC's fitbridge in shadow mode)."""
 import json
 import math
 from datetime import date, timedelta
@@ -10,7 +11,7 @@ from homeassistant.helpers.event import async_call_later, async_track_state_chan
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
-from .const import KEEP_DAYS, OPT_STEPS, STEPS_TOPIC
+from .const import KEEP_DAYS, OPT_SHADOW, OPT_STEPS, STEPS_TOPIC
 
 PUBLISH_EVERY = 60  # seconds
 
@@ -52,6 +53,7 @@ class StepsCollector:
         self._days: dict[str, dict[str, int]] = {}
         self._timer = None
         self._dirty = False
+        self._publish = entry.options.get(OPT_SHADOW, False)  # live: the runner reads snapshot() instead
 
     async def async_start(self, entry) -> None:
         raw = await self._store.async_load()
@@ -65,6 +67,10 @@ class StepsCollector:
 
     def days(self, person: str) -> dict[str, int]:
         return self._days.get(person, {})
+
+    def snapshot(self) -> dict[str, dict[str, int]] | None:
+        """Every person's days, copied for the executor; None while nothing is known (nothing was published then)."""
+        return {p: dict(days) for p, days in self._days.items()} if any(self._days.values()) else None
 
     def _record(self, person: str, value: str) -> None:
         if record(self._days.setdefault(person, {}), dt_util.now().date().isoformat(), value):
@@ -89,7 +95,7 @@ class StepsCollector:
         self._days = {p: trim(days, today) for p, days in self._days.items()}
         await self._store.async_save(self._days)
         self._dirty = False
-        if any(self._days.values()):
+        if self._publish and any(self._days.values()):
             await mqtt.async_publish(self._hass, STEPS_TOPIC, json.dumps(self._days), qos=1, retain=True)
 
     async def _stop(self) -> None:

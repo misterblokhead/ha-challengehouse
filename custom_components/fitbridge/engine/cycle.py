@@ -10,7 +10,7 @@ from zoneinfo import ZoneInfo
 from . import opengym, records, scoring, scoring_config, shoes
 from .ingest import aware, classify, db_workouts
 
-log = logging.getLogger("fitbridge")
+log = logging.getLogger(__name__)
 
 
 @dataclass
@@ -28,6 +28,7 @@ class Cycle:
     workouts: list[tuple[str, dict]]     # (person, feed item) to announce
     records: list[tuple[str, dict]]      # (person, record event) to announce
     commit: Callable[[], None]           # records the above as announced; call it after announcing
+    gym_error: str | None = None         # class name of this cycle's openGym failure (the cache was used), or None
 
 
 def fill_best_km(store):
@@ -81,7 +82,7 @@ class _NoPayload(Exception):
 
 def _cached(store, name, now, fetch):
     """Run fetch() (None: source not configured) and keep its JSON in kv[name]; on failure the old cache stays.
-    Returns (cached value or None, when it was fetched, the message when fetch() found the payload invalid)."""
+    Returns (cached value or None, when it was fetched, the exception fetch() raised or None)."""
     error = None
     if fetch is not None:
         try:
@@ -90,7 +91,7 @@ def _cached(store, name, now, fetch):
             pass
         except Exception as e:  # a failing source never breaks the rest (spec section 2)
             log.warning("%s: source unavailable, using the cache: %s", name, _why(e))
-            error = str(e) if isinstance(e, ValueError) else None  # invalid, not unreachable
+            error = e
         else:
             store.kv_set(name, text)
             store.kv_set(f"{name}_at", now.isoformat(timespec="seconds"))
@@ -165,10 +166,12 @@ def score_cycle(store, holder, og, inputs: Inputs, now, live: bool) -> Cycle:
         return Cycle({"error": "no valid scoring config", "config_error": config_error}, [], [], [], lambda: None)
     people = tuple(config["people"])
 
-    gym, gym_as_of, _ = _cached(store, "gym_cache", now, None if og is None else lambda: _gym(og, inputs.opengym_uids, people))
+    gym, gym_as_of, gym_failure = _cached(store, "gym_cache", now, None if og is None else lambda: _gym(og, inputs.opengym_uids, people))
     pauses, pauses_as_of, _ = _cached(store, "pauses_cache", now, lambda: _pauses(inputs.pauses, config))
-    settings, settings_as_of, settings_error = _cached(store, "settings_cache", now, lambda: (
+    settings, settings_as_of, settings_failure = _cached(store, "settings_cache", now, lambda: (
         scoring_config.parse_settings(_given(inputs.settings), people)))
+    settings_error = str(settings_failure) if isinstance(settings_failure, ValueError) else None  # invalid, not unreachable
+    gym_error = type(gym_failure).__name__ if gym_failure else None
     steps, steps_as_of, _ = _cached(store, "steps_cache", now, lambda: (
         _steps(inputs.steps, people, json.loads(store.kv_get("steps_cache") or "null"))))
     fill_best_km(store)
@@ -189,7 +192,7 @@ def score_cycle(store, holder, og, inputs: Inputs, now, live: bool) -> Cycle:
               "pauses_as_of": pauses_as_of, "settings_error": settings_error,
               "settings_as_of": settings_as_of, "steps_as_of": steps_as_of, "scored_at": now.isoformat(timespec="seconds")}
     if not live:
-        return Cycle(scores, [], [], [], lambda: None)
+        return Cycle(scores, [], [], [], lambda: None, gym_error)
 
     unseen = [(p, *store.unseen_badges(p, r["badges"]["unlocked"])) for p, r in result["people"].items()]
     workouts_unseen = [(p, *store.unseen_workouts(p, r["feed"])) for p, r in result["people"].items()]
@@ -211,4 +214,4 @@ def score_cycle(store, holder, og, inputs: Inputs, now, live: bool) -> Cycle:
         for p, new, _, _ in workouts_unseen:  # excluded ones too: restoring a workout is not news
             store.record_workouts(p, [k for w in new for k in (w["key"], *w["aliases"])])
 
-    return Cycle(scores, announce, announce_workouts, [(p, e) for p, es, _, _ in recs for e in es], commit)
+    return Cycle(scores, announce, announce_workouts, [(p, e) for p, es, _, _ in recs for e in es], commit, gym_error)

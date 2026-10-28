@@ -12,7 +12,7 @@ from pathlib import Path
 from . import records
 from .scoring_config import HOME_TYPES, KINDS
 
-log = logging.getLogger("fitbridge")
+log = logging.getLogger(__name__)
 
 MAX_BODY = 200 * 1024 * 1024
 GPX_NS = "{http://www.topografix.com/GPX/1/1}"

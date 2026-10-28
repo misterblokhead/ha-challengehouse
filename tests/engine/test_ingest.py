@@ -136,7 +136,7 @@ class FlowTests(unittest.TestCase):
     def test_unreadable_gpx_in_folder_is_retried_when_it_changes(self):
         path = self.sync / "half.gpx"
         path.write_bytes(gpx_with_points()[:200])
-        with self.assertLogs("fitbridge", "WARNING"):
+        with self.assertLogs("custom_components.fitbridge", "WARNING"):
             ingest.scan_folder(self.store, self.archive, P0, self.sync)
         self.assertEqual(self.store.counts(), {})
         path.write_bytes(gpx_with_points())  # synced in full: new size
@@ -194,7 +194,7 @@ class FlowTests(unittest.TestCase):
 
     def test_late_route_is_logged_and_archived_gpx_never_rewritten(self):
         self.route_export(with_gpx=False)
-        with self.assertLogs("fitbridge", "INFO") as logs:
+        with self.assertLogs("custom_components.fitbridge", "INFO") as logs:
             self.route_export()
         self.assertTrue(any("route attached" in m for m in logs.output))
         path = Path(self.store.rows("stored")[0]["file"])

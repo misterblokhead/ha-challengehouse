@@ -16,11 +16,18 @@ def expected_lingering_timers():
 
 
 @pytest.fixture
+def hass_config_dir(hass_tmp_config_dir):
+    """A fresh config dir per test: the runner keeps /config/fitbridge/ there."""
+    return hass_tmp_config_dir
+
+
+@pytest.fixture
 async def entry(enable_custom_integrations, hass, mqtt_mock):
+    """An entry from before 0.4.0: migrated into shadow mode, so the page reads MQTT as before."""
     e = MockConfigEntry(domain="fitbridge", unique_id="fitbridge", title="Fitness")
     e.add_to_hass(hass)
     assert await hass.config_entries.async_setup(e.entry_id)
-    await hass.async_block_till_done()
+    await hass.async_block_till_done(wait_background_tasks=True)
     yield e
     await hass.config_entries.async_unload(e.entry_id)
 

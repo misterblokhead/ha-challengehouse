@@ -25,7 +25,7 @@ async def users(hass, entry):
             "robin": MockUser(name="Robin", groups=[admin])}
     for u in made.values():
         u.add_to_hass(hass)
-    hass.config_entries.async_update_entry(entry, options={OPT_VIEWERS: {made["alex"].id: "p1", made["sam"].id: "p2"}})
+    hass.config_entries.async_update_entry(entry, options={**entry.options, OPT_VIEWERS: {made["alex"].id: "p1", made["sam"].id: "p2"}})
     return made
 
 

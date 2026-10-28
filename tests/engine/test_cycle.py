@@ -95,11 +95,19 @@ class ScoringCycleTests(unittest.TestCase):
 
     def test_opengym_down_uses_cache(self):
         self.run_cycle(FakeOpenGym([GYM]))
-        with self.assertLogs("fitbridge", "WARNING") as logs:
+        with self.assertLogs("custom_components.fitbridge", "WARNING") as logs:
             res = self.scores(FakeOpenGym(raise_=OSError()))
         self.assertEqual(res["people"][P0]["week"]["workouts"], 1)
         self.assertIsNotNone(res["gym_data_as_of"])
         self.assertIn("OSError", logs.output[0])
+
+    def test_gym_error_names_the_failure_by_class(self):
+        self.assertIsNone(self.run_cycle().gym_error)  # no openGym: nothing failed
+        self.assertIsNone(self.run_cycle(FakeOpenGym([GYM])).gym_error)
+        for live in (True, False):  # the runner raises its repair issue in shadow mode too
+            with self.assertLogs("custom_components.fitbridge", "WARNING"):
+                c = self.run_cycle(FakeOpenGym(raise_=opengym.OpenGymAuthError("rejected")), live=live)
+            self.assertEqual(c.gym_error, "OpenGymAuthError")
 
     def test_gym_items_have_no_url(self):
         res = self.scores(FakeOpenGym([GYM]))
@@ -121,7 +129,7 @@ class ScoringCycleTests(unittest.TestCase):
     def test_pauses_cached_when_missing(self):
         name = load_config(DEFAULT)["people"][P0]["name"]
         self.run_cycle(pauses=[{"summary": name, "start": "2026-10-26", "end": "2026-11-02"}])
-        with self.assertLogs("fitbridge", "WARNING"):
+        with self.assertLogs("custom_components.fitbridge", "WARNING"):
             res = self.scores(pauses=None)
         self.assertTrue(res["people"][P0]["week"]["paused"])
         self.assertIsNotNone(res["pauses_as_of"])
@@ -133,7 +141,7 @@ class ScoringCycleTests(unittest.TestCase):
                     [{"summary": 5, "start": "2026-10-26", "end": "2026-11-02"}],
                     [{"summary": "Someone Else", "start": "2026-10-26", "end": "not a date"}],
                     {"summary": name}):
-            with self.subTest(bad=bad), self.assertLogs("fitbridge", "WARNING"):
+            with self.subTest(bad=bad), self.assertLogs("custom_components.fitbridge", "WARNING"):
                 res = self.scores(pauses=bad)
                 self.assertTrue(res["people"][P0]["week"]["paused"])
 
@@ -145,19 +153,19 @@ class ScoringCycleTests(unittest.TestCase):
         self.assertIsNone(res["settings_error"])
         self.assertTrue(res["settings_as_of"] and res["steps_as_of"])
         for bad in ({"history": [{"from": "2026-10-27"}]}, {"history": [{"from": "2026-10-26", "couple": {"mode": "x"}}]}):
-            with self.subTest(bad=bad), self.assertLogs("fitbridge", "WARNING"):
+            with self.subTest(bad=bad), self.assertLogs("custom_components.fitbridge", "WARNING"):
                 res = self.scores(settings=bad, steps=[])
                 self.assertEqual(res["people"][P0]["week"]["goal"]["steps"], 4000)     # cached settings and steps
                 self.assertEqual(res["people"][P0]["week"]["active_days"], 1)
                 self.assertIn("history[0]", res["settings_error"])
-        with self.assertLogs("fitbridge", "WARNING"):                                   # not an object is invalid too
+        with self.assertLogs("custom_components.fitbridge", "WARNING"):                                   # not an object is invalid too
             res = self.scores(settings=["history"])
         self.assertTrue(res["settings_error"])
         self.assertIsNone(self.scores(settings=good)["settings_error"])                # a good payload clears it
 
     def test_missing_settings_and_steps_are_not_an_error(self):
         self.run_cycle(steps={P0: {"2026-10-27": 12000}})
-        with self.assertNoLogs("fitbridge", "WARNING"):
+        with self.assertNoLogs("custom_components.fitbridge", "WARNING"):
             res = self.scores()
         self.assertEqual((res["settings_error"], res["settings_as_of"]), (None, None))
         self.assertEqual(json.loads(self.store.kv_get("steps_cache")), {P0: {"2026-10-27": 12000}})  # None keeps the cache
@@ -293,7 +301,7 @@ class ScoringCycleTests(unittest.TestCase):
         self.holder.get()
         self.toml_path.write_text("broken = [")
         os.utime(self.toml_path, (time.time() + 5, time.time() + 5))
-        with self.assertLogs("fitbridge", "ERROR"):
+        with self.assertLogs("custom_components.fitbridge", "ERROR"):
             conf, err = self.holder.get()
         self.assertIsNotNone(conf)
         self.assertIn("TOML", err)
@@ -308,14 +316,14 @@ class ScoringCycleTests(unittest.TestCase):
             with self.subTest(new=new):
                 self.toml_path.write_text(DEFAULT.replace(old, new, 1), encoding="utf-8")
                 os.utime(self.toml_path, (time.time() + 10 + i, time.time() + 10 + i))
-                with self.assertLogs("fitbridge", "ERROR"):
+                with self.assertLogs("custom_components.fitbridge", "ERROR"):
                     conf, err = self.holder.get()
                 self.assertIs(conf, good)
                 self.assertIsNotNone(err)
 
     def test_no_good_config_skips_scoring(self):
         self.toml_path.write_text("broken = [")
-        with self.assertLogs("fitbridge", "ERROR"):
+        with self.assertLogs("custom_components.fitbridge", "ERROR"):
             c = self.run_cycle()
         self.assertNotIn("people", c.scores)
         self.assertEqual(c.scores["error"], "no valid scoring config")
@@ -347,7 +355,7 @@ class ScoringCycleTests(unittest.TestCase):
         self.assertEqual(self.store.best_km(), {(P0, "t1"): 300})        # the walk gets no row
         self.assertEqual(res["people"][P0]["pbs"]["fastest_1k"]["seconds"], 300)
         path.unlink()
-        with self.assertNoLogs("fitbridge", "WARNING"):
+        with self.assertNoLogs("custom_components.fitbridge", "WARNING"):
             res = self.scores()
         self.assertEqual(res["people"][P0]["pbs"]["fastest_1k"]["seconds"], 300)
 
@@ -356,14 +364,14 @@ class ScoringCycleTests(unittest.TestCase):
         self.store.update(P0, "gone", file=str(Path(self.tmp.name) / "nope.gpx"))
         self.add_gpx_run("bad", track([seg(1500)]))
         with mock.patch.object(cycle.records, "fastest_1k_s", side_effect=TypeError("naive vs aware")):
-            with self.assertLogs("fitbridge", "WARNING") as logs:
+            with self.assertLogs("custom_components.fitbridge", "WARNING") as logs:
                 res = self.scores()
         self.assertEqual(self.store.best_km(), {(P0, "gone"): None, (P0, "bad"): None})
         self.assertEqual(sorted(l.split(":")[-1].strip() for l in logs.output if "best 1 km" in l),
                          ["FileNotFoundError", "TypeError"])
         self.assertNotIn("naive", "".join(logs.output))
         self.assertIsNone(res["people"][P0]["pbs"]["fastest_1k"])
-        with self.assertNoLogs("fitbridge", "WARNING"):
+        with self.assertNoLogs("custom_components.fitbridge", "WARNING"):
             self.run_cycle()
 
     def test_old_gym_cache_without_lifts_scores_as_no_lifts(self):
@@ -372,7 +380,7 @@ class ScoringCycleTests(unittest.TestCase):
         for w in cache[P0]:
             del w["lifts"], w["unit"]
         self.store.kv_set("gym_cache", json.dumps(cache))
-        with self.assertLogs("fitbridge", "WARNING"):
+        with self.assertLogs("custom_components.fitbridge", "WARNING"):
             res = self.scores(FakeOpenGym(raise_=OSError()))
         self.assertEqual(res["people"][P0]["week"]["workouts"], 1)
         self.assertEqual(res["people"][P0]["pbs"]["lifts"], [])
@@ -492,7 +500,7 @@ class ScoringCycleTests(unittest.TestCase):
     def test_exercise_catalog_from_before_body_parts_serves_its_names_when_the_refetch_fails(self):
         self.store.kv_set("opengym_exercises", json.dumps({"file": "assets/exercises-a1.js", "names": {"0118": "Bent over row"}}))
         bad, _ = self._names_og(fail=True)
-        with self.assertLogs("fitbridge", "WARNING"):
+        with self.assertLogs("custom_components.fitbridge", "WARNING"):
             self.assertEqual(cycle.exercise_catalog_cached(bad, self.store, NOW), {"0118": {"name": "Bent over row", "bp": ""}})
         self.assertEqual(cycle.exercise_catalog_cached(None, self.store, NOW), {"0118": {"name": "Bent over row", "bp": ""}})
 
@@ -503,12 +511,12 @@ class ScoringCycleTests(unittest.TestCase):
         calls = []
         bad.opener = lambda req, timeout=None: calls.append(1) or bad_opener(req, timeout)
         t = NOW + timedelta(hours=2)
-        with self.assertLogs("fitbridge", "WARNING"):
+        with self.assertLogs("custom_components.fitbridge", "WARNING"):
             self.assertEqual(cycle.exercise_catalog_cached(bad, self.store, t), {"0118": {"name": "Bent over row", "bp": "back"}})
         self.assertEqual(len(calls), 1)
         cycle.exercise_catalog_cached(bad, self.store, t + timedelta(minutes=30))
         self.assertEqual(len(calls), 1)                                 # tried < 1 h ago: no request
-        with self.assertLogs("fitbridge", "WARNING"):
+        with self.assertLogs("custom_components.fitbridge", "WARNING"):
             cycle.exercise_catalog_cached(bad, self.store, t + timedelta(minutes=61))
         self.assertEqual(len(calls), 2)
 
@@ -518,7 +526,7 @@ class ScoringCycleTests(unittest.TestCase):
         opener = fake({"/": "<html>changed</html>"})
         changed = opengym.OpenGym("http://og", lambda: "t", lambda t: None, opener=opener)
         t = NOW + timedelta(hours=2)
-        with self.assertLogs("fitbridge", "WARNING"):
+        with self.assertLogs("custom_components.fitbridge", "WARNING"):
             self.assertEqual(cycle.exercise_catalog_cached(changed, self.store, t), {"0118": {"name": "Bent over row", "bp": "back"}})
         self.assertEqual(opener.paths, ["/"])
         cycle.exercise_catalog_cached(changed, self.store, t + timedelta(minutes=30))
@@ -529,7 +537,7 @@ class ScoringCycleTests(unittest.TestCase):
         cycle.exercise_catalog_cached(og, self.store, NOW)
         changed, opener = self._names_og("exercises-b2.js", "not a bundle")
         t = NOW + timedelta(hours=2)
-        with self.assertLogs("fitbridge", "WARNING"):
+        with self.assertLogs("custom_components.fitbridge", "WARNING"):
             self.assertEqual(cycle.exercise_catalog_cached(changed, self.store, t), {"0118": {"name": "Bent over row", "bp": "back"}})
         n = len(opener.paths)
         self.assertEqual(cycle.exercise_catalog_cached(changed, self.store, t + timedelta(minutes=30)),
@@ -539,7 +547,7 @@ class ScoringCycleTests(unittest.TestCase):
     def test_exercise_catalog_without_cache_or_opengym_is_empty(self):
         self.assertEqual(cycle.exercise_catalog_cached(None, self.store, NOW), {})
         bad, _ = self._names_og(fail=True)
-        with self.assertLogs("fitbridge", "WARNING"):
+        with self.assertLogs("custom_components.fitbridge", "WARNING"):
             self.assertEqual(cycle.exercise_catalog_cached(bad, self.store, NOW + timedelta(hours=2)), {})
 
 

@@ -5,7 +5,7 @@ import pytest
 from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import async_fire_time_changed
 
-from custom_components.fitbridge.const import OPT_STEPS, OPT_VIEWERS
+from custom_components.fitbridge.const import OPT_SHADOW, OPT_STEPS, OPT_VIEWERS
 from custom_components.fitbridge.steps import record, trim, week
 
 
@@ -36,7 +36,7 @@ def test_week_is_monday_up_to_today_and_drops_last_week():
 @pytest.fixture
 async def collector(hass, entry, hass_storage, mqtt_mock):
     """The entry with p1 -> sensor.phone_steps, set up again so the collector reads the options."""
-    hass.config_entries.async_update_entry(entry, options={OPT_VIEWERS: {}, OPT_STEPS: {"p1": "sensor.phone_steps"}})
+    hass.config_entries.async_update_entry(entry, options={OPT_SHADOW: True, OPT_VIEWERS: {}, OPT_STEPS: {"p1": "sensor.phone_steps"}})
     hass.states.async_set("sensor.phone_steps", "4000")  # the phone's value at startup: the collector must not file it
     mqtt_mock.async_publish.reset_mock()
     await hass.config_entries.async_reload(entry.entry_id)
