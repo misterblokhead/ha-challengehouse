@@ -1,6 +1,7 @@
 """Webhooks per person and watch folders (synthetic data only)."""
 import json
 from datetime import timedelta
+from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -76,6 +77,30 @@ async def test_junk_is_400_stores_nothing_and_logs_the_class_only(hass, setup, c
         await _post(hass, client, hooks[p1], body, 400)
     assert _counts(hass) == {}
     assert "JSONDecodeError" in caplog.text and "secret" not in caplog.text
+
+
+async def test_a_value_of_the_wrong_type_is_400_or_dropped_and_scoring_goes_on(hass, setup, client, cycles, caplog):
+    hooks = (await setup()).data[WEBHOOKS]
+    p1 = list(hooks)[1]
+    archive = Path(hass.config.path("fitbridge", "archive"))
+    await _post(hass, client, hooks[p1], json.dumps({"workouts": [dict(hex_workout("A"), startDate={"x": 1})]}).encode(), 400)
+    assert _counts(hass) == {} and not (archive / p1).exists()  # not even the raw body
+    text = dict(hex_workout("T", "running"), duration="an hour")
+    assert await _post(hass, client, hooks[p1], json.dumps({"workouts": [text]}).encode()) == {"workouts": 1, "new": 1}
+    assert cycles.call_count == 2 and "Scoring cycle failed" not in caplog.text
+    assert p1 in hass.data[DOMAIN].runner.scores["people"]
+
+
+async def test_webhooks_stay_registered_while_scoring_toml_is_broken(hass, setup, client):
+    e = await setup()
+    hooks = dict(e.data[WEBHOOKS])
+    await hass.config_entries.async_unload(e.entry_id)
+    Path(hass.config.path("fitbridge", "scoring.toml")).write_text("broken = [\n", encoding="utf-8")
+    assert await hass.config_entries.async_setup(e.entry_id)  # after a restart: no good config at all
+    await hass.async_block_till_done(wait_background_tasks=True)
+    assert await hass.data[DOMAIN].runner.async_people() == {}
+    assert await _post(hass, client, hooks[P0], gpx_with_points()) == {"new": True}  # not lost behind HA's 200
+    assert _counts(hass) == {P0: {"stored": 1}} and e.data[WEBHOOKS] == hooks
 
 
 async def test_over_16_mb_is_413_by_length_or_by_count(hass, setup, client):

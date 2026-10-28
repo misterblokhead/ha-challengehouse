@@ -10,7 +10,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from . import records
-from .scoring_config import HOME_TYPES, KINDS
+from .scoring_config import HOME_TYPES, KINDS, finite
 
 log = logging.getLogger(__name__)
 
@@ -58,27 +58,40 @@ def parse_gpx(data: bytes) -> dict:
 
 
 def _distance_m(value, unit):
-    factor = {"m": 1, "km": 1000, "mi": 1609.344}.get((unit or "").lower())
+    factor = {"m": 1, "km": 1000, "mi": 1609.344}.get(unit.lower() if isinstance(unit, str) else "")
     return value * factor if value is not None and factor else None
+
+
+def _number(v):
+    """v when it is a real number, else None: a number of the wrong type is dropped, never stored or scored."""
+    return v if finite(v) else None
+
+
+def _text(w, key):
+    """w[key] when it is text or missing; anything else makes the export unusable (a 400, nothing stored)."""
+    v = w.get(key)
+    if v is not None and not isinstance(v, str):
+        raise ValueError(f"{key} is not text")
+    return v
 
 
 def map_hex_workout(w: dict) -> dict:
     stats = w.get("statistics") or {}
 
     def stat(name, key):
-        return (stats.get(HK + name) or {}).get(key)
+        return _number((stats.get(HK + name) or {}).get(key))
 
     dist = stats.get(HK + "DistanceWalkingRunning") or {}
     return {
-        "key": w["uuid"],
-        "activity_type": w.get("activityType"),
-        "start": w.get("startDate"), "end": w.get("endDate"),
-        "duration_s": w.get("duration"),
-        "distance_m": _distance_m(dist.get("sum"), dist.get("unit")),
+        "key": _text(w, "uuid"),
+        "activity_type": _text(w, "activityType"),
+        "start": _text(w, "startDate"), "end": _text(w, "endDate"),
+        "duration_s": _number(w.get("duration")),
+        "distance_m": _distance_m(_number(dist.get("sum")), dist.get("unit")),
         "kcal": stat("ActiveEnergyBurned", "sum"),
         "avg_hr": stat("HeartRate", "average"), "max_hr": stat("HeartRate", "max"),
-        "indoor": w.get("indoor"),
-        "route_file": w.get("routeFile"),
+        "indoor": w.get("indoor") if isinstance(w.get("indoor"), bool) else None,
+        "route_file": _text(w, "routeFile"),
     }
 
 
@@ -213,7 +226,7 @@ KIND_NAMES = {"run": "Run", "walk": "Walk", "gym": "Gym session", "home": "Home 
 
 def classify(source, activity_type, points):
     """Workout kind (run|walk|gym|home) per spec section 4, or None when it does not count."""
-    t = (activity_type or "").lower()
+    t = str(activity_type or "").lower()
     if source == "manual":
         return t if t in KINDS else None
     if source == "opentracks":
@@ -236,7 +249,8 @@ def aware(text):
 
 
 def db_workouts(store, people):
-    """All stored workouts as scorer dicts, per person. Rows we cannot place in time are skipped."""
+    """All stored workouts as scorer dicts, per person. Rows we cannot place in time are skipped; a number stored as
+    text (rows from before map_hex_workout checked them) counts as missing."""
     out = {p: [] for p in people}
     excluded, best_km = store.exclusions(), store.best_km()
     for r in store.all_rows():
@@ -245,14 +259,15 @@ def db_workouts(store, people):
         if r["person"] not in out or not kind or not start:
             continue
         end = aware(r["end"])
-        dur = r["duration_s"] if r["duration_s"] is not None else ((end - start).total_seconds() if end else None)
+        dur = _number(r["duration_s"])
+        dur = dur if dur is not None else ((end - start).total_seconds() if end else None)
         if dur is None or dur <= 0:
             continue
         end = end or start + timedelta(seconds=dur)
         out[r["person"]].append({
             "person": r["person"], "key": r["key"], "source": r["source"], "kind": kind,
             "indoor": bool(r["indoor"]), "start": start, "end": end, "duration_s": float(dur),
-            "distance_m": r["distance_m"], "avg_hr": r["avg_hr"], "vol_kg": 0.0, "prs": [],
+            "distance_m": _number(r["distance_m"]), "avg_hr": _number(r["avg_hr"]), "vol_kg": 0.0, "prs": [],
             "name": KIND_NAMES[kind], "best_1k_s": best_km.get((r["person"], r["key"])), "lifts": {}, "unit": "kg",
             "url": None,  # no links since Endurain went
             "excluded": (r["person"], r["key"]) in excluded,

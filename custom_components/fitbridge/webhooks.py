@@ -31,13 +31,15 @@ async def async_url(hass: HomeAssistant, webhook_id: str) -> str:
 
 @callback
 def async_setup(hass: HomeAssistant, entry: ConfigEntry, people) -> None:
-    """Registers each person's webhook. Ids are made once and kept in the entry, so a phone keeps its URL."""
+    """Registers a webhook for each person in people and each one made before. Ids are made once and kept in the entry,
+    so a phone keeps its URL; one made before stays registered while scoring.toml is broken (HA answers 200 for an
+    unregistered id, so the phone would never retry) or no longer names that person (its rows are not scored)."""
     ids = dict(entry.data.get(WEBHOOKS, {}))
     if missing := [p for p in people if p not in ids]:
         ids |= {p: webhook.async_generate_id() for p in missing}
         hass.config_entries.async_update_entry(entry, data={**entry.data, WEBHOOKS: ids})
-    for person in people:
-        webhook.async_register(hass, DOMAIN, f"Fitness {person}", ids[person], _handler(person),
+    for person, webhook_id in ids.items():
+        webhook.async_register(hass, DOMAIN, f"Fitness {person}", webhook_id, _handler(person),
                                local_only=False, allowed_methods=("POST",))
 
 

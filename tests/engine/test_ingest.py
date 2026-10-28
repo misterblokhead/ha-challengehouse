@@ -191,11 +191,28 @@ class FlowTests(unittest.TestCase):
             z.writestr("x/x.json", "[1, 2]")
         for body in (b"junk", b"[{\"uuid\": \"A\"}]", b"{}", b'{"workouts": [1]}', b'{"workouts": "x"}',
                      b'{"workouts": [{"uuid": "A", "statistics": 5}]}', no_json.getvalue(), array_zip.getvalue(),
-                     b"<gpx><trk>", b'<gpx xmlns="http://www.topografix.com/GPX/1/1"><trk><trkseg><trkpt lat="x" lon="5"/></trkseg></trk></gpx>', b"{"):
-            with self.subTest(body=body[:30]), self.assertRaises(ingest.Unreadable):
+                     b"<gpx><trk>", b'<gpx xmlns="http://www.topografix.com/GPX/1/1"><trk><trkseg><trkpt lat="x" lon="5"/></trkseg></trk></gpx>', b"{",
+                     *(json.dumps({"workouts": [dict(hex_workout("A", "running"), **{k: v})]}).encode()
+                       for k, v in (("uuid", 5), ("startDate", {"x": 1}), ("activityType", ["running"]), ("routeFile", {"x": 1})))):
+            with self.subTest(body=body[:60]), self.assertRaises(ingest.Unreadable):
                 ingest.ingest_body(self.store, self.archive, P1, body)
         self.assertEqual(self.store.all_rows(), [])
         self.assertFalse(self.archive.exists())  # nothing written, not even the raw body
+
+    def test_numbers_of_the_wrong_type_are_dropped_and_never_break_scoring(self):
+        w = dict(hex_workout("T", "running"), duration="an hour", indoor="no", startDate="2026-10-20T07:00:00+00:00",
+                 endDate="2026-10-20T07:30:00+00:00")
+        w["statistics"]["HKQuantityTypeIdentifierHeartRate"]["average"] = "88"
+        w["statistics"]["HKQuantityTypeIdentifierDistanceWalkingRunning"] = {"sum": "5", "unit": "km"}
+        body = json.dumps({"workouts": [w]}).encode()
+        self.assertEqual(ingest.ingest_body(self.store, self.archive, P1, body), {"workouts": 1, "new": 1})
+        (row,) = self.store.all_rows()
+        self.assertEqual((row["duration_s"], row["distance_m"], row["avg_hr"], row["indoor"]), (None, None, None, None))
+        t = dict(start="2026-10-21T07:00:00+00:00", end="2026-10-21T07:20:00+00:00", activity_type="walking")
+        self.store.add(P0, "old", "health_exporter", "archived", duration_s="an hour", distance_m="far", avg_hr="x", **t)
+        out = ingest.db_workouts(self.store, PEOPLE)  # a row stored before the check is harmless too
+        self.assertEqual([(x["duration_s"], x["distance_m"], x["avg_hr"]) for x in out[P1] + out[P0]],
+                         [(1800.0, None, None), (1200.0, None, None)])
 
     def route_export(self, with_gpx=True, gpx=None, **fields):
         w = dict(hex_workout("R", "running"), routeFile="routes/running-2026-10-23-r.gpx", **fields)
