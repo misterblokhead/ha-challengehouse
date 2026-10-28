@@ -217,8 +217,20 @@ export function stepsSummary(bars) {
 // "Barbell row · 40 kg × 8 · 12 Oct"
 export const liftSet = (l) => `${l.w} ${l.unit} × ${l.r}`;
 export const liftLine = (l) => `${l.name} · ${liftSet(l)} · ${shortDate(l.date)}`;
-export const recentLifts = (lifts, n = 5) => (lifts ?? []).slice(0, n); // fitbridge sends them newest first
-export const allLifts = (lifts) => [...(lifts ?? [])].sort((a, b) => a.name.localeCompare(b.name));
+
+// The lift records by muscle group (fitbridge's `group`; none or an unknown one: "Other"), in this order.
+export const GROUPS = ["Chest", "Back", "Shoulders", "Arms", "Legs", "Core", "Other"];
+const byGroup = (lifts) => GROUPS.map((group) => ({ group, lifts: (lifts ?? []).filter((l) => (GROUPS.includes(l.group) ? l.group : "Other") === group) })).filter((g) => g.lifts.length);
+
+// One row per group with records: its most-done lift (most `sessions`; tie: most recent, then A-Z) and how many records it has.
+export const groupRows = (lifts) =>
+  byGroup(lifts).map(({ group, lifts: ls }) => ({
+    group, count: ls.length,
+    lift: [...ls].sort((a, b) => (b.sessions ?? 0) - (a.sessions ?? 0) || b.date.localeCompare(a.date) || a.name.localeCompare(b.name))[0],
+  }));
+
+// Every record per group, A-Z by name.
+export const groupedLifts = (lifts) => byGroup(lifts).map(({ group, lifts: ls }) => ({ group, lifts: [...ls].sort((a, b) => a.name.localeCompare(b.name)) }));
 export const paceText = (seconds) => `${Math.floor(seconds / 60)}:${pad(seconds % 60)}`;
 
 // The feed keys of the workouts that hold a record (a lift's best set, the fastest 1 km), for the 🏆.

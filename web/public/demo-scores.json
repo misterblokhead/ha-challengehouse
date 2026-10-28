@@ -168,7 +168,9 @@
             "r": 8,
             "unit": "kg",
             "date": "2026-10-26",
-            "key": "opengym:55"
+            "key": "opengym:55",
+            "group": "Back",
+            "sessions": 6
           },
           {
             "id": "0002",
@@ -177,7 +179,9 @@
             "r": 5,
             "unit": "kg",
             "date": "2026-10-22",
-            "key": "opengym:55"
+            "key": "opengym:55",
+            "group": "Chest",
+            "sessions": 5
           },
           {
             "id": "0003",
@@ -186,7 +190,9 @@
             "r": 10,
             "unit": "kg",
             "date": "2026-10-19",
-            "key": "lift:0003"
+            "key": "lift:0003",
+            "group": "Legs",
+            "sessions": 3
           },
           {
             "id": "0004",
@@ -195,7 +201,9 @@
             "r": 3,
             "unit": "kg",
             "date": "2026-10-15",
-            "key": "lift:0004"
+            "key": "lift:0004",
+            "group": "Back",
+            "sessions": 4
           },
           {
             "id": "0005",
@@ -204,7 +212,9 @@
             "r": 6,
             "unit": "kg",
             "date": "2026-10-12",
-            "key": "lift:0005"
+            "key": "lift:0005",
+            "group": "Shoulders",
+            "sessions": 4
           },
           {
             "id": "0006",
@@ -213,7 +223,9 @@
             "r": 10,
             "unit": "kg",
             "date": "2026-10-05",
-            "key": "lift:0006"
+            "key": "lift:0006",
+            "group": "Legs",
+            "sessions": 3
           },
           {
             "id": "0007",
@@ -222,7 +234,31 @@
             "r": 12,
             "unit": "kg",
             "date": "2026-09-28",
-            "key": "lift:0007"
+            "key": "lift:0007",
+            "group": "Arms",
+            "sessions": 2
+          },
+          {
+            "id": "0008",
+            "name": "Lat pulldown",
+            "w": 52,
+            "r": 12,
+            "unit": "kg",
+            "date": "2026-09-14",
+            "key": "lift:0008",
+            "group": "Back",
+            "sessions": 9
+          },
+          {
+            "id": "0009",
+            "name": "Sled push",
+            "w": 10,
+            "r": 8,
+            "unit": "kg",
+            "date": "2026-09-02",
+            "key": "lift:0009",
+            "group": "Other",
+            "sessions": 1
           }
         ],
         "fastest_1k": {
