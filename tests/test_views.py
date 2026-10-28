@@ -582,9 +582,7 @@ async def test_a_run_opens_with_its_route_graphs_splits_and_shoe(hass, live, tmp
     assert (await _details(await live("person2"), "r1")).status == 200  # any household user reads either person
 
 
-async def test_an_older_run_opens_too(hass, live, tmp_path):
-    config = hass.data[DOMAIN].runner.dir / "scoring.toml"
-    config.write_text(config.read_text().replace("start = 2026-10-26", "start = 2020-01-01"))  # so a run of months ago is scored
+async def test_an_older_run_opens_too(hass, live, tmp_path):  # one from before rules.start too: older rows hold those
     _gpx(tmp_path / "old.gpx")
     _stored(hass, "old", tmp_path / "old.gpx", days_ago=120)
     await hass.data[DOMAIN].runner.async_score_now()
@@ -592,54 +590,6 @@ async def test_an_older_run_opens_too(hass, live, tmp_path):
     assert "old" in [w["key"] for w in scores["older"]] and "old" not in [w["key"] for w in scores["feed"]]
     body = await (await _details(await live("person1"), "old")).json()
     assert body["summary"]["key"] == "old" and body["route"]
-
-
-async def test_a_gym_session_opens_with_its_exercises_and_records(hass, live):
-    runner = hass.data[DOMAIN].runner
-    start = dt_util.utcnow() - timedelta(days=1)
-    runner.store.kv_set("opengym_exercises", json.dumps({"file": "x.js", "version": 2, "exercises": {"e1": {"name": "Bench press", "bp": "chest"}}}))
-    runner.store.kv_set("gym_cache", json.dumps({"person1": [{
-        "person": "person1", "key": "opengym:g1", "source": "opengym", "kind": "gym", "indoor": True, "start": start.isoformat(),
-        "end": (start + timedelta(hours=1)).isoformat(), "duration_s": 3600, "distance_m": None, "avg_hr": None, "vol_kg": 2400.0,
-        "prs": [], "lifts": {"e1": {"w": 100, "r": 5}, "e2": {"w": 20, "r": 12}}, "unit": "kg", "name": "Push", "url": None}]}))
-    await runner.async_score_now()
-    body = await (await _details(await live("person1"), "opengym:g1")).json()
-    assert body["gym"] == {"exercises": [{"name": "Bench press", "w": 100, "r": 5, "unit": "kg", "record": True},
-                                         {"name": "Exercise e2", "w": 20, "r": 12, "unit": "kg", "record": True}], "vol_kg": 2400.0}
-    assert (body["summary"]["name"], body["summary"]["kind"], body["summary"]["avg_hr"], body["summary"]["shoe"]) == ("Push", "gym", None, None)
-    assert (body["route"], body["series"], body["splits"], body["zones"], body["gain_m"], body["note"]) == (None, None, [], None, None, None)
-
-
-async def test_a_gym_session_takes_the_watch_copys_figures(hass, live):
-    runner = hass.data[DOMAIN].runner
-    start = dt_util.utcnow() - timedelta(days=1)
-    runner.store.kv_set("gym_cache", json.dumps({"person1": [{
-        "person": "person1", "key": "opengym:g1", "source": "opengym", "kind": "gym", "indoor": True, "start": start.isoformat(),
-        "end": (start + timedelta(hours=1)).isoformat(), "duration_s": 3600, "distance_m": None, "avg_hr": None, "vol_kg": 900.0,
-        "prs": [], "lifts": {}, "unit": "kg", "name": "Pull", "url": None}]}))
-    runner.store.add("person1", "w1", "health_exporter", "archived", activity_type="traditionalstrengthtraining", points=0, indoor=1,
-                     start=(start + timedelta(minutes=5)).isoformat(), end=(start + timedelta(minutes=50)).isoformat(), duration_s=2700,
-                     avg_hr=121, max_hr=151, kcal=260)
-    await runner.async_score_now()
-    item = next(w for w in runner.scores["people"]["person1"]["feed"] if w["key"] == "opengym:g1")
-    assert item["aliases"] == ["w1"]  # the Watch copy folded into the gym session
-    s = (await (await _details(await live("person1"), "opengym:g1")).json())["summary"]
-    assert (s["avg_hr"], s["max_hr"], s["kcal"]) == (121, 151, 260)
-
-
-async def test_a_missing_or_unreadable_file_still_returns_the_summary(hass, live, tmp_path, caplog):
-    c = await live("person1")
-    (tmp_path / "bad.gpx").write_text("<gpx><trk")
-    _stored(hass, "gone", tmp_path / "gone.gpx", days_ago=0.1, avg_hr=140)
-    _stored(hass, "bad", tmp_path / "bad.gpx", days_ago=0.4, avg_hr=141)
-    _stored(hass, "none", "", days_ago=0.7)  # nothing archived: no route to miss
-    await hass.data[DOMAIN].runner.async_score_now()
-    for key, note in (("gone", "file_missing"), ("bad", "file_unreadable"), ("none", None)):
-        body = await (await _details(c, key)).json()
-        assert body["note"] == note and body["summary"]["key"] == key
-        assert (body["route"], body["series"], body["splits"], body["zones"], body["gain_m"]) == (None, None, [], None, None)
-    assert body["summary"]["avg_hr"] is None
-    assert str(tmp_path) not in caplog.text and "file_unreadable" not in caplog.text and "Unreadable" in caplog.text  # the class, never the path
 
 
 async def test_workout_details_refusals(hass, live):

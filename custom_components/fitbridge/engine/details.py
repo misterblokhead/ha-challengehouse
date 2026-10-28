@@ -3,7 +3,7 @@ a gym session's sets. Pure, no I/O; everything it returns is bounded for the pag
 import math
 import xml.etree.ElementTree as ET
 from bisect import bisect_left, bisect_right
-from datetime import datetime
+from datetime import datetime, timezone
 
 from .ingest import Unreadable
 from .records import GAP_S, haversine_m
@@ -43,7 +43,8 @@ def track(gpx):
                 continue
             text = {_local(c): c.text for c in pt.iter() if c.text}
             try:
-                p = (datetime.fromisoformat(text["time"].strip()), float(pt.get("lat")), float(pt.get("lon")),
+                t = datetime.fromisoformat(text["time"].strip())
+                p = (t if t.tzinfo else t.replace(tzinfo=timezone.utc), float(pt.get("lat")), float(pt.get("lon")),  # GPX time is UTC
                      _num(text.get("ele")), _num(text.get("hr")))
             except (KeyError, TypeError, ValueError):
                 continue
@@ -162,11 +163,11 @@ def _zones(segs, max_hr):
     return [round(x, 1) for x in z]
 
 
-def route_details(gpx, max_hr):
+def route_details(segs, max_hr):
     """{"route": [polyline per segment], "series": t (s), dist (m), pace (s/km), hr, ele as equal-length lists,
-    "splits", "zones", "gain_m", "max_hr"}. A pause never joins two segments: no line, no split time, no pace
-    across it (the first row after one has no pace, hr or ele)."""
-    segs = track(gpx)
+    "splits", "zones", "gain_m", "max_hr"} of track()'s segments, in time order (one file's, or a merged workout's
+    pieces). A pause never joins two segments: no line, no split time, no pace across it (the first row after one
+    has no pace, hr or ele)."""
     pts = [p for seg in segs for p in seg]
     D, T, starts, wall, pace = [], [], [], [], []
     d = s = 0.0
