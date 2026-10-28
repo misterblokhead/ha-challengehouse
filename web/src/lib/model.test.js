@@ -354,3 +354,11 @@ test("an older payload without steps_week, pbs.lifts or pbs.fastest_1k never thr
   assert.deepEqual([...recordKeys({ ...old, lifts: lifts.slice(0, 1) })], ["lift:1"]);
   assert.deepEqual([...recordKeys(undefined)], []);
 });
+
+test("one session holding two lift records: both lifts stay, the key is shared", () => {
+  const two = [lifts[0], { ...lifts[2], key: lifts[0].key }];
+  assert.deepEqual(recentLifts(two).map((l) => l.id), ["1", "3"]);
+  assert.deepEqual(allLifts(two).map((l) => l.id), ["1", "3"]);
+  assert.deepEqual([...recordKeys({ lifts: two })], ["lift:1"]);
+  assert.equal(new Set(two.map((l) => l.id)).size, 2); // the each-key
+});

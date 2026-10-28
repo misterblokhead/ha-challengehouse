@@ -8,21 +8,25 @@
   const label = (b) => `${weekday(b.date)} ${b.steps.toLocaleString("en-US")} steps`;
 </script>
 
-<ul>
+<div class="chart">
+<ul aria-label="Steps this week">
   {#each bars as b (b.date)}
     <li aria-label={b.future ? undefined : label(b)} aria-hidden={b.future ? "true" : undefined} aria-current={b.isToday ? "date" : undefined} class:today={b.isToday}>
-      <span class="col" aria-hidden="true"><i class:active={b.active} style:height="{b.frac * 100}%"></i></span>
+      <span class="col" aria-hidden="true"><i class:active={b.active} class:future={b.future} style:height="{b.frac * 100}%"></i></span>
       <span class="day" aria-hidden="true">{b.label}</span>
     </li>
   {/each}
-  {#if goalFrac !== null}<span class="goal" aria-hidden="true" style:bottom="calc(1.5rem + (100% - 1.5rem) * {goalFrac})"></span>{/if}
 </ul>
+{#if goalFrac !== null}<span class="goal" aria-hidden="true" style:bottom="calc(1.5rem + (100% - 1.5rem) * {goalFrac})"></span>{/if}
+</div>
 
 <style>
-  ul { position: relative; display: flex; gap: 0.5rem; height: 7rem; margin: 0; padding: 0; list-style: none; }
+  .chart { position: relative; height: 7rem; }
+  ul { display: flex; gap: 0.5rem; height: 100%; margin: 0; padding: 0; list-style: none; }
   li { flex: 1; display: flex; flex-direction: column; min-width: 0; }
   .col { flex: 1; display: flex; align-items: flex-end; }
   i { display: block; width: 100%; min-height: 2px; border-radius: 0.25rem 0.25rem 0 0; background: var(--muted); opacity: 0.45; }
+  i.future { min-height: 0; }
   i.active { background: var(--bonus); opacity: 1; }
   .day { height: 1.5rem; display: grid; place-items: center; color: var(--muted); font-size: 0.75rem; font-weight: 600; }
   .today .day { color: var(--fg); }

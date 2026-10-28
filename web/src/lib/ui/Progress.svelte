@@ -24,7 +24,7 @@
 
 <div class="card">
   {#if lifts.length}
-    <ul id="{uid}-lifts">{#each shown as l (l.key)}<li>{liftLine(l)}</li>{/each}</ul>
+    <ul id="{uid}-lifts">{#each shown as l (l.id)}<li>{liftLine(l)}</li>{/each}</ul>
     {#if lifts.length > recentLifts(lifts).length}
       <button type="button" class="btn more" aria-expanded={all} aria-controls="{uid}-lifts" onclick={() => (all = !all)}>
         {all ? "Show fewer" : `Show all (${lifts.length})`}

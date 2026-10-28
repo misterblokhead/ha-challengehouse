@@ -2987,7 +2987,7 @@ function go(e, t) {
 	}), k(i), H(() => Y(s, t.plan.state)), J(e, i), M();
 }
 // src/lib/ui/StepBars.svelte
-var _o = /* @__PURE__ */ q("<li><span class=\"col svelte-1f099m\" aria-hidden=\"true\"><i></i></span> <span class=\"day svelte-1f099m\" aria-hidden=\"true\"> </span></li>"), vo = /* @__PURE__ */ q("<span class=\"goal svelte-1f099m\" aria-hidden=\"true\"></span>"), yo = /* @__PURE__ */ q("<ul class=\"svelte-1f099m\"><!> <!></ul>");
+var _o = /* @__PURE__ */ q("<li><span class=\"col svelte-1f099m\" aria-hidden=\"true\"><i></i></span> <span class=\"day svelte-1f099m\" aria-hidden=\"true\"> </span></li>"), vo = /* @__PURE__ */ q("<span class=\"goal svelte-1f099m\" aria-hidden=\"true\"></span>"), yo = /* @__PURE__ */ q("<div class=\"chart svelte-1f099m\"><ul aria-label=\"Steps this week\" class=\"svelte-1f099m\"></ul> <!></div>");
 function bo(e, t) {
 	j(t, !0);
 	let n = /* @__PURE__ */ P(() => Math.max(t.goal, ...t.bars.map((e) => e.steps ?? 0))), r = /* @__PURE__ */ P(() => t.goal > 0 ? t.goal / G(n) : null), i = (e) => (/* @__PURE__ */ new Date(`${e}T00:00:00Z`)).toLocaleDateString("en-GB", {
@@ -2995,7 +2995,7 @@ function bo(e, t) {
 		timeZone: "UTC"
 	}), a = (e) => `${i(e.date)} ${e.steps.toLocaleString("en-US")} steps`;
 	var o = yo(), s = R(o);
-	Z(s, 17, () => t.bars, (e) => e.date, (e, t) => {
+	Z(s, 21, () => t.bars, (e) => e.date, (e, t) => {
 		var n = _o();
 		let r;
 		var i = R(n), o = R(i);
@@ -3003,9 +3003,12 @@ function bo(e, t) {
 		k(i);
 		var l = B(V(i, 2), !0);
 		k(n), H((e) => {
-			$(n, "aria-label", e), $(n, "aria-hidden", G(t).future ? "true" : void 0), $(n, "aria-current", G(t).isToday ? "date" : void 0), r = Q(n, 1, "svelte-1f099m", null, r, { today: G(t).isToday }), s = Q(o, 1, "svelte-1f099m", null, s, { active: G(t).active }), c = di(o, "", c, { height: `${G(t).frac * 100}%` }), Y(l, G(t).label);
+			$(n, "aria-label", e), $(n, "aria-hidden", G(t).future ? "true" : void 0), $(n, "aria-current", G(t).isToday ? "date" : void 0), r = Q(n, 1, "svelte-1f099m", null, r, { today: G(t).isToday }), s = Q(o, 1, "svelte-1f099m", null, s, {
+				active: G(t).active,
+				future: G(t).future
+			}), c = di(o, "", c, { height: `${G(t).frac * 100}%` }), Y(l, G(t).label);
 		}, [() => G(t).future ? void 0 : a(G(t))]), J(e, n);
-	});
+	}), k(s);
 	var c = V(s, 2), l = (e) => {
 		var t = vo();
 		let n;
@@ -3039,7 +3042,7 @@ function Ao(e, t) {
 	});
 	var p = V(d, 2), m = R(p), h = (e) => {
 		var t = wo(), r = z(t);
-		Z(r, 21, () => G(s), (e) => e.key, (e, t) => {
+		Z(r, 21, () => G(s), (e) => e.id, (e, t) => {
 			var n = So(), r = B(n, !0);
 			H((e) => Y(r, e), [() => ba(G(t))]), J(e, n);
 		}), k(r);
