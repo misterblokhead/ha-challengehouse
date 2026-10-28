@@ -20,12 +20,17 @@ CREATE TABLE IF NOT EXISTS announced_workouts(person TEXT, key TEXT, PRIMARY KEY
 CREATE TABLE IF NOT EXISTS best_km(person TEXT, key TEXT, seconds INTEGER, PRIMARY KEY(person, key));
 CREATE TABLE IF NOT EXISTS records(person TEXT, id TEXT, value REAL, PRIMARY KEY(person, id));
 CREATE TABLE IF NOT EXISTS record_holders(person TEXT, id TEXT, key TEXT, PRIMARY KEY(person, id, key));
+CREATE TABLE IF NOT EXISTS shoes(
+  id INTEGER PRIMARY KEY, person TEXT NOT NULL, name TEXT NOT NULL, replace_at_km REAL,
+  start_km REAL DEFAULT 0, retired INTEGER DEFAULT 0, added TEXT);
+CREATE TABLE IF NOT EXISTS run_shoes(person TEXT, key TEXT, shoe_id INTEGER, PRIMARY KEY(person, key));
 """
 # status: stored (new rows with a file) | skipped_no_gps (GPX without points), awaiting_route (outdoor, route GPX not
 #         exported yet), no_route (indoor, never has a route), archived (no route kind),
 #         manual (entered by hand, through an action), or pending_upload/job_pending/completed/failed from the Endurain
 #         uploads (rows from before the move keep them; scoring never reads status)
 # manual_seen: ids of the MQTT manual messages from before the move (no longer written).
+# shoes / run_shoes: a person's shoes and which shoe each run was on; the current shoe is kv current_shoe:<person>.
 # Indoor workouts stored as awaiting_route before no_route existed.
 MIGRATE = "UPDATE workouts SET status='no_route' WHERE source='health_exporter' AND status='awaiting_route' AND indoor=1"
 

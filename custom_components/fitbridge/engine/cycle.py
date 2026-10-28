@@ -7,7 +7,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from . import opengym, records, scoring, scoring_config
+from . import opengym, records, scoring, scoring_config, shoes
 from .ingest import aware, classify, db_workouts
 
 log = logging.getLogger("fitbridge")
@@ -173,6 +173,8 @@ def score_cycle(store, holder, og, inputs: Inputs, now, live: bool) -> Cycle:
         _steps(inputs.steps, people, json.loads(store.kv_get("steps_cache") or "null"))))
     fill_best_km(store)
     workouts, excluded = db_workouts(store, people), store.exclusions()
+    for p, ws in workouts.items():  # assigning is not announcing: shadow mode does it too
+        shoes.assign_new(store, p, [w["key"] for w in ws if w["kind"] == "run"])
     for p, ws in (gym or {}).items():
         if p in workouts:
             workouts[p] += [{**w, "start": datetime.fromisoformat(w["start"]),
@@ -181,6 +183,8 @@ def score_cycle(store, holder, og, inputs: Inputs, now, live: bool) -> Cycle:
                              "excluded": (p, w["key"]) in excluded} for w in ws]
     result = scoring.score(workouts, pauses or [], config, now, steps, settings,
                             exercise_catalog_cached(og, store, now))
+    for p, r in result["people"].items():
+        r["shoes"] = shoes.rows(store, p, workouts[p])
     scores = {**result, "config_error": config_error, "gym_data_as_of": gym_as_of,
               "pauses_as_of": pauses_as_of, "settings_error": settings_error,
               "settings_as_of": settings_as_of, "steps_as_of": steps_as_of, "scored_at": now.isoformat(timespec="seconds")}
