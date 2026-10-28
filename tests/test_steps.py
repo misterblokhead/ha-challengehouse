@@ -6,7 +6,7 @@ from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import async_fire_time_changed
 
 from custom_components.fitbridge.const import OPT_STEPS, OPT_VIEWERS
-from custom_components.fitbridge.steps import record, trim
+from custom_components.fitbridge.steps import record, trim, week
 
 
 def test_record_keeps_the_days_maximum_and_ignores_non_numbers():
@@ -25,6 +25,12 @@ def test_trim_keeps_35_days_up_to_today():
     days = {(today - timedelta(days=n)).isoformat(): n for n in range(40)}
     kept = trim(days, today)
     assert len(kept) == 35 and min(kept) == "2026-09-23" and max(kept) == "2026-10-27"
+
+
+def test_week_is_monday_up_to_today_and_drops_last_week():
+    days = {"2026-10-25": 900, "2026-10-26": 12000, "2026-10-27": 8000, "2026-10-28": 3000, "2026-10-29": 5}  # Sun, Mon-Wed, Thu
+    assert week(days, date(2026, 10, 28)) == {"2026-10-26": 12000, "2026-10-27": 8000, "2026-10-28": 3000}
+    assert week(days, date(2026, 10, 25)) == {"2026-10-25": 900}  # on a Sunday the week began six days ago
 
 
 @pytest.fixture

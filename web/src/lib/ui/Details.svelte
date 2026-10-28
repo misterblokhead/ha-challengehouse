@@ -2,13 +2,15 @@
   import Badges from "./Badges.svelte";
   import Feed from "./Feed.svelte";
   import PlanBar from "./PlanBar.svelte";
-  import Records from "./Records.svelte";
+  import Progress from "./Progress.svelte";
   import Shoes from "./Shoes.svelte";
+  import { recordKeys } from "../model.js";
 
-  // A person's plan, 30-day activity, badges, records and shoes: inline under the viewer's own tile, or in the sheet for anyone else.
+  // A person's plan, 30-day activity, badges, progress and shoes: inline under the viewer's own tile, or in the sheet for anyone else.
   // `canEdit`: this viewer may Remove/Restore this person's workouts (viewer.can_edit).
   let { id, person: p, canEdit } = $props();
   const uid = $props.id();
+  const records = $derived(recordKeys(p.pbs));
 </script>
 
 {#if p.plan}
@@ -19,15 +21,15 @@
 {/if}
 <section aria-labelledby="{uid}-feed">
   <h2 id="{uid}-feed">Activity</h2>
-  <Feed person={id} items={p.feed} {canEdit} />
+  <Feed person={id} items={p.feed} {canEdit} {records} />
 </section>
 <section aria-labelledby="{uid}-badges">
   <h2 id="{uid}-badges">Badges <small>{p.badges.count} unlocked</small></h2>
   <Badges badges={p.badges} />
 </section>
 <section aria-labelledby="{uid}-pbs">
-  <h2 id="{uid}-pbs">Records</h2>
-  <Records pbs={p.pbs} />
+  <h2 id="{uid}-pbs">Progress</h2>
+  <Progress person={p} />
 </section>
 {#if p.shoes?.length}
   <section aria-labelledby="{uid}-shoes">
