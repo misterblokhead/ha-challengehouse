@@ -34,7 +34,7 @@ def sensors():
 class FixtureTests(unittest.TestCase):
     def test_fixture_is_reproducible(self):
         result, badges, workouts, records = build()
-        for r in result["people"].values():  # fields newer than the recorded MQTT output
+        for r in result["people"].values():  # newer than the recorded capture (not regenerated); counts/reason DO appear in the `recent` attribute payload
             r.pop("max_hr")
             for w in r["recent"] + r["feed"]:
                 del w["counts"], w["reason"]

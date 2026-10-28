@@ -74,12 +74,13 @@ class EffortTests(unittest.TestCase):
     def test_uncounted_in_feed(self):
         golf = wk("person1", "gym", 1, 9, 0, 120, name="Golf")
         golf["kind"] = None
-        base = feed_row([cardio(avg_hr=120, max_hr=180)])
-        res = feed_row([cardio(avg_hr=120, max_hr=180)], uncounted={"person1": [golf]})
+        ws = [cardio(avg_hr=120, max_hr=180)]
+        base = feed_row(ws)
+        res = feed_row(ws, uncounted={"person1": [golf]})
         row = next(w for w in res["feed"] if w["key"] == golf["key"])
         self.assertEqual((row["xp"], row["counts"], row["reason"], row["kind"], row["name"]), (0, False, "type", None, "Golf"))
-        self.assertIn(golf["key"], [w["key"] for w in res["recent"]])
-        for k in ("xp", "week", "badges", "pbs", "streak", "level", "plan"):
+        self.assertNotIn(golf["key"], [w["key"] for w in res["recent"]])  # `recent` drives the HA Recent sensor
+        for k in ("xp", "week", "badges", "pbs", "streak", "level", "plan", "recent"):
             self.assertEqual(res[k], base[k], k)
 
 

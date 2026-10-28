@@ -472,7 +472,7 @@ def score(by_person, pauses, cfg, now, steps=None, settings=None, catalog=None, 
 
     `steps`: {person: {"YYYY-MM-DD": steps}}; `settings`: the settings payload (goals spec section 3); None = none;
     `catalog`: {exercise id: {"name", "bp"}} for the lift records;
-    `uncounted`: {person: [workout of a type that does not count]}, shown in the feed lists only."""
+    `uncounted`: {person: [workout of a type that does not count]}, shown in `feed` only."""
     cleaned = {p: clean([dict(w) for w in by_person.get(p, [])], cfg) for p in cfg["people"]}
     mark_joint(cleaned, cfg)
     tz = ZoneInfo(cfg["rules"]["timezone"])
@@ -487,7 +487,7 @@ def score(by_person, pauses, cfg, now, steps=None, settings=None, catalog=None, 
     for p, r in raw.items():
         c = r["counters"]
         lifts, fastest_1k = _records(cleaned[p], tz, catalog)
-        other = (uncounted or {}).get(p, [])  # added after scoring: they touch nothing but the feed lists
+        other = (uncounted or {}).get(p, [])  # added after scoring: they touch nothing but the feed (not `recent`)
         reasons = r["not_counted"] | {w["key"]: "type" for w in other}
         people[p] = {k: v for k, v in r.items() if k not in ("weekly", "counters", "unlocked_at", "plan_done", "workout_xp", "active_rows", "not_counted")} | {
             "name": cfg["people"][p]["name"], "max_hr": max_hrs[p],
@@ -495,8 +495,7 @@ def score(by_person, pauses, cfg, now, steps=None, settings=None, catalog=None, 
             "pbs": {"longest_session_km": round(c["longest_session_km"], 2), "prs": c["prs"],
                     "gym_tonnes": round(c["tonnes"], 2),
                     "lifts": lifts, "fastest_1k": fastest_1k},
-            "recent": _feed(sorted(cleaned[p] + other, key=lambda w: w["start"]),
-                            r["plan_done"], r["workout_xp"], reasons, cfg, start, 20),
+            "recent": _feed(cleaned[p], r["plan_done"], r["workout_xp"], r["not_counted"], cfg, start, 20),
             "feed": _feed(sorted(cleaned[p] + r["active_rows"] + other, key=lambda w: w["start"]),
                           r["plan_done"], r["workout_xp"], reasons, cfg, window, None),
         }
