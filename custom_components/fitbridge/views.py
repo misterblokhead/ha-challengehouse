@@ -103,7 +103,7 @@ class UiView(HomeAssistantView):
     requires_auth = True
 
     async def get(self, request: web.Request, path: str) -> web.Response:
-        if path not in ("scores", "settings", "shoes", "feed"):
+        if path not in ("scores", "settings", "shoes", "feed", "workout"):
             return _detail(self, "not found", HTTPStatus.NOT_FOUND)
         data = request.app[KEY_HASS].data.get(DOMAIN)
         if data is None or data.scores is None:
@@ -118,6 +118,13 @@ class UiView(HomeAssistantView):
             except ValueError:
                 return _detail(self, "before: a date, YYYY-MM-DD", HTTPStatus.BAD_REQUEST)
             return self.json(older_feed(data.scores, request.query["person"], before))
+        if path == "workout":
+            person = request.query.get("person")
+            if person not in data.scores["people"]:
+                return _detail(self, "unknown person", HTTPStatus.NOT_FOUND)
+            if (body := await data.runner.async_details(person, request.query.get("key", ""))) is None:
+                return _detail(self, "not found", HTTPStatus.NOT_FOUND)
+            return self.json(body)
         if path == "settings":
             monday = settings.monday_of(dt_util.now().date())
             return self.json({"history": data.settings_history, "profiles": data.settings_profiles, "current": settings.current(data.settings_history, monday),

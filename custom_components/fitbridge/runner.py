@@ -6,7 +6,7 @@ import logging
 import secrets
 import shutil
 import time
-from datetime import timedelta
+from datetime import datetime, timedelta
 from pathlib import Path
 
 from homeassistant.config_entries import ConfigEntry
@@ -18,10 +18,12 @@ from homeassistant.helpers.start import async_at_started
 from homeassistant.util import dt as dt_util
 
 from .const import DATA_DIR, DOMAIN, OPENGYM_TOKEN, OPT_FOLDERS, OPT_OPENGYM_UIDS, OPT_OPENGYM_URL, OPT_SHADOW, SIGNAL_SCORES
-from .engine import manual
-from .engine.cycle import ConfigHolder, Inputs, score_cycle
-from .engine.ingest import ingest_body, scan_folder
+from .core import find_workout
+from .engine import details, manual
+from .engine.cycle import ConfigHolder, Inputs, exercise_catalog_cached, score_cycle
+from .engine.ingest import Unreadable, aware, ingest_body, scan_folder
 from .engine.opengym import OpenGym
+from .engine.scoring_config import finite
 from .engine.store import Store
 
 _LOGGER = logging.getLogger(__name__)
@@ -113,6 +115,15 @@ class Runner:
         if reply["new"]:  # the phone gets its answer without waiting for the cycle
             self.entry.async_create_background_task(self.hass, self.async_score_now(), "fitbridge score")
         return reply
+
+    async def async_details(self, person: str, key: str) -> dict | None:
+        """What a workout's pop-up shows, read in the executor from the store and the archived GPX; None when the last
+        scores (feed or older) have no such workout."""
+        scores, store = self.scores, self.store
+        item = find_workout(scores, person, key) if store and scores and isinstance(scores.get("people"), dict) else None
+        if item is None:
+            return None
+        return await self.hass.async_add_executor_job(self._details, store, scores["people"][person], person, item)
 
     async def async_pair(self, token: str) -> None:
         """A new openGym token: after the running cycle, whose renewal of the old token must land first, never after."""
@@ -248,6 +259,42 @@ class Runner:
             if person not in missing:
                 scan_folder(self.store, self.dir / "archive", person, Path(folder))
         return missing
+
+    def _details(self, store: Store, scores: dict, person: str, item: dict) -> dict:
+        """One feed item's pop-up: its summary, the stored rows behind it (the key and the copies it absorbed), the route
+        figures from the archived GPX and, for a gym session, its sets. `scores`: the person's."""
+        keys = [item["key"], *item["aliases"]]
+        with store.lock:
+            rows = {r["key"]: dict(r) for r in store.db.execute(
+                f"SELECT * FROM workouts WHERE person=? AND key IN ({','.join('?' * len(keys))})", [person, *keys])}
+            shoe = store.db.execute("SELECT s.id, s.name FROM run_shoes r JOIN shoes s ON s.id=r.shoe_id WHERE r.person=? AND r.key=?",
+                                    (person, item["key"])).fetchone()
+        cache = (json.loads(store.kv_get("gym_cache") or "null") or {}).get(person, [])
+        gym = {w["key"]: w for w in cache if w["key"] in keys}
+
+        def figure(field):  # the kept copy's, else a copy it absorbed (a gym session that took a Watch workout's heart rate)
+            return next((r[field] for k in keys if (r := rows.get(k)) and finite(r[field])), None)
+
+        end = aware((rows.get(item["key"]) or gym.get(item["key"]) or {}).get("end"))
+        bpm = (scores.get("max_hr") or {}).get("bpm")
+        out = {"route": None, "series": None, "splits": [], "zones": None, "gain_m": None, "max_hr": bpm, "gym": None, "note": None}
+        if path := next((r["file"] for k in keys if (r := rows.get(k)) and r["file"]), None):
+            try:
+                out |= details.route_details(Path(path).read_bytes(), bpm)
+            except OSError:
+                out["note"] = "file_missing"
+            except Unreadable as err:  # the class only: never the file's content or path
+                _LOGGER.warning("Workout details: unreadable route file: %s", type(err).__name__)
+                out["note"] = "file_unreadable"
+        if g := gym.get(item["key"]) or next(iter(gym.values()), None):
+            out["gym"] = details.gym_summary({**g, "lifts": g.get("lifts") or {}, "unit": g.get("unit") or "kg"},
+                                             exercise_catalog_cached(None, store, dt_util.utcnow()), (scores.get("pbs") or {}).get("lifts", []))
+        out["summary"] = {
+            "key": item["key"], "kind": item["kind"], "name": item["name"], "source": item["source"], "start": item["start"],
+            "end": end.astimezone(datetime.fromisoformat(item["start"]).tzinfo).isoformat() if end else None,
+            "minutes": item["minutes"], "km": item["km"], "avg_hr": figure("avg_hr"), "max_hr": figure("max_hr"), "kcal": figure("kcal"),
+            "plan": item["plan"], "shoe": dict(shoe) if shoe else None, "counts": item["counts"], "reason": item["reason"]}
+        return out
 
     def _manual(self, store: Store, msg: dict) -> None:
         config, _ = self.holder.get()
