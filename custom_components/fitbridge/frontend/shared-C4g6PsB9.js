@@ -2775,7 +2775,7 @@ function Xa(e) {
 	let t = Math.round(e), n = Math.floor(t / 3600), r = Math.floor(t % 3600 / 60);
 	return n ? `${n}:${Ja(r)}:${Ja(t % 60)}` : `${r}:${Ja(t % 60)}`;
 }
-var Za = (e) => !!e.route?.length && e.summary.kind !== "run" && e.summary.kind !== "walk", Qa = (e) => e.summary.kind === "run" || e.summary.kind === "walk", $a = (e) => e ? 3600 / e : null, eo = (e) => ({
+var Za = (e) => e.summary.kind === "run" || e.summary.kind === "walk", Qa = (e) => !!e.route?.length && !Za(e), $a = (e) => e ? 3600 / e : null, eo = (e) => ({
 	title: e.name,
 	date: da(e.start, !1),
 	time: e.end ? `${Ya(e.start)}–${Ya(e.end)}` : Ya(e.start),
@@ -2783,11 +2783,11 @@ var Za = (e) => !!e.route?.length && e.summary.kind !== "run" && e.summary.kind 
 	plan: e.plan ?? null
 });
 function to(e) {
-	let t = e.summary, n = t.km > 0 ? t.km : null, r = n && Qa(e) ? Math.round(t.minutes * 60 / n) : null;
+	let t = e.summary, n = t.km > 0 ? t.km : null, r = n && Za(e) ? Math.round(t.minutes * 60 / n) : null;
 	return [
 		["Distance", n && `${n.toFixed(1)} km`],
 		["Pace", r && `${Xa(r)} /km`],
-		["Speed", n && Za(e) && `${(n / (t.minutes / 60)).toFixed(1)} km/h`],
+		["Speed", n && Qa(e) && `${(n / (t.minutes / 60)).toFixed(1)} km/h`],
 		["Elevation gain", e.gain_m != null && `${Math.round(e.gain_m)} m`],
 		["Avg heart rate", t.avg_hr != null && `${Math.round(t.avg_hr)} bpm`],
 		["Max heart rate", t.max_hr != null && `${Math.round(t.max_hr)} bpm`],
@@ -2796,7 +2796,7 @@ function to(e) {
 	].filter(([, e]) => e);
 }
 function no(e) {
-	let t = Za(e);
+	let t = Qa(e);
 	return e.splits.map((e, n) => ({
 		km: e.km === 1 ? String(n + 1) : `${e.km} km`,
 		time: Xa(e.s),
@@ -2829,7 +2829,7 @@ function ao(e) {
 	return {
 		x: t,
 		list: [
-			Za(e) ? {
+			Qa(e) ? {
 				label: "Speed km/h",
 				values: n.map($a),
 				color: "--gym"
@@ -2861,20 +2861,14 @@ function oo(e, t, n) {
 		shoe: !1
 	};
 }
-var so = (e) => e ? {
-	map: !1,
-	message: "Map unavailable"
-} : {
-	map: !0,
-	message: null
-}, co = (e) => ({
+var so = (e) => ({
 	file_missing: "Route file not found",
 	file_unreadable: "Route file unreadable"
-})[e] ?? null, lo = en({
+})[e] ?? null, co = en({
 	wide: !1,
 	reducedMotion: !1
-}), uo = matchMedia("(min-width: 768px)"), fo = matchMedia("(prefers-reduced-motion: reduce)"), po = () => {
-	lo.wide = uo.matches, lo.reducedMotion = fo.matches;
+}), lo = matchMedia("(min-width: 768px)"), uo = matchMedia("(prefers-reduced-motion: reduce)"), fo = () => {
+	co.wide = lo.matches, co.reducedMotion = uo.matches;
 };
-uo.addEventListener("change", po), fo.addEventListener("change", po), po();
-export { Ki as $, r as $t, ha as A, $ as At, Ea as B, L as Bt, Ga as C, Ar as Ct, Va as D, yr as Dt, oa as E, Mr as Et, va as F, un as Ft, ca as G, Ze as Gt, Ca as H, xt as Ht, qa as I, dn as It, ia as J, ke as Jt, ra as K, Ye as Kt, aa as L, fn as Lt, ga as M, An as Mt, Ka as N, Cn as Nt, Ra as O, vr as Ot, xa as P, rn as Pt, qi as Q, i as Qt, ta as R, pn as Rt, Wa as S, jr as St, ya as T, kr as Tt, Ta as U, tt as Ut, Da as V, I as Vt, ba as W, et as Wt, sa as X, b as Xt, za as Y, g as Yt, La as Z, n as Zt, ea as _, Kr as _t, to as a, ji as at, Ia as b, Rr as bt, co as c, Ei as ct, so as d, mi as dt, t as en, Hi as et, ro as f, fi as ft, ja as g, Xr as gt, wa as h, ni as ht, oo as i, Ni as it, _a as j, ar as jt, Na as k, _r as kt, Za as l, vi as lt, ka as m, ri as mt, ao as n, Bi as nt, io as o, Ti as ot, Oa as p, oi as pt, Ba as q, Ae as qt, Xa as r, Ri as rt, eo as s, Di as st, lo as t, Vi as tt, no as u, _i as ut, ma as v, Gr as vt, Pa as w, Dr as wt, Ma as x, Lr as xt, $i as y, Ur as yt, Sa as z, en as zt };
+lo.addEventListener("change", fo), uo.addEventListener("change", fo), fo();
+export { Ki as $, r as $t, ha as A, $ as At, Ea as B, L as Bt, Ga as C, Ar as Ct, Va as D, yr as Dt, oa as E, Mr as Et, va as F, un as Ft, ca as G, Ze as Gt, Ca as H, xt as Ht, qa as I, dn as It, ia as J, ke as Jt, ra as K, Ye as Kt, aa as L, fn as Lt, ga as M, An as Mt, Ka as N, Cn as Nt, Ra as O, vr as Ot, xa as P, rn as Pt, qi as Q, i as Qt, ta as R, pn as Rt, Wa as S, jr as St, ya as T, kr as Tt, Ta as U, tt as Ut, Da as V, I as Vt, ba as W, et as Wt, sa as X, b as Xt, za as Y, g as Yt, La as Z, n as Zt, ea as _, Kr as _t, to as a, ji as at, Ia as b, Rr as bt, so as c, Ei as ct, no as d, mi as dt, t as en, Hi as et, ro as f, fi as ft, ja as g, Xr as gt, wa as h, ni as ht, oo as i, Ni as it, _a as j, ar as jt, Na as k, _r as kt, Za as l, vi as lt, ka as m, ri as mt, ao as n, Bi as nt, io as o, Ti as ot, Oa as p, oi as pt, Ba as q, Ae as qt, Xa as r, Ri as rt, eo as s, Di as st, co as t, Vi as tt, Qa as u, _i as ut, ma as v, Gr as vt, Pa as w, Dr as wt, Ma as x, Lr as xt, $i as y, Ur as yt, Sa as z, en as zt };

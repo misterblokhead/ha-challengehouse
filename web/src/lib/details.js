@@ -11,9 +11,10 @@ export function clock(seconds) {
   return h ? `${h}:${pad(m)}:${pad(s % 60)}` : `${m}:${pad(s % 60)}`;
 }
 
-// Rides (kind "home" with a route) read as speed, runs and walks as pace; anything else without a route has neither.
-export const speedShown = (d) => !!d.route?.length && d.summary.kind !== "run" && d.summary.kind !== "walk";
-const paced = (d) => d.summary.kind === "run" || d.summary.kind === "walk";
+// Runs and walks read as pace (and draw the run colour on the map); rides (kind "home" with a route) as speed; anything else without
+// a route has neither.
+export const paced = (d) => d.summary.kind === "run" || d.summary.kind === "walk";
+export const speedShown = (d) => !!d.route?.length && !paced(d);
 const kmh = (pace) => (pace ? 3600 / pace : null); // s/km → km/h
 
 export const header = (s) => ({
@@ -90,8 +91,5 @@ export function detailActions(viewer, person, item) {
   if (!viewer?.can_edit?.includes(person)) return { remove: null, shoe: false };
   return { remove: feedRow(item).removable, shoe: item.kind === "run" };
 }
-
-// The lazy map and graphs failed to load: the rest of the pop-up stays
-export const vizState = (error) => (error ? { map: false, message: "Map unavailable" } : { map: true, message: null });
 
 export const noteText = (note) => ({ file_missing: "Route file not found", file_unreadable: "Route file unreadable" })[note] ?? null;

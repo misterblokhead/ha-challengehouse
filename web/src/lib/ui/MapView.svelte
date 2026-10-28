@@ -1,7 +1,6 @@
 <script>
   import L from "leaflet";
   import { screen } from "../media.svelte.js";
-  import { MAX_Z, TILE_TEMPLATE } from "../tiles.js";
   import { authedUrl } from "../authed.js";
 
   // tiles come through Home Assistant's login, so each <img> is filled from a signed fetch
@@ -28,7 +27,7 @@
     const motion = !screen.reducedMotion;
     const map = L.map(el, { scrollWheelZoom: false, dragging: !coarse, zoomAnimation: motion, fadeAnimation: motion, markerZoomAnimation: motion });
     map.attributionControl.setPrefix(false);
-    new SignedTiles(TILE_TEMPLATE, {
+    new SignedTiles("/api/map_tiles/raster/{z}/{x}/{y}.png", { // Home Assistant's own tile proxy: the page never asks an outside host
       maxZoom: 19,
       // a new tab: a tap must not navigate the panel's frame away
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors',
@@ -43,7 +42,7 @@
     // start: a filled dot; finish: the same with a white ring
     const ends = segs.length ? [segs[0][0], segs.at(-1).at(-1)] : [];
     ends.forEach((p, i) => L.circleMarker(p, { radius: 6, fillColor: colour, fillOpacity: 1, color: "#fff", weight: i ? 2 : 0 }).addTo(map));
-    if (bounds.isValid()) map.fitBounds(bounds, { padding: [16, 16], maxZoom: MAX_Z });
+    if (bounds.isValid()) map.fitBounds(bounds, { padding: [16, 16], maxZoom: 17 });
 
     // the wheel zooms only after a click or focus, so scrolling the pop-up past the map still works
     const activate = () => (map.scrollWheelZoom.enable(), map.dragging.enable());

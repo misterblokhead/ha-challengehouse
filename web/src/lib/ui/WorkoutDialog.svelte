@@ -1,7 +1,7 @@
 <script>
   import { act, done, moveRun, pending } from "../actions.svelte.js";
   import { get } from "../api.js";
-  import { charts, detailActions, figures, gymRows, header, noteText, speedShown, splitRows, vizState, zoneRows } from "../details.js";
+  import { charts, detailActions, figures, gymRows, header, noteText, paced, speedShown, splitRows, zoneRows } from "../details.js";
   import { feedRow, shoePicker } from "../model.js";
   import Modal from "./Modal.svelte";
 
@@ -59,7 +59,6 @@
   const zones = $derived(d && zoneRows(d.zones, d.max_hr));
   const splits = $derived(d ? splitRows(d) : []);
   const gym = $derived(d && gymRows(d.gym));
-  const vs = $derived(vizState(vizError));
   const speed = $derived(d && speedShown(d));
   const why = (e) => (e.status === 404 ? "Workout not found" : e.status === 503 ? "Waiting for fitbridge" : "Couldn't reach Home Assistant");
 
@@ -101,12 +100,12 @@
     {#if noteText(d.note)}<p class="caption note">{noteText(d.note)}</p>{/if}
 
     {#if d.route?.length || graphs?.list.length}
-      {#if !vs.map}
-        <p class="caption note">{vs.message}</p>
+      {#if vizError}
+        <p class="caption note">Map unavailable</p>
       {:else if !viz}
         <div class="ph" style:height="{d.route?.length ? 220 : 0}px" aria-hidden="true"></div>
       {:else}
-        {#if d.route?.length}<viz.MapView route={d.route} kind={d.summary.kind === "run" || d.summary.kind === "walk" ? "run" : "gym"} />{/if}
+        {#if d.route?.length}<viz.MapView route={d.route} kind={paced(d) ? "run" : "gym"} />{/if}
         {#each graphs?.list ?? [] as g (g.label)}
           <h3>{g.label}</h3>
           <viz.Chart x={graphs.x} label={g.label} values={g.values} color={g.color} fmt={g.fmt} />

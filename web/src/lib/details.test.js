@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { charts, clock, detailActions, figures, gymRows, header, noteText, splitRows, vizState, zoneRows } from "./details.js";
+import { charts, clock, detailActions, figures, gymRows, header, noteText, splitRows, zoneRows } from "./details.js";
 
 // an invented run around 0°, 0° in the shape of GET workout
 const summary = {
@@ -101,11 +101,6 @@ test("detailActions: read-only viewers get none; own workouts remove/restore, pl
   assert.deepEqual(detailActions(me, "alex", { ...item, excluded: true }), { remove: "restore", shoe: true });
   assert.deepEqual(detailActions(me, "alex", { key: "g1", kind: "gym", excluded: false }), { remove: "remove", shoe: false });
   assert.deepEqual(detailActions(me, "alex", { key: "manual:1-ab", kind: "home", excluded: false }), { remove: "delete", shoe: false });
-});
-
-test("vizState: a failed map load keeps the figures and says so", () => {
-  assert.deepEqual(vizState(new Error("chunk failed")), { map: false, message: "Map unavailable" });
-  assert.deepEqual(vizState(null), { map: true, message: null });
 });
 
 test("noteText: a missing or unreadable route file", () => {
