@@ -197,8 +197,12 @@ export function goalsDraft(res, people) {
       return [id, Object.fromEntries(PERSON_GOALS.map((k) => [k, clampGoal(k, g[k] ?? TOML_GOAL[k])]))];
     })),
     couple: { mode: "own", together: 1, team: 8, reward: "", ...cur?.couple },
+    profiles: Object.fromEntries(Object.keys(people).map((id) => [id, { birth_year: res.profiles?.[id]?.birth_year ?? null }])), // null: none (an empty field sends it back to clear)
   };
 }
+
+// The max HR in use, beside the birth year: "Max HR 180 · estimate", "Max HR 186 · measured 26 Oct"; "—" without one (`max_hr` from the scores).
+export const maxHrText = (m) => (m ? `Max HR ${m.bpm} · ${m.source === "measured" && m.date ? `measured ${shortDate(m.date)}` : m.source}` : "—");
 
 // "2026-10-26" → 44
 export function isoWeek(ymd) {

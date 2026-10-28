@@ -2,7 +2,7 @@
   import { onMount } from "svelte";
   import { saveGoals } from "../actions.svelte.js";
   import { get } from "../api.js";
-  import { clampGoal, goalsDraft, isoWeek, LIMITS, PERSON_GOALS } from "../model.js";
+  import { clampGoal, goalsDraft, isoWeek, LIMITS, maxHrText, PERSON_GOALS } from "../model.js";
 
   // The weekly goals per person, the couple mode with its number, and the reward, set together from a phone. They apply from this
   // week's Monday. `readOnly` (an unmapped viewer, the wall iPad): everything shows, nothing changes and there is no Save.
@@ -64,6 +64,11 @@
     <section class="group glass" aria-labelledby="{uid}-{id}">
       <h3 id="{uid}-{id}">{name}</h3>
       {#each PERSON_GOALS as k (k)}{@render stepper(draft.people[id], k, `${LABELS[k]}, ${name}`)}{/each}
+      <label class="year">
+        <span class="name">Birth year</span>
+        <input type="number" inputmode="numeric" min="1900" max={new Date().getFullYear()} placeholder="1990" bind:value={draft.profiles[id].birth_year} disabled={readOnly} />
+      </label>
+      <p class="caption maxhr">{maxHrText(people[id]?.max_hr)}</p>
     </section>
   {/each}
 
@@ -119,6 +124,14 @@
   }
   .reward input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .reward input:disabled { opacity: 0.6; }
+  .year { display: flex; align-items: center; gap: 0.5rem; min-height: 3rem; border-top: 1px solid var(--line); }
+  .year input {
+    box-sizing: border-box; width: 6rem; min-height: 2.75rem; padding: 0 0.75rem; border: 1px solid var(--line); border-radius: var(--radius-ctl);
+    background: var(--card); color: var(--fg); font: inherit; font-size: 1rem; text-align: center; /* 16 px: iOS does not zoom into it */
+  }
+  .year input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .year input:disabled { opacity: 0.6; }
+  .maxhr { margin: 0 0 0.25rem; }
   .save { align-self: stretch; background: var(--accent-text); color: #FFF; }
   :global([data-theme="dark"]) .save { color: #000; }
 </style>

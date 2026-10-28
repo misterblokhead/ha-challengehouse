@@ -59,6 +59,27 @@ def validate(body: dict, people: Iterable[str]) -> dict:
     return out
 
 
+def merge_profiles(stored: dict, given, people: Iterable[str]) -> dict:
+    """The stored {person: {"birth_year": int}} with a page body's `profiles` applied; ValueError "<field>: <reason>" on the first problem.
+    A person left out of `given` keeps theirs; a null birth_year removes it, so the store only ever holds years."""
+    if given is None:  # an older page: nothing to change
+        return stored
+    if not isinstance(given, dict):
+        _bad("profiles", "must be an object")
+    people, out = list(people), dict(stored)
+    for p, prof in given.items():
+        if p not in people:
+            _bad(f"profiles.{p}", "unknown person")
+        year = prof.get("birth_year") if isinstance(prof, dict) else None
+        if year is None:
+            out.pop(p, None)
+        elif _int_in(year, 1900, date.today().year):
+            out[p] = {"birth_year": year}
+        else:
+            _bad(f"profiles.{p}.birth_year", f"must be a year from 1900 to {date.today().year}")
+    return out
+
+
 def put(history: list, entry: dict, monday: date) -> list:
     """History with entry as that week's settings: replaces the same Monday, stays sorted by `from`."""
     start = monday.isoformat()
@@ -80,7 +101,11 @@ async def publish(hass: HomeAssistant, history: list) -> None:
         await mqtt.async_publish(hass, SETTINGS_TOPIC, json.dumps({"history": history}), qos=1, retain=True)
 
 
-async def load(store: Store) -> list:
+async def load(store: Store) -> tuple[list, dict]:
+    """(history, profiles) from the Store; anything malformed counts as absent."""
     raw = await store.async_load()
-    history = raw.get("history") if isinstance(raw, dict) else None
-    return [e for e in history if isinstance(e, dict) and isinstance(e.get("from"), str)] if isinstance(history, list) else []
+    raw = raw if isinstance(raw, dict) else {}
+    history, profiles = raw.get("history"), raw.get("profiles")
+    return ([e for e in history if isinstance(e, dict) and isinstance(e.get("from"), str)] if isinstance(history, list) else [],
+            {p: v for p, v in profiles.items() if isinstance(v, dict) and _int_in(v.get("birth_year"), 1900, date.today().year)}
+            if isinstance(profiles, dict) else {})

@@ -109,7 +109,7 @@ class UiView(HomeAssistantView):
             return _detail(self, "waiting", HTTPStatus.SERVICE_UNAVAILABLE)
         if path == "settings":
             monday = settings.monday_of(dt_util.now().date())
-            return self.json({"history": data.settings_history, "current": settings.current(data.settings_history, monday),
+            return self.json({"history": data.settings_history, "profiles": data.settings_profiles, "current": settings.current(data.settings_history, monday),
                               "week_start": monday.isoformat(), "defaults": _defaults(data.scores)})
         shaped = self._scores(request, data)
         return self.json({p: r["shoes"] for p, r in shaped["people"].items()} if path == "shoes" else shaped)
@@ -178,13 +178,14 @@ class UiView(HomeAssistantView):
             return _detail(self, "not allowed", HTTPStatus.FORBIDDEN)
         try:
             entry = settings.validate(body, data.scores["people"])
+            profiles = settings.merge_profiles(data.settings_profiles, body.get("profiles"), data.scores["people"])
         except ValueError as err:
             return _detail(self, str(err), HTTPStatus.BAD_REQUEST)
         monday = settings.monday_of(dt_util.now().date())
         history = settings.put(data.settings_history, entry, monday)
-        await data.settings_store.async_save({"history": history})
+        await data.settings_store.async_save({"history": history, "profiles": profiles})
         await settings.publish(hass, history)
-        data.settings_history = history  # only once stored and sent: a failed save leaves GET on the old goals
+        data.settings_history, data.settings_profiles = history, profiles  # only once stored and sent: a failed save leaves GET on the old goals
         return self.json({"ok": True, "from": monday.isoformat()}, status_code=HTTPStatus.ACCEPTED)
 
     def _shoe_gate(self, request: web.Request):

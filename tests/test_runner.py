@@ -194,7 +194,13 @@ async def test_steps_and_settings_are_read_in_process_without_mqtt(hass, setup, 
     hass_storage["fitbridge.settings"] = {"version": 1, "key": "fitbridge.settings", "data": {"history": history}}
     await setup()  # live and no MQTT set up: any publish would fail the setup
     inputs = cycles.call_args.args[3]
-    assert inputs.steps == {"p1": {today: 812}} and inputs.settings == {"history": history}
+    assert inputs.steps == {"p1": {today: 812}} and inputs.settings == {"history": history, "profiles": {}}
+
+
+async def test_a_birth_year_reaches_the_cycle_without_any_weekly_goals(hass, setup, cycles, hass_storage):
+    hass_storage["fitbridge.settings"] = {"version": 1, "key": "fitbridge.settings", "data": {"history": [], "profiles": {"p1": {"birth_year": 1990}}}}
+    await setup()
+    assert cycles.call_args.args[3].settings == {"history": [], "profiles": {"p1": {"birth_year": 1990}}}
 
 
 async def test_manual_change_is_applied_then_scored(hass, setup, cycles):

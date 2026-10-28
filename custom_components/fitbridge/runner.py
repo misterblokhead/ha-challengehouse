@@ -160,7 +160,8 @@ class Runner:
             return
         og = self._opengym()
         inputs = Inputs(await self._pauses(), data.steps.snapshot() if data.steps else None,
-                        {"history": data.settings_history} if data.settings_history else None,
+                        {"history": data.settings_history, "profiles": data.settings_profiles}
+                        if data.settings_history or data.settings_profiles else None,
                         dict(self.entry.options.get(OPT_OPENGYM_UIDS, {})))
         try:
             cycle = await self.hass.async_add_executor_job(self._cycle, og, inputs)

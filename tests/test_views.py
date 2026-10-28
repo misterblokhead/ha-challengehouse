@@ -1,7 +1,7 @@
 import json
 import re
 import time
-from datetime import timedelta
+from datetime import date, timedelta
 from unittest.mock import patch
 
 import pytest
@@ -189,7 +189,7 @@ async def test_settings_publish_retained_with_this_mondays_entry(hass, client, s
     assert resp.status == 202 and await resp.json() == {"ok": True, "from": monday}
     history = [{"from": monday, **SETTINGS}]
     assert _settings_publishes(mqtt_mock) == [("fitbridge/settings", json.dumps({"history": history}), 1, True)]
-    assert hass_storage["fitbridge.settings"]["data"] == {"history": history}
+    assert hass_storage["fitbridge.settings"]["data"] == {"history": history, "profiles": {}}
 
 
 async def test_second_save_in_a_week_replaces_and_a_later_week_appends(hass, client, send, hass_storage):
@@ -239,11 +239,42 @@ async def test_settings_get_returns_current_week_start_and_defaults(hass, client
     await send({"people": {"p1": p1, "p2": {"name": "Sam", "feed": []}}})
     c = await client("alex")
     body = await (await c.get(f"{UI}/settings")).json()
-    assert body == {"history": [], "current": None, "week_start": _this_monday(),
+    assert body == {"history": [], "profiles": {}, "current": None, "week_start": _this_monday(),
                     "defaults": {"p1": {"runs": 1, "workouts": 2, "active_days": 0, "steps": 8000}}}  # old gym key still read
     await c.post(f"{UI}/settings", json=SETTINGS)
     body = await (await c.get(f"{UI}/settings")).json()
     assert body["current"] == {"from": _this_monday(), **SETTINGS} and body["history"] == [body["current"]]
+
+
+async def test_birth_years_are_stored_returned_kept_and_cleared(hass, client, send, mqtt_mock, hass_storage):
+    await send(SCORES)
+    c = await client("alex")
+    mqtt_mock.async_publish.reset_mock()
+    both = {"profiles": {"p1": {"birth_year": 1990}, "p2": {"birth_year": 1985}}}
+    assert (await c.post(f"{UI}/settings", json={**SETTINGS, **both})).status == 202
+    assert (await (await c.get(f"{UI}/settings")).json())["profiles"] == both["profiles"]
+    assert hass_storage["fitbridge.settings"]["data"]["profiles"] == both["profiles"]
+    assert _settings_publishes(mqtt_mock) == [("fitbridge/settings", json.dumps({"history": [{"from": _this_monday(), **SETTINGS}]}), 1, True)]  # profiles stay local
+    assert (await c.post(f"{UI}/settings", json=SETTINGS)).status == 202  # an older page sends none: they stay
+    assert (await (await c.get(f"{UI}/settings")).json())["profiles"] == both["profiles"]
+    assert (await c.post(f"{UI}/settings", json={**SETTINGS, "profiles": {"p1": {"birth_year": None}}})).status == 202  # null clears, p2 untouched
+    assert (await (await c.get(f"{UI}/settings")).json())["profiles"] == {"p2": {"birth_year": 1985}}
+    assert hass_storage["fitbridge.settings"]["data"]["profiles"] == {"p2": {"birth_year": 1985}}
+
+
+@pytest.mark.parametrize("profiles,detail", [
+    ({"p1": {"birth_year": 1899}}, f"profiles.p1.birth_year: must be a year from 1900 to {date.today().year}"),
+    ({"p1": {"birth_year": date.today().year + 1}}, f"profiles.p1.birth_year: must be a year from 1900 to {date.today().year}"),
+    ({"p1": {"birth_year": "1990"}}, f"profiles.p1.birth_year: must be a year from 1900 to {date.today().year}"),
+    ({"p1": {"birth_year": True}}, f"profiles.p1.birth_year: must be a year from 1900 to {date.today().year}"),
+    ({"zed": {"birth_year": 1990}}, "profiles.zed: unknown person"),
+    ([], "profiles: must be an object"),
+])
+async def test_a_bad_birth_year_is_refused_and_nothing_is_stored(hass, client, send, hass_storage, profiles, detail):
+    await send(SCORES)
+    resp = await (await client("alex")).post(f"{UI}/settings", json={**SETTINGS, "profiles": profiles})
+    assert resp.status == 400 and (await resp.json())["detail"] == detail
+    assert "fitbridge.settings" not in hass_storage
 
 
 async def test_settings_survive_a_reload_and_are_published_at_startup(hass, entry, client, send, mqtt_mock, hass_storage):

@@ -45,6 +45,7 @@ class Data:
     scores: dict | None = None
     warned: bool = False
     settings_history: list = field(default_factory=list)  # weekly goals history, oldest first
+    settings_profiles: dict = field(default_factory=dict)  # {person: {"birth_year": int}}, kept next to the history
     settings_store: Store | None = None
     steps: StepsCollector | None = None
     shadow: bool = False
@@ -110,7 +111,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if shadow and not await mqtt.async_wait_for_mqtt_client(hass):
         raise ConfigEntryNotReady("MQTT is not available")
     data = hass.data[DOMAIN] = Data(entry, settings_store=Store(hass, 1, "fitbridge.settings"), shadow=shadow)
-    data.settings_history = await settings.load(data.settings_store)
+    data.settings_history, data.settings_profiles = await settings.load(data.settings_store)
 
     @callback
     def received(msg: mqtt.ReceiveMessage) -> None:

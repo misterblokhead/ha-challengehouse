@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { counts, goals, ringFractions, stepsLine, togetherLine, rewardLine, levelProgress, weekLabel, staleSince, feedRow, planBar, layout, shortDate, pendingDone, PENDING_MS, serial, shoeRow, goalsDraft, clampGoal, isoWeek, goalsDone, withPendingGoals, weekBars, localDay, stepsSummary, liftSet, liftLine, GROUPS, groupRows, groupedLifts, paceText, recordKeys, SHOE_LIMITS, SHOE_DEFAULT_KM, shoesManageable, shoeForm, shoePicker } from "./model.js";
+import { counts, goals, ringFractions, stepsLine, togetherLine, rewardLine, levelProgress, weekLabel, staleSince, feedRow, planBar, layout, shortDate, pendingDone, PENDING_MS, serial, shoeRow, goalsDraft, maxHrText, clampGoal, isoWeek, goalsDone, withPendingGoals, weekBars, localDay, stepsSummary, liftSet, liftLine, GROUPS, groupRows, groupedLifts, paceText, recordKeys, SHOE_LIMITS, SHOE_DEFAULT_KM, shoesManageable, shoeForm, shoePicker } from "./model.js";
 
 const week = { runs: 1, workouts: 2, active_days: 3, bonus: 1, goal: { runs: 2, workouts: 2, active_days: 4, steps: 10000 }, days_left: 3, week: "2026-W44" };
 
@@ -220,16 +220,29 @@ test("goalsDraft: the current entry wins, without its from", () => {
   const current = { from: "2026-10-26", people: { person1: { runs: 3, workouts: 2, active_days: 4, steps: 12000 }, person2: { runs: 1, workouts: 2, active_days: 3, steps: 9000 } },
     couple: { mode: "team", together: 2, team: 10, reward: "Pizza night" } };
   const { from, ...entry } = current;
-  assert.deepEqual(goalsDraft({ current, defaults }, twoPeople), entry);
+  assert.deepEqual(goalsDraft({ current, defaults }, twoPeople), { ...entry, profiles: { person1: { birth_year: null }, person2: { birth_year: null } } });
 });
 
 test("goalsDraft: defaults (and couple own/1/8/\"\") without a current entry; a person missing from it uses the defaults", () => {
-  assert.deepEqual(goalsDraft({ current: null, defaults }, twoPeople), { people: defaults, couple: { mode: "own", together: 1, team: 8, reward: "" } });
+  assert.deepEqual(goalsDraft({ current: null, defaults }, twoPeople), { people: defaults, couple: { mode: "own", together: 1, team: 8, reward: "" }, profiles: { person1: { birth_year: null }, person2: { birth_year: null } } });
   const current = { from: "2026-10-26", people: { person1: { runs: 3, workouts: 2, active_days: 4, steps: 12000 } }, couple: { mode: "own", together: 1, team: 8, reward: "" } };
   assert.deepEqual(goalsDraft({ current, defaults }, twoPeople).people.person2, defaults.person2);
   // an older payload's defaults may lack a field: scoring.toml's defaults, inside the limits
   assert.deepEqual(goalsDraft({ current: null, defaults: { person1: { runs: 2, workouts: 1, active_days: null, steps: null } } }, { person1: {} }).people.person1,
     { runs: 2, workouts: 1, active_days: 0, steps: 10000 });
+});
+
+test("goalsDraft: the stored birth years are the field's values, none is null (what the POST body sends to clear)", () => {
+  const draft = goalsDraft({ current: null, defaults, profiles: { person1: { birth_year: 1990 } } }, twoPeople);
+  assert.deepEqual(draft.profiles, { person1: { birth_year: 1990 }, person2: { birth_year: null } });
+  assert.equal(goalsDraft({ current: null, defaults }, twoPeople).profiles.person1.birth_year, null); // an older integration sends no profiles
+});
+
+test("maxHrText: estimate, measured with its day, none", () => {
+  assert.equal(maxHrText({ bpm: 180, source: "estimate", date: null }), "Max HR 180 · estimate");
+  assert.equal(maxHrText({ bpm: 186, source: "measured", date: "2026-10-26" }), "Max HR 186 · measured 26 Oct");
+  assert.equal(maxHrText(null), "—");
+  assert.equal(maxHrText(undefined), "—");
 });
 
 test("clampGoal: the settings limits; steps snap to 1000", () => {
