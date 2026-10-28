@@ -82,7 +82,7 @@ async def test_feed_refusals(hass, client, send):
     for before in ({}, {"before": "yesterday"}, {"before": "2027-13-01"}, {"before": "0001-01-01"}):
         assert (await c.get(f"{UI}/feed", params={"person": "p1", **before})).status == 400
     body = await (await c.get(f"{UI}/feed", params={"person": "p1", "before": "2027-03-01"})).json()
-    assert body == {"items": [], "more": False}                         # no older at all (e.g. the LXC's payload)
+    assert body == {"items": [], "more": False}                         # no older at all
 
 
 async def test_scores_carry_steps_today_from_the_live_sensor(hass, entry, users, client, send):
