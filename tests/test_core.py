@@ -59,6 +59,14 @@ def test_find_workout():
     assert core.find_workout(SCORES, "ghost", "k1") is None
 
 
+def test_find_workout_reaches_a_workout_from_before_the_start():
+    from custom_components.fitbridge.engine.scoring import score
+    from tests.engine.test_scoring import CFG, NOW, wk
+    early = wk("p", "run", -30, 18, 0, 30)  # a month before the shipped rules.start
+    scores = score({"person1": [early], "person2": []}, [], CFG, NOW(1))
+    assert core.find_workout(scores, "person1", early["key"])["key"] == early["key"]
+
+
 @pytest.mark.parametrize("action", ["remove", "restore"])
 def test_manual_message(action):
     topic, payload = core.manual_message(action, "p1", "k1", "m-1")

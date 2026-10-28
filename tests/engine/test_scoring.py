@@ -324,6 +324,23 @@ class ScoringTests(unittest.TestCase):
         self.assertEqual([i["key"] for i in p["older"]], [golf["key"], ws[1]["key"], "steps:person1:2026-10-29", ws[0]["key"]])
         self.assertEqual([(i["counts"], i["reason"]) for i in p["older"]][0], (False, "type"))
 
+    def test_rows_before_the_start_are_older_rows_that_score_nothing(self):
+        self.assertEqual(CFG["rules"]["start"], date(2026, 10, 26))  # the shipped start
+        ws = [wk("person1", "gym", 0, 19, 0, 30), wk("person1", "run", 1, 18, 0, 30, km=4)]
+        run = wk("person1", "run", -10, 18, 0, 30, km=5)
+        copy = wk("person1", "run", -10, 18, 2, 25, km=5, source="health_exporter")       # one session, two sources
+        gone = wk("person1", "gym", -12, 19, 0, 40, excluded=True)
+        golf = wk("person1", "gym", -20, 9, 0, 120, name="Golf")
+        golf["kind"] = None
+        base = score({"person1": ws, "person2": []}, [], CFG, NOW(2))["people"]["person1"]
+        p = score({"person1": ws + [run, copy, gone], "person2": []}, [], CFG, NOW(2), uncounted={"person1": [golf]})["people"]["person1"]
+        self.assertEqual([(i["key"], i["aliases"], i["xp"], i["counts"], i["reason"], i["excluded"]) for i in p["older"]],
+                         [(run["key"], [copy["key"]], 0, False, None, False), (gone["key"], [], 0, True, None, True),
+                          (golf["key"], [], 0, False, "type", False)])
+        self.assertEqual(p["feed"], base["feed"])
+        for k in ("xp", "week", "badges", "pbs", "streak", "best_streak", "level", "plan", "recent", "max_hr"):
+            self.assertEqual(p[k], base[k], k)
+
     def test_no_older_when_nothing_is_past_the_window(self):
         p = score({"person1": [wk("person1", "gym", 0, 19, 0, 30)], "person2": []}, [], CFG, NOW(1))["people"]["person1"]
         self.assertEqual(p["older"], [])

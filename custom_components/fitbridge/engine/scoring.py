@@ -92,11 +92,12 @@ def _merge(a, b):
                 aliases=base.get("aliases", []) + [other["key"]] + other.get("aliases", []), **_best_of(a, b))
 
 
-def clean(workouts, cfg):
-    """One person's workouts: drop pre-start, dedup across sources, merge stop-starts, sort by start."""
+def clean(workouts, cfg, early=False):
+    """One person's workouts: drop pre-start, dedup across sources, merge stop-starts, sort by start.
+    early: only the non-excluded ones before rules.start instead, deduped and merged alike (feed rows that score nothing)."""
     tz = ZoneInfo(cfg["rules"]["timezone"])
     gap = timedelta(minutes=cfg["rules"]["merge_gap_min"])
-    live = [w for w in workouts if not w["excluded"] and local_date(w["start"], tz) >= cfg["rules"]["start"]]
+    live = [w for w in workouts if not w["excluded"] and (local_date(w["start"], tz) < cfg["rules"]["start"]) == early]
     merged = []
     for w in sorted(_dedup(live), key=lambda w: w["start"]):
         i = next((i for i in range(len(merged) - 1, -1, -1) if _alike(merged[i], w)), None)
@@ -104,7 +105,7 @@ def clean(workouts, cfg):
             merged[i] = _merge(merged[i], w)
         else:
             merged.append(w)
-    return sorted(merged + [w for w in workouts if w["excluded"]], key=lambda w: w["start"])
+    return sorted(merged + ([] if early else [w for w in workouts if w["excluded"]]), key=lambda w: w["start"])
 
 
 def mark_joint(by_person, cfg):
@@ -397,7 +398,7 @@ def _badges(cfg, counters, unlocked_at):
 
 def _feed(workouts, plan_done, workout_xp, not_counted, cfg, since, limit):
     """Workouts on or after local date `since` (at most `limit`), excluded ones included, newest first.
-    `not_counted`: {key: "short" | "easy" | "type"}, why a row fills no ring (counts False)."""
+    `not_counted`: {key: "short" | "easy" | "type" | None (before rules.start)}, why a row fills no ring (counts False)."""
     tz = ZoneInfo(cfg["rules"]["timezone"])
     ws = [w for w in workouts if local_date(w["start"], tz) >= since][::-1][:limit]
     return [{"key": w["key"], "aliases": w.get("aliases", []), "kind": w["kind"], "name": w["name"], "source": w["source"], "indoor": w["indoor"],
@@ -493,9 +494,10 @@ def score(by_person, pauses, cfg, now, steps=None, settings=None, catalog=None, 
         c = r["counters"]
         lifts, fastest_1k = _records(cleaned[p], tz, catalog)
         other = (uncounted or {}).get(p, [])  # added after scoring: they touch nothing but the feed (not `recent`)
-        reasons = r["not_counted"] | {w["key"]: "type" for w in other}
-        rows = _feed(sorted(cleaned[p] + r["active_rows"] + other, key=lambda w: w["start"]),
-                     r["plan_done"], r["workout_xp"], reasons, cfg, start, None)
+        early = clean(by_person.get(p, []), cfg, early=True)  # before rules.start: likewise, and no reason to show
+        reasons = r["not_counted"] | {w["key"]: None for w in early} | {w["key"]: "type" for w in other}
+        rows = _feed(sorted(cleaned[p] + early + r["active_rows"] + other, key=lambda w: w["start"]),
+                     r["plan_done"], r["workout_xp"], reasons, cfg, date.min, None)
         people[p] = {k: v for k, v in r.items() if k not in ("weekly", "counters", "unlocked_at", "plan_done", "workout_xp", "active_rows", "not_counted")} | {
             "name": cfg["people"][p]["name"], "max_hr": max_hrs[p],
             "badges": _badges(cfg, c, r["unlocked_at"]),
