@@ -202,6 +202,9 @@ def _validate(cfg, errs):
         ZoneInfo(rules.get("timezone"))
     except (ZoneInfoNotFoundError, ValueError, TypeError):
         errs.append(f"rules.timezone {rules.get('timezone')!r} is not a known timezone")
+    for k, default in (("effort_hr_pct", 60), ("max_hr_fit_pct", 70)):  # optional: a copy from before them lacks both
+        rules.setdefault(k, default)
+    _check_numbers(errs, "rules", rules, ("effort_hr_pct", "max_hr_fit_pct"))
     _check_types(errs, cfg.get("types"), rules)
     per_min = cfg.get("xp", {}).get("per_min", {})
     _check_numbers(errs, "xp.per_min", per_min if isinstance(per_min, dict) else {}, KINDS, False)
@@ -331,7 +334,8 @@ def _check_entry(i, entry, people):
 
 
 def parse_settings(obj, people):
-    """The `fitbridge/settings` payload (goals spec section 3), validated: {"history": [...]}.
+    """The `fitbridge/settings` payload (goals spec section 3), validated: {"history": [...]}, plus
+    "profiles": {person: {"birth_year": int}} when the payload has them.
 
     Raises ValueError with a readable reason. Unknown person ids are dropped."""
     if not (isinstance(obj, dict) and isinstance(obj.get("history"), list)):
@@ -339,7 +343,19 @@ def parse_settings(obj, people):
     history = [_check_entry(i, e, people) for i, e in enumerate(obj["history"])]
     if any(a["from"] >= b["from"] for a, b in zip(history, history[1:])):
         _bad("history must be sorted by from, one entry per week")
-    return {"history": history}
+    if "profiles" not in obj:
+        return {"history": history}
+    if not isinstance(obj["profiles"], dict):
+        _bad("profiles must be an object")
+    profiles = {}
+    for p, prof in obj["profiles"].items():
+        if p not in people:
+            continue
+        year = prof.get("birth_year") if isinstance(prof, dict) else None
+        if not _int_in(year, 1900, date.today().year):
+            _bad(f"profiles.{p}.birth_year must be an integer from 1900 to this year")
+        profiles[p] = {"birth_year": year}
+    return {"history": history, "profiles": profiles}
 
 
 def parse_steps(obj, people):

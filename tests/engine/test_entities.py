@@ -34,6 +34,10 @@ def sensors():
 class FixtureTests(unittest.TestCase):
     def test_fixture_is_reproducible(self):
         result, badges, workouts, records = build()
+        for r in result["people"].values():  # fields newer than the recorded MQTT output
+            r.pop("max_hr")
+            for w in r["recent"] + r["feed"]:
+                del w["counts"], w["reason"]
         self.assertEqual(result, RESULT)
         events = [json.loads(p) for t, p, r in FIX["messages"] if not r]
         self.assertEqual([(e["event_type"], e["person"]) for e in events],

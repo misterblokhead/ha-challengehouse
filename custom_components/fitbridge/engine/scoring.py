@@ -177,11 +177,26 @@ def _meets(w, session):
     return True
 
 
-def score_person(workouts, paused, cfg, person, now, steps=None, settings=None):
+def max_hr(workouts, birth_year, today, cfg):
+    """A person's max HR: the higher of the Tanaka estimate (208 - 0.7 x age, needs a birth year) and the highest
+    plausible measured max (a workout's max counts only when its average is >= rules.max_hr_fit_pct of it).
+    {"bpm", "source": "estimate" | "measured", "date": local date of the measuring workout | None}, or None."""
+    fit = cfg["rules"]["max_hr_fit_pct"] / 100
+    best = max((w for w in workouts if not w["excluded"] and w.get("max_hr") and w.get("avg_hr")
+                and w["avg_hr"] >= fit * w["max_hr"]), key=lambda w: w["max_hr"], default=None)
+    estimate = None if birth_year is None else round(208 - 0.7 * (today.year - birth_year))
+    if best and (estimate is None or best["max_hr"] > estimate):
+        tz = ZoneInfo(cfg["rules"]["timezone"])
+        return {"bpm": round(best["max_hr"]), "source": "measured", "date": local_date(best["start"], tz).isoformat()}
+    return None if estimate is None else {"bpm": estimate, "source": "estimate", "date": None}
+
+
+def score_person(workouts, paused, cfg, person, now, steps=None, settings=None, max_bpm=None):
     """Week, XP, level, streak, plan and counters for one person (spec section 5).
 
     `workouts`: output of clean(), joint-marked; `paused`: the person's pause dates;
-    `steps`: the person's {"YYYY-MM-DD": steps}; `settings`: the settings payload (goals spec section 3)."""
+    `steps`: the person's {"YYYY-MM-DD": steps}; `settings`: the settings payload (goals spec section 3);
+    `max_bpm`: the person's max HR for the effort check (None: duration only)."""
     tz = ZoneInfo(cfg["rules"]["timezone"])
     rules, xpc = cfg["rules"], cfg["xp"]
     history = cfg["people"][person]["plan_history"]
@@ -201,6 +216,7 @@ def score_person(workouts, paused, cfg, person, now, steps=None, settings=None):
     workout_xp = defaultdict(float)                # XP per workout key: the feed's numbers and, summed, the total
     day_xp, plan_days = defaultdict(float), defaultdict(int)
     active_rows = []                               # synthetic feed rows, one per active day
+    not_counted = {}                               # workout key -> "short" | "easy": minute XP, no ring
 
     def count(wkst, goal, d, key, xp_key):
         """One goal event for `key` on day `d`: the weekly bonus once beyond a goal > 0, then settle."""
@@ -253,7 +269,12 @@ def score_person(workouts, paused, cfg, person, now, steps=None, settings=None):
                 bump(d, "late")
             if paused_wk:
                 bump(d, "paused_week_workouts")
-            long_enough = kind != "walk" and mins >= rules[f"min_{kind}_min"]
+            min_min = w.get("min_min") or rules.get(f"min_{kind}_min")  # None (manual entry): the kind's default; a walk has none
+            effort_ok = not (w.get("effort") and max_bpm and w["avg_hr"] is not None
+                             and w["avg_hr"] < rules["effort_hr_pct"] / 100 * max_bpm)
+            long_enough = kind != "walk" and mins >= min_min and effort_ok
+            if kind != "walk" and not long_enough:
+                not_counted[w["key"]] = "short" if mins < min_min else "easy"
             if kind == "run":
                 if long_enough:
                     bump(d, "runs")
@@ -345,6 +366,7 @@ def score_person(workouts, paused, cfg, person, now, steps=None, settings=None):
         "plan_done": plan_done,
         "workout_xp": workout_xp,
         "active_rows": active_rows,
+        "not_counted": not_counted,
     }
 
 
@@ -368,14 +390,16 @@ def _badges(cfg, counters, unlocked_at):
     return {"count": len(unlocked), "recent": unlocked[:3], "next": nxt[:3], "unlocked": unlocked}
 
 
-def _feed(workouts, plan_done, workout_xp, cfg, since, limit):
-    """Workouts on or after local date `since` (at most `limit`), excluded ones included, newest first."""
+def _feed(workouts, plan_done, workout_xp, not_counted, cfg, since, limit):
+    """Workouts on or after local date `since` (at most `limit`), excluded ones included, newest first.
+    `not_counted`: {key: "short" | "easy" | "type"}, why a row fills no ring (counts False)."""
     tz = ZoneInfo(cfg["rules"]["timezone"])
     ws = [w for w in workouts if local_date(w["start"], tz) >= since][::-1][:limit]
     return [{"key": w["key"], "aliases": w.get("aliases", []), "kind": w["kind"], "name": w["name"], "source": w["source"], "indoor": w["indoor"],
              "start": w["start"].astimezone(tz).isoformat(), "minutes": round(w["duration_s"] / 60),
              "km": None if w["distance_m"] is None else round(w["distance_m"] / 1000, 2), "avg_hr": w["avg_hr"],
              "xp": round(workout_xp.get(w["key"], 0)), "plan": plan_done.get(w["key"]), "joint": bool(w.get("joint_s")), "excluded": w["excluded"],
+             "counts": w["key"] not in not_counted, "reason": not_counted.get(w["key"]),
              "url": w["url"]} | ({"steps": w["steps"]} if "steps" in w else {}) for w in ws]
 
 
@@ -443,30 +467,37 @@ def _records(workouts, tz, catalog):
     return sorted(lifts, key=lambda x: x["date"], reverse=True), run  # stable: date desc, then name
 
 
-def score(by_person, pauses, cfg, now, steps=None, settings=None, catalog=None):
+def score(by_person, pauses, cfg, now, steps=None, settings=None, catalog=None, uncounted=None):
     """Full result for every configured person plus the optional group. Never mutates the caller's workouts.
 
     `steps`: {person: {"YYYY-MM-DD": steps}}; `settings`: the settings payload (goals spec section 3); None = none;
-    `catalog`: {exercise id: {"name", "bp"}} for the lift records."""
+    `catalog`: {exercise id: {"name", "bp"}} for the lift records;
+    `uncounted`: {person: [workout of a type that does not count]}, shown in the feed lists only."""
     cleaned = {p: clean([dict(w) for w in by_person.get(p, [])], cfg) for p in cfg["people"]}
     mark_joint(cleaned, cfg)
-    raw = {p: score_person(cleaned[p], pause_days(pauses, p, cfg), cfg, p, now, (steps or {}).get(p), settings)
-           for p in cfg["people"]}
     tz = ZoneInfo(cfg["rules"]["timezone"])
+    profiles = (settings or {}).get("profiles", {})
+    max_hrs = {p: max_hr(cleaned[p], profiles.get(p, {}).get("birth_year"), local_date(now, tz), cfg) for p in cfg["people"]}
+    raw = {p: score_person(cleaned[p], pause_days(pauses, p, cfg), cfg, p, now, (steps or {}).get(p), settings,
+                           max_hrs[p] and max_hrs[p]["bpm"])
+           for p in cfg["people"]}
     start = cfg["rules"]["start"]
     window = max(start, local_date(now, tz) - timedelta(days=29))
     people = {}
     for p, r in raw.items():
         c = r["counters"]
         lifts, fastest_1k = _records(cleaned[p], tz, catalog)
-        people[p] = {k: v for k, v in r.items() if k not in ("weekly", "counters", "unlocked_at", "plan_done", "workout_xp", "active_rows")} | {
-            "name": cfg["people"][p]["name"],
+        other = (uncounted or {}).get(p, [])  # added after scoring: they touch nothing but the feed lists
+        reasons = r["not_counted"] | {w["key"]: "type" for w in other}
+        people[p] = {k: v for k, v in r.items() if k not in ("weekly", "counters", "unlocked_at", "plan_done", "workout_xp", "active_rows", "not_counted")} | {
+            "name": cfg["people"][p]["name"], "max_hr": max_hrs[p],
             "badges": _badges(cfg, c, r["unlocked_at"]),
             "pbs": {"longest_session_km": round(c["longest_session_km"], 2), "prs": c["prs"],
                     "gym_tonnes": round(c["tonnes"], 2),
                     "lifts": lifts, "fastest_1k": fastest_1k},
-            "recent": _feed(cleaned[p], r["plan_done"], r["workout_xp"], cfg, start, 20),
-            "feed": _feed(sorted(cleaned[p] + r["active_rows"], key=lambda w: w["start"]),
-                          r["plan_done"], r["workout_xp"], cfg, window, None),
+            "recent": _feed(sorted(cleaned[p] + other, key=lambda w: w["start"]),
+                            r["plan_done"], r["workout_xp"], reasons, cfg, start, 20),
+            "feed": _feed(sorted(cleaned[p] + r["active_rows"] + other, key=lambda w: w["start"]),
+                          r["plan_done"], r["workout_xp"], reasons, cfg, window, None),
         }
     return {"people": people, "group": _group(cfg, raw, cleaned, now, settings)}

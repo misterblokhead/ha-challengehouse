@@ -249,6 +249,16 @@ class ScoringCycleTests(unittest.TestCase):
         self.assertEqual([k for _, k in self.workout_keys()], ["t2"])
         self.assertEqual(self.store.unseen_workouts(P0, res["people"][P0]["feed"])[0], [])
 
+    def test_uncounted_type_is_in_the_feed_but_never_announced(self):
+        self.run_cycle()  # seeds
+        self.store.add(P0, "g1", "health_exporter", "completed", activity_type="golf",
+                       start="2026-10-28T09:00:00+01:00", end="2026-10-28T11:00:00+01:00", duration_s=7200)
+        res = self.scores()
+        row = next(w for w in res["people"][P0]["feed"] if w["key"] == "g1")
+        self.assertEqual((row["counts"], row["reason"], row["xp"]), (False, "type", 0))
+        self.assertEqual(self.workouts, [])
+        self.assertEqual(self.store.unseen_workouts(P0, res["people"][P0]["feed"])[0], [])  # recorded as seen
+
     def test_excluded_workout_not_announced(self):
         self.run_cycle()  # seeds
         self.add_run("t1")

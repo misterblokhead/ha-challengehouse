@@ -7,6 +7,8 @@ merge_gap_min = 30
 min_run_min = 10
 min_gym_min = 20
 min_home_min = 15
+effort_hr_pct = 60   # an effort-checked workout counts when its average HR is at least this % of max HR
+max_hr_fit_pct = 70  # a workout's max HR is trusted only when its average is at least this % of it
 
 # Which workout types count. health_exporter: `match` is the exact HealthKit type, lower case. opentracks: `match` is
 # a lower-case substring of the activity type, first hit wins (a run needs GPS points). kind: run | walk | home.

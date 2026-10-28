@@ -175,7 +175,7 @@ def score_cycle(store, holder, og, inputs: Inputs, now, live: bool) -> Cycle:
     steps, steps_as_of, _ = _cached(store, "steps_cache", now, lambda: (
         _steps(inputs.steps, people, json.loads(store.kv_get("steps_cache") or "null"))))
     fill_best_km(store, config["types"])
-    workouts, _uncounted = db_workouts(store, people, config["types"])  # a later task scores the uncounted
+    workouts, uncounted = db_workouts(store, people, config["types"])
     excluded = store.exclusions()
     for p, ws in workouts.items():  # assigning is not announcing: shadow mode does it too
         shoes.assign_new(store, p, [w["key"] for w in ws if w["kind"] == "run"])
@@ -186,7 +186,7 @@ def score_cycle(store, holder, og, inputs: Inputs, now, live: bool) -> Cycle:
                              "lifts": w.get("lifts") or {}, "unit": w.get("unit") or "kg",  # cache from before lifts
                              "excluded": (p, w["key"]) in excluded} for w in ws]
     result = scoring.score(workouts, pauses or [], config, now, steps, settings,
-                            exercise_catalog_cached(og, store, now))
+                            exercise_catalog_cached(og, store, now), uncounted)
     for p, r in result["people"].items():
         r["shoes"] = shoes.rows(store, p, workouts[p])
         r["run_shoes"] = shoes.assigned(store, p)
@@ -201,7 +201,7 @@ def score_cycle(store, holder, og, inputs: Inputs, now, live: bool) -> Cycle:
     announce = [(p, b) for p, fresh, loud in unseen if loud for b in fresh]
     stale = now - timedelta(hours=48)  # older news (home workouts stored before they were scored) is only recorded
     announce_workouts = [(p, w) for p, _, news, loud in workouts_unseen if loud for w in news
-                         if not w["excluded"] and w["kind"] != "active_day"  # active days never announce, only get recorded
+                         if not w["excluded"] and w["kind"] != "active_day" and w["reason"] != "type"  # these only get recorded
                          and datetime.fromisoformat(w["start"]) >= stale]
     recs = []  # (person, record events, record values to save, (record id, workout key) pairs to remember)
     for p, r in result["people"].items():
