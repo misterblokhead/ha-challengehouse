@@ -106,6 +106,8 @@ class FitbridgeOptionsFlow(config_entries.OptionsFlowWithReload):
         errors = {}
         if user_input is not None:
             url, code = user_input[OPT_OPENGYM_URL].strip().rstrip("/"), user_input["code"].strip()
+            if "://" not in url:  # the URL field accepts a bare host name
+                url = f"https://{url}"
             if not CODE.fullmatch(code):
                 errors["code"] = "invalid_code"
             else:

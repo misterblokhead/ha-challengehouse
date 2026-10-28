@@ -135,7 +135,7 @@ async def test_opengym_pairing_stores_the_token_and_clears_the_issue(hass, setup
         aioclient_mock.post(f"{GYM}/api/pair/redeem", json={"token": "tok-new"})
         result = await _open(hass, e, "opengym")
         assert result["type"] is FlowResultType.FORM and result["step_id"] == "opengym"
-        result = await hass.config_entries.options.async_configure(result["flow_id"], {OPT_OPENGYM_URL: GYM + "/", "code": "AB12cd"})
+        result = await hass.config_entries.options.async_configure(result["flow_id"], {OPT_OPENGYM_URL: " gym.example.test/", "code": "AB12cd"})  # typed without https://
         assert result["type"] is FlowResultType.CREATE_ENTRY
         await hass.async_block_till_done(wait_background_tasks=True)
     assert aioclient_mock.mock_calls[0][2] == {"code": "AB12cd"}
