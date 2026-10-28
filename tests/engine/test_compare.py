@@ -1,5 +1,7 @@
 """Tests for dev/compare_scores.py (synthetic data only)."""
+import contextlib
 import importlib.util
+import io
 import json
 import tempfile
 import unittest
@@ -72,3 +74,32 @@ class CompareTests(unittest.TestCase):
             d["people"]["person1"]["xp"] = 1
             b.write_text(json.dumps(d))
             self.assertEqual(cmp.main([str(a), str(b)]), 1)
+
+    def test_person_keys_are_never_ignored(self):
+        for person in ("url", "scored_at", "goal_as_of"):
+            b = doc()
+            b["people"][person] = {"xp": 1}
+            with self.subTest(person=person):
+                self.assertEqual(cmp.diff(doc(), b), [f"people.{person}: only in shadow"])
+
+    def test_as_of_in_the_middle_and_type_changes_are_reported(self):
+        b = doc()
+        p = b["people"]["person1"]
+        p["week"]["as_of_goal"] = "y"
+        p["feed"] = {"0": p["feed"][0]}
+        p["xp"] = None
+        out = cmp.diff(doc(), b)
+        self.assertIn("people.person1.week.as_of_goal: only in shadow", out)
+        self.assertTrue(any(line.startswith("people.person1.feed: lxc=[") for line in out))
+        self.assertIn("people.person1.xp: lxc=100 shadow=None", out)
+
+    def test_a_missing_or_broken_file_exits_2_with_one_line(self):
+        with tempfile.TemporaryDirectory() as t:
+            good, broken = Path(t, "a.json"), Path(t, "b.json")
+            good.write_text(json.dumps(doc()))
+            broken.write_text("{")
+            for args in ([str(good), str(Path(t, "gone.json"))], [str(good), str(broken)]):
+                err = io.StringIO()
+                with self.subTest(args=args), contextlib.redirect_stderr(err):
+                    self.assertEqual(cmp.main(args), 2)
+                    self.assertEqual(len(err.getvalue().strip().splitlines()), 1)
