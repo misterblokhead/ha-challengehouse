@@ -2633,7 +2633,7 @@ function ba(e) {
 	let t = e.filter((e) => e.active).length;
 	return `${t} active ${t === 1 ? "day" : "days"} · ${Wi(e.reduce((e, t) => e + (t.steps ?? 0), 0))} steps`;
 }
-var xa = (e) => `${e.name} · ${e.w} ${e.unit} × ${e.r} · ${aa(e.date)}`, Sa = (e, t = 5) => (e ?? []).slice(0, t), Ca = (e) => [...e ?? []].sort((e, t) => e.name.localeCompare(t.name)), wa = (e) => `${Math.floor(e / 60)}:${Ri(e % 60)}`, Ta = (e) => new Set([...(e?.lifts ?? []).map((e) => e.key), e?.fastest_1k?.key].filter(Boolean)), Ea = 5e3, Da = Qt({}), Oa = Qt({
+var xa = (e) => `${e.w} ${e.unit} × ${e.r}`, Sa = (e, t = 5) => (e ?? []).slice(0, t), Ca = (e) => [...e ?? []].sort((e, t) => e.name.localeCompare(t.name)), wa = (e) => `${Math.floor(e / 60)}:${Ri(e % 60)}`, Ta = (e) => new Set([...(e?.lifts ?? []).map((e) => e.key), e?.fastest_1k?.key].filter(Boolean)), Ea = 5e3, Da = Qt({}), Oa = Qt({
 	on: !1,
 	text: "",
 	undo: null
@@ -3023,7 +3023,7 @@ function xo(e, t) {
 	}), k(i), J(e, i), M();
 }
 // src/lib/ui/Progress.svelte
-var So = /* @__PURE__ */ q("<div class=\"card steps svelte-kr1x1f\"><!> <p class=\"caption svelte-kr1x1f\"> </p></div>"), Co = /* @__PURE__ */ q("<li class=\"svelte-kr1x1f\"> </li>"), wo = /* @__PURE__ */ q("<button type=\"button\" class=\"btn more svelte-kr1x1f\"> </button>"), To = /* @__PURE__ */ q("<ul class=\"svelte-kr1x1f\"></ul> <!>", 1), Eo = /* @__PURE__ */ q("<p class=\"caption empty svelte-kr1x1f\">Your heaviest sets appear here after your first gym session.</p>"), Do = /* @__PURE__ */ q("<a target=\"_blank\" rel=\"noopener noreferrer\" class=\"svelte-kr1x1f\"> </a>"), Oo = /* @__PURE__ */ q("<div class=\"row svelte-kr1x1f\"><span class=\"k svelte-kr1x1f\">Fastest 1 km</span> <span class=\"v svelte-kr1x1f\"><!> </span></div>"), ko = /* @__PURE__ */ q("<p class=\"caption empty svelte-kr1x1f\">Run 1 km with GPS to set your first time.</p>"), Ao = /* @__PURE__ */ q("<!> <div class=\"card svelte-kr1x1f\"><!></div> <div class=\"card rows svelte-kr1x1f\"><!> <div class=\"row svelte-kr1x1f\"><span class=\"k svelte-kr1x1f\">Longest session</span><span class=\"v svelte-kr1x1f\"> </span></div> <div class=\"row svelte-kr1x1f\"><span class=\"k svelte-kr1x1f\">Total lifted</span><span class=\"v svelte-kr1x1f\"> </span></div></div>", 1);
+var So = /* @__PURE__ */ q("<div class=\"card steps svelte-kr1x1f\"><!> <p class=\"caption svelte-kr1x1f\"> </p></div>"), Co = /* @__PURE__ */ q("<li class=\"svelte-kr1x1f\"><span class=\"dot svelte-kr1x1f\" aria-hidden=\"true\"></span><span> <b class=\"svelte-kr1x1f\"> </b> </span></li>"), wo = /* @__PURE__ */ q("<button type=\"button\" class=\"btn more svelte-kr1x1f\"> </button>"), To = /* @__PURE__ */ q("<ul class=\"svelte-kr1x1f\"></ul> <!>", 1), Eo = /* @__PURE__ */ q("<p class=\"caption empty svelte-kr1x1f\">Your heaviest sets appear here after your first gym session.</p>"), Do = /* @__PURE__ */ q("<a target=\"_blank\" rel=\"noopener noreferrer\" class=\"svelte-kr1x1f\"> </a>"), Oo = /* @__PURE__ */ q("<div class=\"row svelte-kr1x1f\"><span class=\"k svelte-kr1x1f\"><span class=\"chip svelte-kr1x1f\" aria-hidden=\"true\">⚡</span>Fastest 1 km</span> <span class=\"v run svelte-kr1x1f\"><!> </span></div>"), ko = /* @__PURE__ */ q("<p class=\"caption empty svelte-kr1x1f\">Run 1 km with GPS to set your first time.</p>"), Ao = /* @__PURE__ */ q("<!> <div class=\"card svelte-kr1x1f\"><!></div> <div class=\"card rows svelte-kr1x1f\"><!> <div class=\"row svelte-kr1x1f\"><span class=\"k svelte-kr1x1f\">Longest session</span><span class=\"v svelte-kr1x1f\"> </span></div> <div class=\"row svelte-kr1x1f\"><span class=\"k svelte-kr1x1f\">Total lifted</span><span class=\"v svelte-kr1x1f\"> </span></div></div>", 1);
 function jo(e, t) {
 	let n = Ir();
 	j(t, !0);
@@ -3047,8 +3047,10 @@ function jo(e, t) {
 	var p = V(d, 2), m = R(p), h = (e) => {
 		var t = To(), r = z(t);
 		Z(r, 21, () => G(s), (e) => e.id, (e, t) => {
-			var n = Co(), r = B(n, !0);
-			H((e) => Y(r, e), [() => xa(G(t))]), J(e, n);
+			var n = Co(), r = V(R(n)), i = R(r), a = V(i), o = B(a, !0), s = V(a);
+			k(r), k(n), H((e, n) => {
+				Y(i, `${G(t).name ?? ""} · `), Y(o, e), Y(s, ` · ${n ?? ""}`);
+			}, [() => xa(G(t)), () => aa(G(t).date)]), J(e, n);
 		}), k(r);
 		var i = V(r, 2), c = (e) => {
 			var t = wo(), r = B(t, !0);

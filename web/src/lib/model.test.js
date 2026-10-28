@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { counts, goals, ringFractions, stepsLine, togetherLine, rewardLine, levelProgress, weekLabel, staleSince, feedRow, planBar, layout, shortDate, pendingDone, PENDING_MS, serial, shoeRow, goalsDraft, clampGoal, isoWeek, goalsDone, withPendingGoals, weekBars, localDay, stepsSummary, liftLine, recentLifts, allLifts, paceText, recordKeys } from "./model.js";
+import { counts, goals, ringFractions, stepsLine, togetherLine, rewardLine, levelProgress, weekLabel, staleSince, feedRow, planBar, layout, shortDate, pendingDone, PENDING_MS, serial, shoeRow, goalsDraft, clampGoal, isoWeek, goalsDone, withPendingGoals, weekBars, localDay, stepsSummary, liftSet, liftLine, recentLifts, allLifts, paceText, recordKeys } from "./model.js";
 
 const week = { runs: 1, workouts: 2, active_days: 3, bonus: 1, goal: { runs: 2, workouts: 2, active_days: 4, steps: 10000 }, days_left: 3, week: "2026-W44" };
 
@@ -327,6 +327,11 @@ const lifts = [
   { id: "5", name: "Curl", w: 12.5, r: 10, unit: "kg", date: "2026-09-10", key: "lift:5" },
   { id: "6", name: "Overhead press", w: 30, r: 6, unit: "kg", date: "2026-09-01", key: "lift:6" },
 ];
+
+test("liftSet: weight, unit and reps, the part the page sets in bold", () => {
+  assert.equal(liftSet(lifts[0]), "40 kg × 8");
+  assert.equal(liftSet(lifts[1]), "22.5 lb × 5");
+});
 
 test("liftLine: name, weight without a trailing .0, reps, day and short month", () => {
   assert.equal(liftLine(lifts[0]), "Barbell row · 40 kg × 8 · 12 Oct");

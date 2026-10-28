@@ -215,7 +215,8 @@ export function stepsSummary(bars) {
 }
 
 // "Barbell row · 40 kg × 8 · 12 Oct"
-export const liftLine = (l) => `${l.name} · ${l.w} ${l.unit} × ${l.r} · ${shortDate(l.date)}`;
+export const liftSet = (l) => `${l.w} ${l.unit} × ${l.r}`;
+export const liftLine = (l) => `${l.name} · ${liftSet(l)} · ${shortDate(l.date)}`;
 export const recentLifts = (lifts, n = 5) => (lifts ?? []).slice(0, n); // fitbridge sends them newest first
 export const allLifts = (lifts) => [...(lifts ?? [])].sort((a, b) => a.name.localeCompare(b.name));
 export const paceText = (seconds) => `${Math.floor(seconds / 60)}:${pad(seconds % 60)}`;
