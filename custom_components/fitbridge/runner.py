@@ -1,4 +1,5 @@
-"""fitbridge's engine inside HA: the 5 min scoring cycle and the 60 s folder scan, in the executor, never overlapping."""
+"""fitbridge's engine inside HA: the 5 min scoring cycle, the 60 s folder scan and webhook uploads, in the executor,
+never overlapping."""
 import asyncio
 import json
 import logging
@@ -16,10 +17,10 @@ from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.start import async_at_started
 from homeassistant.util import dt as dt_util
 
-from .const import DATA_DIR, DOMAIN, OPENGYM_TOKEN, OPT_OPENGYM_UIDS, OPT_OPENGYM_URL, OPT_SHADOW, SIGNAL_SCORES
+from .const import DATA_DIR, DOMAIN, OPENGYM_TOKEN, OPT_FOLDERS, OPT_OPENGYM_UIDS, OPT_OPENGYM_URL, OPT_SHADOW, SIGNAL_SCORES
 from .engine import manual
 from .engine.cycle import ConfigHolder, Inputs, score_cycle
-from .engine.ingest import scan_folder
+from .engine.ingest import ingest_body, scan_folder
 from .engine.opengym import OpenGym
 from .engine.store import Store
 
@@ -41,11 +42,12 @@ class Runner:
         self.shadow: bool = entry.options.get(OPT_SHADOW, False)
         self.live: bool = not self.shadow  # entities and announcements; set before async_start
         self.dir = Path(hass.config.path(DATA_DIR))
-        self.folders: dict[str, Path] = {}  # person -> watch folder, scanned every minute (Task 6 fills it)
+        self.folders: dict[str, Path] = {p: Path(f) for p, f in entry.options.get(OPT_FOLDERS, {}).items()}  # scanned every minute
         self.store: Store | None = None
         self.holder: ConfigHolder | None = None
         self.scores: dict | None = None
         self._lock = asyncio.Lock()
+        self._scoring = 0  # cycles running or waiting for the lock
         self._unsubs: list = []
 
     async def async_start(self) -> None:
@@ -63,11 +65,39 @@ class Runner:
             store, self.store = self.store, None
             if store is not None:
                 await self.hass.async_add_executor_job(store.db.close)
+        for person in self.folders:  # the next runner raises them again if still missing, not for a folder dropped
+            ir.async_delete_issue(self.hass, DOMAIN, f"folder_missing_{person}")
 
     async def async_score_now(self) -> None:
         """One cycle now, after the one still running."""
+        self._scoring += 1
+        try:
+            async with self._lock:
+                await self._score()
+        finally:
+            self._scoring -= 1
+
+    async def async_people(self) -> dict:
+        """scoring.toml's people (its last good config): webhooks, watch folders and openGym users go by them."""
+        config, _ = await self.hass.async_add_executor_job(self.holder.get)  # racing a cycle's get() only loads it twice
+        return config["people"] if config else {}
+
+    async def async_ingest(self, person: str, body: bytes) -> dict | None:
+        """A webhook body stored (engine.ingest.ingest_body's reply, Unreadable for junk), then scored when it brought
+        something new; None when stopped."""
         async with self._lock:
-            await self._score()
+            if self.store is None:
+                return None
+            reply = await self.hass.async_add_executor_job(ingest_body, self.store, self.dir / "archive", person, body)
+        if reply["new"]:  # the phone gets its answer without waiting for the cycle
+            self.entry.async_create_background_task(self.hass, self.async_score_now(), "fitbridge score")
+        return reply
+
+    async def async_pair(self, token: str) -> None:
+        """A new openGym token: after the running cycle, whose renewal of the old token must land first, never after."""
+        async with self._lock:
+            self._store_token(token)
+        ir.async_delete_issue(self.hass, DOMAIN, ISSUE_TOKEN)
 
     async def async_manual(self, msg: dict) -> None:
         """One remove / restore / add (engine.manual), then a cycle. ValueError (short reason) when it is invalid."""
@@ -76,7 +106,7 @@ class Runner:
             await self._score()
 
     async def _score_tick(self, _now=None) -> None:
-        if not self._lock.locked():  # a cycle still running: this tick is skipped, not queued
+        if not self._scoring:  # a cycle still running (or queued): this tick is skipped; a scan or upload only delays it
             await self.async_score_now()
 
     async def _scan_tick(self, _now) -> None:
@@ -86,9 +116,18 @@ class Runner:
             if self.store is None:
                 return
             try:
-                await self.hass.async_add_executor_job(self._scan)
+                missing = await self.hass.async_add_executor_job(self._scan)
             except Exception as err:  # a failing scan never stops the timer
                 _LOGGER.error("Folder scan failed: %s", type(err).__name__)
+                return
+        for person, folder in self.folders.items():
+            issue = f"folder_missing_{person}"
+            if person in missing:
+                ir.async_create_issue(self.hass, DOMAIN, issue, is_fixable=False, severity=ir.IssueSeverity.WARNING,
+                                      translation_key="folder_missing",
+                                      translation_placeholders={"person": person, "folder": str(folder)})
+            else:
+                ir.async_delete_issue(self.hass, DOMAIN, issue)
 
     async def _score(self) -> None:
         data = self.hass.data.get(DOMAIN)
@@ -168,9 +207,13 @@ class Runner:
             (self.dir / "shadow-scores.json").write_text(json.dumps(cycle.scores, indent=2, sort_keys=True), encoding="utf-8")
         return cycle
 
-    def _scan(self) -> None:
+    def _scan(self) -> set[str]:
+        """Scans each person's folder; returns the people whose folder is not there."""
+        missing = {p for p, folder in self.folders.items() if not Path(folder).is_dir()}
         for person, folder in self.folders.items():
-            scan_folder(self.store, self.dir / "archive", person, Path(folder))
+            if person not in missing:
+                scan_folder(self.store, self.dir / "archive", person, Path(folder))
+        return missing
 
     def _manual(self, msg: dict) -> None:
         config, _ = self.holder.get()

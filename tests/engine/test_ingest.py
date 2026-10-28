@@ -174,6 +174,29 @@ class FlowTests(unittest.TestCase):
             with self.subTest(body=body), self.assertRaises((ValueError, KeyError, zipfile.BadZipFile)):
                 ingest.ingest_export(self.store, self.archive, P1, body)
 
+    def test_ingest_body_takes_each_path_and_strips_a_bom(self):
+        bare = json.dumps({"workouts": [hex_workout("C")]}).encode()
+        self.assertEqual(ingest.ingest_body(self.store, self.archive, P1, hex_zip([hex_workout("A")])), {"workouts": 1, "new": 1})
+        self.assertEqual(ingest.ingest_body(self.store, self.archive, P1, b"\xef\xbb\xbf" + bare), {"workouts": 1, "new": 1})
+        self.assertEqual(ingest.ingest_body(self.store, self.archive, P0, b"\xef\xbb\xbf" + gpx_with_points()), {"new": True})
+        self.assertEqual(ingest.ingest_body(self.store, self.archive, P0, gpx_with_points()), {"new": False})
+        self.assertEqual(self.store.counts(), {P0: {"stored": 1}, P1: {"archived": 2}})
+
+    def test_unusable_bodies_raise_unreadable_and_store_nothing(self):
+        no_json = io.BytesIO()
+        with zipfile.ZipFile(no_json, "w") as z:
+            z.writestr("readme.txt", "no export here")
+        array_zip = io.BytesIO()
+        with zipfile.ZipFile(array_zip, "w") as z:
+            z.writestr("x/x.json", "[1, 2]")
+        for body in (b"junk", b"[{\"uuid\": \"A\"}]", b"{}", b'{"workouts": [1]}', b'{"workouts": "x"}',
+                     b'{"workouts": [{"uuid": "A", "statistics": 5}]}', no_json.getvalue(), array_zip.getvalue(),
+                     b"<gpx><trk>", b'<gpx xmlns="http://www.topografix.com/GPX/1/1"><trk><trkseg><trkpt lat="x" lon="5"/></trkseg></trk></gpx>', b"{"):
+            with self.subTest(body=body[:30]), self.assertRaises(ingest.Unreadable):
+                ingest.ingest_body(self.store, self.archive, P1, body)
+        self.assertEqual(self.store.all_rows(), [])
+        self.assertFalse(self.archive.exists())  # nothing written, not even the raw body
+
     def route_export(self, with_gpx=True, gpx=None, **fields):
         w = dict(hex_workout("R", "running"), routeFile="routes/running-2026-10-23-r.gpx", **fields)
         extra = {"routes/running-2026-10-23-r.gpx": gpx or gpx_with_points()} if with_gpx else None

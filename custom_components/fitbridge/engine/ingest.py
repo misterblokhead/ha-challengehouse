@@ -18,6 +18,11 @@ MAX_BODY = 200 * 1024 * 1024
 GPX_NS = "{http://www.topografix.com/GPX/1/1}"
 HK = "HKQuantityTypeIdentifier"
 ROUTE_TYPES = {"running", "walking", "hiking"}  # HealthKit activityType names that carry a route
+BOM = b"\xef\xbb\xbf"
+
+
+class Unreadable(ValueError):
+    """A body that is no Health Exporter export or GPX file; its message is the parse error's class name only."""
 
 
 def seconds_between(start, end):
@@ -91,7 +96,10 @@ def parse_hex_export(body: bytes):
                     gpx[Path(info.filename).name] = z.read(info)
     else:
         docs.append(json.loads(body))
-    workouts = [map_hex_workout(w) for d in docs for w in (d.get("workouts") or []) if w.get("uuid")]
+    if not docs or not all(isinstance(d, dict) and isinstance(d.get("workouts"), list)
+                           and all(isinstance(w, dict) for w in d["workouts"]) for d in docs):
+        raise ValueError("not a Health Exporter export")
+    workouts = [map_hex_workout(w) for d in docs for w in d["workouts"] if w.get("uuid")]
     return workouts, gpx
 
 
@@ -99,7 +107,7 @@ def detect(body: bytes):
     """Which path a webhook body takes: "hex" (Health Exporter ZIP or bare JSON export), "gpx" (a GPX file) or None."""
     if zipfile.is_zipfile(io.BytesIO(body)):
         return "hex"
-    head = body[:4096].lstrip()
+    head = body[:4096].removeprefix(BOM).lstrip()
     if head.startswith(b"{"):
         return "hex"
     if head.startswith(b"<") and b"<gpx" in head:
@@ -109,10 +117,30 @@ def detect(body: bytes):
 
 # ---------- workouts in ----------
 
+def _parsed(parse, data):
+    """parse(data), or Unreadable naming only the error's class: nothing is written for a body that cannot be read."""
+    try:
+        return parse(data)
+    except Exception as e:
+        raise Unreadable(type(e).__name__) from e
+
+
+def ingest_body(store, archive: Path, person: str, body: bytes) -> dict:
+    """A webhook body by its kind: {"workouts": total, "new": new} for an export, {"new": bool} for a GPX file.
+    Raises Unreadable for anything else."""
+    kind = detect(body)
+    if kind == "hex":
+        total, new = ingest_export(store, archive, person, body)
+        return {"workouts": total, "new": new}
+    if kind == "gpx":
+        return {"new": ingest_gpx(store, archive, person, body)}
+    raise Unreadable("unknown body")
+
+
 def ingest_gpx(store, archive: Path, person: str, data: bytes) -> bool:
     """One OpenTracks GPX, archived under its trackid (or content hash) and stored once; True when it is new.
-    Raises the parse error for a file that cannot be read."""
-    info = parse_gpx(data)
+    Raises Unreadable for a file that cannot be read."""
+    info = _parsed(parse_gpx, data)
     key = info.pop("trackid") or "sha256:" + hashlib.sha256(data).hexdigest()
     (archive / person).mkdir(parents=True, exist_ok=True)
     target = archive / person / f"{key.replace(':', '_')}.gpx"
@@ -139,12 +167,13 @@ def scan_folder(store, archive: Path, person: str, folder: Path):
 
 
 def ingest_export(store, archive: Path, person: str, body: bytes):
-    """Archive a raw export under archive/<person>/ and record its workouts. Returns (total, new)."""
+    """Archive a raw export under archive/<person>/ and record its workouts. Returns (total, new).
+    Raises Unreadable, before anything is written, for a body that is no usable export."""
+    workouts, gpx = _parsed(parse_hex_export, body)
     inbox = archive / person
     inbox.mkdir(parents=True, exist_ok=True)
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%f")
     (inbox / f"export-{stamp}.body").write_bytes(body)
-    workouts, gpx = parse_hex_export(body)
     for name, data in gpx.items():
         (inbox / "gpx").mkdir(exist_ok=True)
         if not (inbox / "gpx" / name).exists():  # same name = same route; never rewrite a stored one

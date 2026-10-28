@@ -15,7 +15,7 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.storage import Store
 
-from . import settings
+from . import settings, webhooks
 from .const import DOMAIN, OPT_SHADOW, SCORES_TOPIC
 from .core import parse_scores
 from .engine.entities import EVENTS, GROUP_SENSORS, PERSON_SENSORS
@@ -114,13 +114,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await data.runner.async_start()
     entry.async_on_unload(data.runner.async_stop)
     await async_register_http(hass)
-    await async_register_panel(hass)  # last: a failed setup is not unloaded
+    await async_register_panel(hass)
+    webhooks.async_setup(hass, entry, await data.runner.async_people())  # last: a failed setup is not unloaded
     return True
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if not await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
         return False
+    webhooks.async_unregister(hass, entry)
     remove_panel(hass)
     hass.data.pop(DOMAIN, None)
     return True
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    await webhooks.async_remove(hass, entry)

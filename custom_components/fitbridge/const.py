@@ -16,3 +16,5 @@ OPT_OPENGYM_URL = "opengym_url"
 OPT_OPENGYM_UIDS = "opengym_uids"
 OPENGYM_TOKEN = "opengym_token"  # in entry.data
 SIGNAL_SCORES = "fitbridge_scores"
+OPT_FOLDERS = "folders"  # person -> watch folder
+WEBHOOKS = "webhooks"  # in entry.data: person -> webhook id

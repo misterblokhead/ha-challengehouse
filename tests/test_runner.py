@@ -1,4 +1,5 @@
 """The runner: fitbridge's scoring cycle inside HA (synthetic data only)."""
+import asyncio
 import dataclasses
 import json
 import sqlite3
@@ -86,15 +87,28 @@ async def test_a_cycle_still_running_skips_the_tick(hass, setup, cycles, tmp_pat
     runner = _runner(hass)
     runner.folders = {"p1": tmp_path}
     with patch.object(runner_mod, "scan_folder") as scan:
-        await runner._lock.acquire()  # a cycle still running
+        runner._scoring += 1  # a cycle still running
+        await runner._lock.acquire()
         await _tick(hass, 301)
         runner._lock.release()
+        runner._scoring -= 1
         assert cycles.call_count == 1 and scan.call_count == 0  # skipped, not queued
         await hass.async_block_till_done(wait_background_tasks=True)
         assert cycles.call_count == 1
-        await _tick(hass, 61)  # alone: due together, either tick may take the lock first and skip the other
-        assert scan.call_count == 1 and cycles.call_count == 1
-        await _tick(hass, 301)
+        await _tick(hass, 301)  # the scan due too may take the lock first: the score then waits, it is not skipped
+    assert cycles.call_count == 2
+
+
+async def test_a_scan_or_upload_in_progress_delays_the_score_tick_but_never_skips_it(hass, setup, cycles):
+    await setup()
+    runner = _runner(hass)
+    await runner._lock.acquire()  # a folder scan or a webhook upload, not a cycle
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=301))
+    for _ in range(5):
+        await asyncio.sleep(0)
+    assert cycles.call_count == 1
+    runner._lock.release()
+    await hass.async_block_till_done(wait_background_tasks=True)
     assert cycles.call_count == 2
 
 

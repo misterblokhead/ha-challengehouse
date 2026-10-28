@@ -13,6 +13,15 @@
   "options": {
     "step": {
       "init": {
+        "title": "Fitness",
+        "menu_options": {
+          "viewers": "Who is who, shoes and step sensors",
+          "opengym": "Pair with openGym",
+          "people": "openGym users",
+          "inputs": "Webhooks and watch folders"
+        }
+      },
+      "viewers": {
         "title": "Who is who",
         "description": "Pick the fitbridge person for each Home Assistant user. Users set to Nobody see the household read-only."
       },
@@ -27,10 +36,33 @@
       "steps": {
         "title": "Step sensors",
         "description": "Pick each person's daily steps sensor, for example from the phone's companion app. Leave it empty for no steps."
+      },
+      "opengym": {
+        "title": "Pair with openGym",
+        "description": "Enter openGym's address and a pairing code made in openGym's admin settings. Fitness exchanges the code for a token and keeps renewing it.",
+        "data": {
+          "opengym_url": "openGym address",
+          "code": "Pairing code"
+        }
+      },
+      "people": {
+        "title": "openGym users",
+        "description": "Pick each person's openGym user; their gym sessions count as workouts. Leave Nobody for a person without openGym."
+      },
+      "inputs": {
+        "title": "Webhooks and watch folders",
+        "description": "Each person's phone posts workouts to their own webhook: a Health Exporter export (ZIP or JSON) or an OpenTracks GPX file as the request body.\n\n{urls}\n\nOptionally, give a person a folder (for example under /share or /media) that is scanned for GPX files every minute. Leave it empty for none."
       }
     },
     "abort": {
-      "waiting_for_fitbridge": "Waiting for fitbridge: no scores have arrived over MQTT yet. Try again once fitbridge has published."
+      "waiting_for_fitbridge": "Waiting for fitbridge: no scores have arrived over MQTT yet. Try again once fitbridge has published.",
+      "not_paired": "Pair with openGym first.",
+      "cannot_connect": "openGym could not be reached, or it rejected the token. Pair with openGym again if this persists."
+    },
+    "error": {
+      "invalid_code": "openGym did not accept this pairing code. Codes are 4 to 16 letters and digits; make a new one in openGym if it expired.",
+      "cannot_connect": "openGym could not be reached at this address.",
+      "folder_missing": "This folder does not exist. Give its full path, for example /share/opentracks."
     }
   },
   "issues": {
@@ -41,6 +73,10 @@
     "old_entities": {
       "title": "Old fitness entities are in the way",
       "description": "Fitness is not in shadow mode, but another integration (MQTT, from fitbridge on the LXC) still has entity ids the fitness sensors and events need, such as the sensor.fit_… sensors or event.fit_record_set. Until they are gone, Fitness scores for its page but creates no entities and announces nothing. Stop the LXC's fitbridge so it clears its MQTT entities (or delete them), then reload Fitness."
+    },
+    "folder_missing": {
+      "title": "Watch folder for {person} is missing",
+      "description": "Fitness cannot find {folder}, the watch folder for {person}, so it is not scanned. Other inputs go on. Restore the folder, or change or clear it in the Fitness options (Webhooks and watch folders)."
     }
   },
   "services": {
