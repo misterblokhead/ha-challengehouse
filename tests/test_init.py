@@ -1,4 +1,6 @@
+import hashlib
 import logging
+from pathlib import Path
 
 from conftest import SCORES
 from homeassistant.components import frontend
@@ -20,7 +22,8 @@ async def test_valid_payload_is_kept_and_invalid_ignored(hass, entry, send, capl
 async def test_panel_registered_and_removed_on_unload(hass, entry, send):
     panel = hass.data[frontend.DATA_PANELS]["fitness"]
     assert panel.sidebar_title == "Fitness" and panel.sidebar_icon == "mdi:run" and panel.require_admin is False
-    assert panel.config["_panel_custom"]["module_url"] == "/fitbridge_static/panel.js?v=0.4.2"
+    built = Path(__file__).parents[1] / "custom_components" / "fitbridge" / "frontend" / "panel.js"
+    assert panel.config["_panel_custom"]["module_url"] == f"/fitbridge_static/panel.js?v={hashlib.sha256(built.read_bytes()).hexdigest()[:10]}"
     await hass.config_entries.async_unload(entry.entry_id)
     assert "fitness" not in hass.data[frontend.DATA_PANELS] and DOMAIN not in hass.data
     await send(SCORES)  # unsubscribed: nothing to keep it in
