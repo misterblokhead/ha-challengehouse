@@ -1,3 +1,4 @@
+import logging
 import re
 from pathlib import Path
 
@@ -30,6 +31,7 @@ from .const import (
     WEBHOOKS,
 )
 
+_LOGGER = logging.getLogger(__name__)
 CODE = re.compile(r"[A-Za-z0-9]{4,16}")  # as opengym-pair.sh checked it
 GYM_TIMEOUT = aiohttp.ClientTimeout(total=30)
 
@@ -111,18 +113,22 @@ class FitbridgeOptionsFlow(config_entries.OptionsFlowWithReload):
                     async with async_get_clientsession(self.hass).post(
                             f"{url}/api/pair/redeem", json={"code": code}, timeout=GYM_TIMEOUT) as resp:
                         reply = await resp.json(content_type=None)  # an unknown code comes with an error status
-                except (aiohttp.ClientError, TimeoutError, ValueError):
+                except (aiohttp.ClientError, TimeoutError, ValueError) as err:
+                    # the message names host and cause (DNS, TLS, refused); the code travels in the body, never in it
+                    _LOGGER.warning("Pairing with openGym at %s failed: %s: %s", url, type(err).__name__, err)
                     errors["base"] = "cannot_connect"
                 else:
                     token = reply.get("token") if isinstance(reply, dict) else None
                     if isinstance(token, str) and token:
                         await self.hass.data[DOMAIN].runner.async_pair(token)
                         return self.async_create_entry(data={**self.config_entry.options, OPT_OPENGYM_URL: url})
+                    if not isinstance(reply, dict):
+                        _LOGGER.warning("Pairing with openGym at %s failed: HTTP %s without a JSON object", url, resp.status)
                     errors["base"] = "invalid_code" if isinstance(reply, dict) else "cannot_connect"
         schema = vol.Schema({vol.Required(OPT_OPENGYM_URL): TextSelector(TextSelectorConfig(type=TextSelectorType.URL)),
                              vol.Required("code"): TextSelector()})
         return self.async_show_form(step_id="opengym", errors=errors, data_schema=self.add_suggested_values_to_schema(
-            schema, {OPT_OPENGYM_URL: self.config_entry.options.get(OPT_OPENGYM_URL)}))
+            schema, {OPT_OPENGYM_URL: (user_input or {}).get(OPT_OPENGYM_URL) or self.config_entry.options.get(OPT_OPENGYM_URL)}))
 
     async def async_step_people(self, user_input=None):
         """Each person's openGym user, from the paired openGym's user list."""
