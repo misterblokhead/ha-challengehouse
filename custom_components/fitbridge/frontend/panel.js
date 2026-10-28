@@ -3616,7 +3616,7 @@ function bs(e, t) {
 		};
 	});
 	var C = { close: b }, w = ys();
-	wr("keydown", nn, (e) => e.key === "Escape" && b());
+	wr("keydown", nn, (e) => e.key === "Escape" && !document.querySelector("dialog[open]") && b());
 	var te = R(w);
 	let ne, re;
 	var ie = B(te, 2);
