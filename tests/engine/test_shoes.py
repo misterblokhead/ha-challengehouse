@@ -65,6 +65,17 @@ class ShoeTests(unittest.TestCase):
         shoes.move_run(self.store, P0, "r2", b)
         self.assertEqual([(r["name"], r["km"], r["runs"]) for r in self.rows()], [("A", 5.0, 1), ("B", 4.0, 1)])
 
+    def test_assigned_maps_each_run_to_its_shoe_including_retired(self):
+        a, b = shoes.add(self.store, P0, "A", 600), shoes.add(self.store, P0, "B", 600)
+        shoes.set_current(self.store, P0, a)
+        self.workout("r1")
+        self.workout("r2", day="2026-10-21")
+        self.assign()
+        shoes.move_run(self.store, P0, "r2", b)
+        shoes.update(self.store, a, retired=True)
+        self.assertEqual(shoes.assigned(self.store, P0), {"r1": a, "r2": b})
+        self.assertEqual(shoes.assigned(self.store, P1), {})
+
     def test_changing_current_shoe_leaves_older_runs(self):
         a, b = shoes.add(self.store, P0, "A", 600), shoes.add(self.store, P0, "B", 600)
         shoes.set_current(self.store, P0, a)
@@ -189,6 +200,7 @@ class ShoeCycleTests(unittest.TestCase):
             self.assertEqual(c.scores["people"][P0]["shoes"],
                              [{"id": a, "name": "A", "km": 6.0, "limit": 600, "runs": 1, "last_run": "2026-10-27", "current": True}])
             self.assertEqual(c.scores["people"][P1]["shoes"], [])
+            self.assertEqual((c.scores["people"][P0]["run_shoes"], c.scores["people"][P1]["run_shoes"]), ({"r1": a}, {}))
 
 
 if __name__ == "__main__":

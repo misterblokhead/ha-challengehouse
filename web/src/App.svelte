@@ -1,6 +1,6 @@
 <script>
   import { tick } from "svelte";
-  import { pendingGoals, settle } from "./lib/actions.svelte.js";
+  import { pendingGoals, refresh, settle } from "./lib/actions.svelte.js";
   import { get } from "./lib/api.js";
   import { layout, weekLabel, withPendingGoals } from "./lib/model.js";
   import Details from "./lib/ui/Details.svelte";
@@ -71,6 +71,10 @@
       clearTimeout(timer);
       document.removeEventListener("visibilitychange", visible);
     };
+  });
+
+  $effect(() => {
+    if (refresh.n) load(); // a shoe change: its new km are in the scores already
   });
 
   const people = $derived(withPendingGoals(data?.people ?? {}, pendingGoals.entry)); // saved goals show until a payload carries them

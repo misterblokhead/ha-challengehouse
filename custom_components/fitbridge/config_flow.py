@@ -9,9 +9,6 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.selector import (
     EntitySelector,
     EntitySelectorConfig,
-    NumberSelector,
-    NumberSelectorConfig,
-    NumberSelectorMode,
     SelectSelector,
     SelectSelectorConfig,
     SelectSelectorMode,
@@ -28,10 +25,8 @@ from .const import (
     OPT_OPENGYM_UIDS,
     OPT_OPENGYM_URL,
     OPT_SHADOW,
-    OPT_SHOES,
     OPT_STEPS,
     OPT_VIEWERS,
-    SHOE_LIMIT_KM,
     WEBHOOKS,
 )
 
@@ -64,7 +59,7 @@ class FitbridgeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
 class FitbridgeOptionsFlow(config_entries.OptionsFlowWithReload):
     """A menu: viewers (which fitbridge person each HA user is, nobody, "", meaning the read-only household view; then
-    each person's Endurain shoes and the km at which each should be replaced, then each person's phone step sensor),
+    each person's phone step sensor),
     the openGym pairing, each person's openGym user, and each person's webhook URL and watch folder."""
 
     async def async_step_init(self, user_input=None):
@@ -79,7 +74,7 @@ class FitbridgeOptionsFlow(config_entries.OptionsFlowWithReload):
         labels = _labels({u.id: u.name or u.id[:6] for u in users}, lambda uid: uid[:6])  # a user may have no name
         if user_input is not None:
             self._viewers = {uid: user_input[label] for uid, label in labels.items() if user_input.get(label)}
-            return await self.async_step_shoes()
+            return await self.async_step_steps()
         people = data.scores["people"]
         viewers = self.config_entry.options.get(OPT_VIEWERS, {})
         select = SelectSelector(SelectSelectorConfig(mode=SelectSelectorMode.DROPDOWN, options=[
@@ -88,35 +83,12 @@ class FitbridgeOptionsFlow(config_entries.OptionsFlowWithReload):
             vol.Optional(label, default=viewers.get(uid) if viewers.get(uid) in people else ""): select
             for uid, label in labels.items()}))
 
-    async def async_step_shoes(self, user_input=None):
-        people = self.hass.data[DOMAIN].scores["people"]
-        labels = _labels({p: str(r.get("name") or p) for p, r in people.items()})
-        if user_input is not None:
-            self._shoes = {p: list(user_input[label]) for p, label in labels.items() if user_input.get(label)}
-            self._limits = {}
-            return await self.async_step_limits() if self._shoes else await self.async_step_steps()
-        old = self.config_entry.options.get(OPT_SHOES, {})
-        select = EntitySelector(EntitySelectorConfig(integration="endurain", domain="sensor", device_class="distance", multiple=True))
-        return self.async_show_form(step_id="shoes", data_schema=vol.Schema({
-            vol.Optional(label, default=list(old.get(p, {}))): select for p, label in labels.items()}))
-
-    async def async_step_limits(self, user_input=None):
-        chosen = dict.fromkeys(e for shoes in self._shoes.values() for e in shoes)
-        labels = _labels({e: (s.attributes.get("nickname") or s.name) if (s := self.hass.states.get(e)) else e for e in chosen})
-        if user_input is not None:
-            self._limits = {p: {e: user_input[labels[e]] for e in shoes} for p, shoes in self._shoes.items()}
-            return await self.async_step_steps()
-        old = {e: km for limits in self.config_entry.options.get(OPT_SHOES, {}).values() for e, km in limits.items()}
-        km = NumberSelector(NumberSelectorConfig(min=50, max=5000, step=10, unit_of_measurement="km", mode=NumberSelectorMode.BOX))
-        return self.async_show_form(step_id="limits", data_schema=vol.Schema({
-            vol.Required(labels[e], default=old.get(e, SHOE_LIMIT_KM)): km for e in chosen}))
-
     async def async_step_steps(self, user_input=None):
         people = self.hass.data[DOMAIN].scores["people"]
         labels = _labels({p: str(r.get("name") or p) for p, r in people.items()})
         if user_input is not None:
             steps = {p: user_input[label] for p, label in labels.items() if user_input.get(label)}
-            return self.async_create_entry(data={**self.config_entry.options, OPT_VIEWERS: self._viewers, OPT_SHOES: self._limits, OPT_STEPS: steps})
+            return self.async_create_entry(data={**self.config_entry.options, OPT_VIEWERS: self._viewers, OPT_STEPS: steps})
         old = self.config_entry.options.get(OPT_STEPS, {})
         select = EntitySelector(EntitySelectorConfig(domain="sensor"))
         return self.async_show_form(step_id="steps", data_schema=vol.Schema({  # a suggestion, not a default: the field can be cleared

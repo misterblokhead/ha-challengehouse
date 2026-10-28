@@ -16,8 +16,9 @@ from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.storage import Store
 
 from . import settings, webhooks
-from .const import DOMAIN, OPT_SHADOW, SCORES_TOPIC
-from .core import parse_scores
+from .const import DOMAIN, OPT_SHADOW, OPT_SHOES, SCORES_TOPIC
+from .core import parse_scores, shoes as endurain_shoes
+from .engine import shoes as shoe_engine
 from .engine.entities import EVENTS, GROUP_SENSORS, PERSON_SENSORS
 from .panel import async_register_http, async_register_panel, remove_panel
 from .runner import Runner
@@ -60,8 +61,25 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
         except ValueError as err:
             raise ServiceValidationError(str(err)) from err
 
+    async def carry_over_shoes(call: ServiceCall) -> None:
+        """Each person's Endurain shoes (the options' entities with their replace-at km, the sensors' km) become fitbridge shoes."""
+        data = hass.data.get(DOMAIN)
+        if data is None or data.runner is None:
+            raise ServiceValidationError("Fitness is not loaded")
+        people = await data.runner.async_people()
+        chosen = {p: limits for p, limits in data.entry.options.get(OPT_SHOES, {}).items() if p in people}
+        states = {e: (s.state, dict(s.attributes)) if (s := hass.states.get(e)) else None for limits in chosen.values() for e in limits}
+        carried = {p: [{"name": r["name"], "replace_at_km": r["limit"], "km": r["km"]}
+                       for r in endurain_shoes(limits, states) if states[r["entity_id"]] is not None]  # a sensor HA lacks has no name
+                   for p, limits in chosen.items()}
+        try:
+            await data.runner.async_shoes(lambda store: [shoe_engine.carry_over(store, p, shoes) for p, shoes in carried.items() if shoes])
+        except ValueError as err:
+            raise ServiceValidationError(str(err)) from err
+
     for name, (_, schema) in ACTIONS.items():
         hass.services.async_register(DOMAIN, name, manual, schema=schema)
+    hass.services.async_register(DOMAIN, "carry_over_shoes", carry_over_shoes, schema=vol.Schema({}))
     return True
 
 

@@ -143,6 +143,40 @@ export function shoeRow(s) {
   };
 }
 
+// Managing shoes (live data only). Limits as the integration validates them: name length [min, max], replace-at km [min, max, step].
+export const SHOE_LIMITS = { name: [1, 40], replace_at_km: [100, 3000, 10] };
+export const SHOE_DEFAULT_KM = 700;
+
+// "Manage" and the run's shoe picker: for who may edit this person, and only with the integration's own shoes (Endurain rows, shown
+// during the shadow run, carry no id). A live person without shoes yet has `run_shoes` ({}), so the first shoe can still be added.
+export const shoesManageable = (p, canEdit) => !!canEdit && (p.run_shoes !== undefined || (p.shoes ?? []).some((s) => s.id != null));
+
+// The form's raw name and km as a POST body's fields, or {error}. `partial`: a field left out (undefined) is skipped (an update of one).
+export function shoeForm(name, km, { partial = false } = {}) {
+  const out = {};
+  if (!(partial && name === undefined)) {
+    const n = String(name ?? "").trim();
+    if (n.length < SHOE_LIMITS.name[0]) return { error: "Give the shoe a name" };
+    if (n.length > SHOE_LIMITS.name[1]) return { error: `A name of at most ${SHOE_LIMITS.name[1]} characters` };
+    out.name = n;
+  }
+  if (!(partial && km === undefined)) {
+    const [lo, hi] = SHOE_LIMITS.replace_at_km;
+    const v = typeof km === "number" ? km : km === null || String(km).trim() === "" ? NaN : Number(km);
+    if (!(v >= lo && v <= hi)) return { error: `Replace at: ${lo} to ${hi} km` }; // NaN fails both
+    out.replace_at_km = v;
+  }
+  return out;
+}
+
+// The run's "Shoe" select: the owner's active shoes (the current one marked) and the one the run is on. `assigned`: the shoe id from
+// `run_shoes`. A run on no shoe, or on one since retired, has none of the options selected and a placeholder `extra` says so.
+export function shoePicker(shoes, assigned) {
+  const options = shoes.map((s) => ({ id: s.id, label: s.current ? `${s.name} (current)` : s.name }));
+  const on = options.some((o) => o.id === assigned);
+  return { value: on ? assigned : "", options, extra: on ? null : assigned == null ? "No shoe" : "Retired shoe" };
+}
+
 // The Goals sheet. Settings limits (as the integration validates them): [min, max, step].
 export const LIMITS = { runs: [0, 7, 1], workouts: [0, 7, 1], active_days: [0, 7, 1], steps: [2000, 30000, 1000], together: [1, 3, 1], team: [1, 42, 1] };
 export const PERSON_GOALS = ["runs", "workouts", "active_days", "steps"];

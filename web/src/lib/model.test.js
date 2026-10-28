@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { counts, goals, ringFractions, stepsLine, togetherLine, rewardLine, levelProgress, weekLabel, staleSince, feedRow, planBar, layout, shortDate, pendingDone, PENDING_MS, serial, shoeRow, goalsDraft, clampGoal, isoWeek, goalsDone, withPendingGoals, weekBars, localDay, stepsSummary, liftSet, liftLine, GROUPS, groupRows, groupedLifts, paceText, recordKeys } from "./model.js";
+import { counts, goals, ringFractions, stepsLine, togetherLine, rewardLine, levelProgress, weekLabel, staleSince, feedRow, planBar, layout, shortDate, pendingDone, PENDING_MS, serial, shoeRow, goalsDraft, clampGoal, isoWeek, goalsDone, withPendingGoals, weekBars, localDay, stepsSummary, liftSet, liftLine, GROUPS, groupRows, groupedLifts, paceText, recordKeys, SHOE_LIMITS, SHOE_DEFAULT_KM, shoesManageable, shoeForm, shoePicker } from "./model.js";
 
 const week = { runs: 1, workouts: 2, active_days: 3, bonus: 1, goal: { runs: 2, workouts: 2, active_days: 4, steps: 10000 }, days_left: 3, week: "2026-W44" };
 
@@ -397,4 +397,54 @@ test("one session holding two lift records: both lifts stay, the key is shared",
   assert.deepEqual(groupedLifts(two)[0].lifts.map((l) => l.id), ["1", "3"]);
   assert.deepEqual([...recordKeys({ lifts: two })], ["lift:1"]);
   assert.equal(new Set(two.map((l) => l.id)).size, 2); // the each-key
+});
+
+// ---------- manage shoes, move a run ----------
+
+const live = [
+  { id: 4, name: "Trail", km: 12, limit: 700, runs: 2, last_run: "2026-10-20", current: false },
+  { id: 7, name: "Road", km: 3, limit: 600, runs: 1, last_run: "2026-10-26", current: true },
+];
+
+test("shoesManageable: only live data (shoe ids, or run_shoes for a person without shoes yet) and only for who may edit", () => {
+  assert.equal(shoesManageable({ shoes: live, run_shoes: {} }, true), true);
+  assert.equal(shoesManageable({ shoes: [], run_shoes: {} }, true), true); // live, no shoes yet: the first one is added in Manage
+  assert.equal(shoesManageable({ shoes: live }, true), true);
+  assert.equal(shoesManageable({ shoes: live, run_shoes: {} }, false), false);
+  assert.equal(shoesManageable({ shoes: [{ entity_id: "sensor.x", name: "Endurain", km: 1, limit: 700 }] }, true), false); // shadow: Endurain rows
+  assert.equal(shoesManageable({ shoes: [] }, true), false);
+  assert.equal(shoesManageable({}, true), false);
+});
+
+test("shoeForm: trimmed name 1-40 characters, replace-at km 100-3000", () => {
+  assert.deepEqual(SHOE_LIMITS, { name: [1, 40], replace_at_km: [100, 3000, 10] });
+  assert.equal(SHOE_DEFAULT_KM, 700);
+  assert.deepEqual(shoeForm("  Trail ", "700"), { name: "Trail", replace_at_km: 700 });
+  assert.deepEqual(shoeForm("x".repeat(40), 3000), { name: "x".repeat(40), replace_at_km: 3000 });
+  assert.deepEqual(shoeForm("A", 100), { name: "A", replace_at_km: 100 });
+  assert.deepEqual(shoeForm("A", "650.5"), { name: "A", replace_at_km: 650.5 });
+  assert.equal(shoeForm("   ", 700).error, "Give the shoe a name");
+  assert.equal(shoeForm("x".repeat(41), 700).error, "A name of at most 40 characters");
+  for (const km of [99, 3001, "", "abc", null, NaN, Infinity]) assert.equal(shoeForm("A", km).error, "Replace at: 100 to 3000 km", String(km));
+  assert.deepEqual(shoeForm(undefined, 700), { error: "Give the shoe a name" });
+});
+
+test("shoeForm: a field left out (an update of only one) is skipped", () => {
+  assert.deepEqual(shoeForm(undefined, 650, { partial: true }), { replace_at_km: 650 });
+  assert.deepEqual(shoeForm("Road", undefined, { partial: true }), { name: "Road" });
+  assert.equal(shoeForm("Road", 50, { partial: true }).error, "Replace at: 100 to 3000 km");
+});
+
+test("shoePicker: the owner's active shoes with the current one marked, the run's shoe selected", () => {
+  assert.deepEqual(shoePicker(live, 4), {
+    value: 4, options: [{ id: 4, label: "Trail" }, { id: 7, label: "Road (current)" }], extra: null,
+  });
+  assert.equal(shoePicker(live, 7).value, 7);
+});
+
+test("shoePicker: a run on no shoe or on a retired one gets a placeholder, never a wrong selection", () => {
+  assert.deepEqual(shoePicker(live, undefined), { value: "", options: shoePicker(live, 4).options, extra: "No shoe" });
+  assert.equal(shoePicker(live, 99).extra, "Retired shoe");
+  assert.equal(shoePicker(live, 99).value, "");
+  assert.deepEqual(shoePicker([], undefined), { value: "", options: [], extra: "No shoe" });
 });

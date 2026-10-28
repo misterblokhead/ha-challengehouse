@@ -105,6 +105,16 @@ class Runner:
             await self.hass.async_add_executor_job(self._manual, msg)
             await self._score()
 
+    async def async_shoes(self, fn):
+        """fn(store) (engine.shoes calls) in the executor, then a cycle so the next scores carry the new km. ValueError
+        (short reason) when invalid; returns what fn returned."""
+        async with self._lock:
+            if self.store is None:
+                raise ValueError("fitness is stopping")
+            result = await self.hass.async_add_executor_job(fn, self.store)
+        await self.async_score_now()
+        return result
+
     async def _score_tick(self, _now=None) -> None:
         if not self._scoring:  # a cycle still running (or queued): this tick is skipped; a scan or upload only delays it
             await self.async_score_now()

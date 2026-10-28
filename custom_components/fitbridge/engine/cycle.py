@@ -188,6 +188,7 @@ def score_cycle(store, holder, og, inputs: Inputs, now, live: bool) -> Cycle:
                             exercise_catalog_cached(og, store, now))
     for p, r in result["people"].items():
         r["shoes"] = shoes.rows(store, p, workouts[p])
+        r["run_shoes"] = shoes.assigned(store, p)
     scores = {**result, "config_error": config_error, "gym_data_as_of": gym_as_of,
               "pauses_as_of": pauses_as_of, "settings_error": settings_error,
               "settings_as_of": settings_as_of, "steps_as_of": steps_as_of, "scored_at": now.isoformat(timespec="seconds")}

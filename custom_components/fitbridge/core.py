@@ -36,7 +36,7 @@ def shape(scores: dict, viewer_person: str | None, is_admin: bool, shoes_by_pers
           steps_by_person: dict[str, int | None] | None = None, steps_week_by_person: dict[str, dict[str, int]] | None = None) -> dict:
     shoes_by_person, steps_by_person, steps_week_by_person = shoes_by_person or {}, steps_by_person or {}, steps_week_by_person or {}
     return {**scores,
-            "people": {p: {**r, "shoes": shoes_by_person.get(p, []), "steps_today": steps_by_person.get(p),
+            "people": {p: {**r, "shoes": shoes_by_person.get(p, r.get("shoes", [])), "steps_today": steps_by_person.get(p),
                            "steps_week": steps_week_by_person.get(p)}
                        for p, r in scores["people"].items()},
             "viewer": {"person": viewer_person,

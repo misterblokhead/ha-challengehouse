@@ -63,8 +63,7 @@ def assign_new(store, person, run_keys):
 
 def _used(store, person, runs):
     """{shoe id: (km, runs, latest start)} over the assigned non-excluded runs."""
-    with store.lock:
-        on = {r["key"]: r["shoe_id"] for r in store.db.execute("SELECT key, shoe_id FROM run_shoes WHERE person=?", (person,))}
+    on = assigned(store, person)
     used = {}
     # the same run recorded by two sources counts once, as in scoring (the kept copy's shoe is the one that counts)
     for w in scoring._dedup([w for w in runs if w["kind"] == "run" and not w["excluded"]]):
@@ -72,6 +71,12 @@ def _used(store, person, runs):
             km, n, last = used.get(on[w["key"]], (0.0, 0, None))
             used[on[w["key"]]] = (km + (w["distance_m"] or 0) / 1000, n + 1, max(last or w["start"], w["start"]))
     return used
+
+
+def assigned(store, person) -> dict:
+    """{run key: shoe id} for the page's "Shoe" picker; a retired shoe's runs are in it too."""
+    with store.lock:
+        return {r["key"]: r["shoe_id"] for r in store.db.execute("SELECT key, shoe_id FROM run_shoes WHERE person=?", (person,))}
 
 
 def rows(store, person, runs):

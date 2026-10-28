@@ -11,7 +11,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import MockUser
 
-from custom_components.fitbridge.const import DOMAIN, OPT_SHOES, OPT_STEPS, OPT_VIEWERS
+from custom_components.fitbridge.const import DOMAIN, OPT_SHADOW, OPT_SHOES, OPT_STEPS, OPT_VIEWERS
 from custom_components.fitbridge.settings import monday_of
 
 UI = "/api/fitbridge/ui"
@@ -256,3 +256,190 @@ async def test_settings_survive_a_reload_and_are_published_at_startup(hass, entr
     await send(SCORES)
     body = await (await (await client("alex")).get(f"{UI}/settings")).json()
     assert body["current"] == {"from": _this_monday(), **SETTINGS}
+
+
+# ---------- shoes (live: the engine's own shoes) ----------
+
+@pytest.fixture
+async def live(hass, setup, hass_client):
+    """A live entry (people person1 and person2 from scoring.toml); clients: person1 (not admin), person2 (admin), robin (admin, unmapped)."""
+    admin, user = await hass.auth.async_get_group(GROUP_ID_ADMIN), await hass.auth.async_get_group(GROUP_ID_USER)
+    made = {"person1": MockUser(name="Person1", groups=[user]), "person2": MockUser(name="Person2", groups=[admin]),
+            "robin": MockUser(name="Robin", groups=[admin])}
+    for u in made.values():
+        u.add_to_hass(hass)
+    await setup({OPT_SHADOW: False, OPT_VIEWERS: {made["person1"].id: "person1", made["person2"].id: "person2"},
+                 OPT_SHOES: {"person1": {"sensor.endurain_trail": 700}}})
+
+    async def _client(name):
+        token = await hass.auth.async_create_refresh_token(made[name], "https://fit.example.test")
+        return await hass_client(hass.auth.async_create_access_token(token))
+    return _client
+
+
+async def _shoes(c, who="person1"):
+    return (await (await c.get(f"{UI}/scores")).json())["people"][who]["shoes"]
+
+
+async def _add(c, person="person1", name="Trail", km=700):
+    resp = await c.post(f"{UI}/shoes", json={"op": "add", "person": person, "name": name, "replace_at_km": km})
+    assert resp.status == 202, await resp.text()
+    return (await resp.json())["id"]
+
+
+def _run(hass, person, key, km, days_ago):
+    start = dt_util.now() - timedelta(days=days_ago)
+    hass.data[DOMAIN].runner.store.add(person, key, "opentracks", "completed", activity_type="running", points=5, distance_m=km * 1000,
+                                       start=start.isoformat(), end=(start + timedelta(minutes=30)).isoformat(), duration_s=1800)
+
+
+async def test_live_scores_carry_the_engines_shoes_not_endurains(hass, live):
+    c = await live("person1")
+    body = await (await c.get(f"{UI}/scores")).json()
+    assert body["people"]["person1"]["shoes"] == [] and body["people"]["person1"]["run_shoes"] == {}  # OPT_SHOES is for the shadow weeks
+    a = await _add(c)
+    assert await _shoes(c) == [{"id": a, "name": "Trail", "km": 0.0, "limit": 700, "runs": 0, "last_run": None, "current": False}]
+    assert await (await c.get(f"{UI}/shoes")).json() == {"person1": await _shoes(c), "person2": []}
+
+
+async def test_shoe_ops_add_update_current_retire(hass, live):
+    c = await live("person1")
+    a, b = await _add(c, name=" Trail "), await _add(c, name="Road", km=500)
+    assert [s["name"] for s in await _shoes(c)] == ["Trail", "Road"]  # trimmed
+    resp = await c.post(f"{UI}/shoes", json={"op": "current", "person": "person1", "id": b})
+    assert resp.status == 202 and [s["current"] for s in await _shoes(c)] == [False, True]
+    resp = await c.post(f"{UI}/shoes", json={"op": "update", "id": a, "name": "Trail 2", "replace_at_km": 650.5})
+    assert resp.status == 202 and [(s["name"], s["limit"]) for s in await _shoes(c)][0] == ("Trail 2", 650.5)
+    resp = await c.post(f"{UI}/shoes", json={"op": "update", "id": a, "replace_at_km": 800})  # one field alone
+    assert resp.status == 202 and (await _shoes(c))[0]["name"] == "Trail 2" and (await _shoes(c))[0]["limit"] == 800
+    resp = await c.post(f"{UI}/shoes", json={"op": "retire", "id": b})
+    assert resp.status == 202 and [s["id"] for s in await _shoes(c)] == [a]
+
+
+async def test_a_shoe_op_scores_before_it_answers(hass, live):
+    c = await live("person1")
+    runner = hass.data[DOMAIN].runner
+    with patch.object(runner, "async_score_now", wraps=runner.async_score_now) as score:
+        await _add(c)
+    score.assert_awaited_once()
+
+
+async def test_shoe_rights_follow_the_shoes_owner(hass, live):
+    person1, person2, robin = await live("person1"), await live("person2"), await live("robin")
+    mine = await _add(person1)
+    theirs = await _add(person2, "person2", "Hers")
+    for who, body, status in (
+        (person1, {"op": "add", "person": "person2", "name": "X", "replace_at_km": 700}, 403),  # partner's, not admin
+        (robin, {"op": "add", "person": "person1", "name": "X", "replace_at_km": 700}, 403),  # admin, but not mapped
+        (person1, {"op": "update", "id": theirs, "name": "X"}, 403),
+        (person1, {"op": "retire", "id": theirs}, 403),
+        (person1, {"op": "current", "person": "person2", "id": theirs}, 403),
+        (robin, {"op": "retire", "id": mine}, 403),
+    ):
+        assert (await who.post(f"{UI}/shoes", json=body)).status == status, body
+    assert [s["name"] for s in await _shoes(person1)] == ["Trail"] and [s["name"] for s in await _shoes(person1, "person2")] == ["Hers"]
+    assert (await person2.post(f"{UI}/shoes", json={"op": "retire", "id": mine})).status == 202  # an admin may edit anyone's
+    assert await _shoes(person1) == []
+
+
+@pytest.mark.parametrize("body,status,detail", [
+    ({"op": "add", "person": "person1", "name": "", "replace_at_km": 700}, 400, "name: 1-40 characters"),
+    ({"op": "add", "person": "person1", "name": "   ", "replace_at_km": 700}, 400, "name: 1-40 characters"),
+    ({"op": "add", "person": "person1", "name": "x" * 41, "replace_at_km": 700}, 400, "name: 1-40 characters"),
+    ({"op": "add", "person": "person1", "name": 5, "replace_at_km": 700}, 400, "name: 1-40 characters"),
+    ({"op": "add", "person": "person1", "name": "x" * 40, "replace_at_km": 99}, 400, "replace_at_km: a number 100-3000"),
+    ({"op": "add", "person": "person1", "name": "x", "replace_at_km": 3001}, 400, "replace_at_km: a number 100-3000"),
+    ({"op": "add", "person": "person1", "name": "x", "replace_at_km": "700"}, 400, "replace_at_km: a number 100-3000"),
+    ({"op": "add", "person": "person1", "name": "x", "replace_at_km": True}, 400, "replace_at_km: a number 100-3000"),
+    ({"op": "add", "person": "person1", "name": "x"}, 400, "replace_at_km: a number 100-3000"),
+    ({"op": "add", "person": "nobody", "name": "x", "replace_at_km": 700}, 400, "person: not a person"),
+    ({"op": "add", "name": "x", "replace_at_km": 700}, 400, "person: not a person"),
+    ({"op": "frobnicate"}, 400, "op: add, update, current or retire"),
+    ({"op": "update", "id": "1", "name": "x"}, 400, "id: a whole number"),
+    ({"op": "update", "id": True, "name": "x"}, 400, "id: a whole number"),
+    ({"op": "update", "id": 1}, 400, "update: name or replace_at_km"),
+    ({"op": "update", "id": 1, "name": ""}, 400, "name: 1-40 characters"),
+    ({"op": "update", "id": 999, "name": "x"}, 404, "no such shoe"),
+    ({"op": "retire", "id": 999}, 404, "no such shoe"),
+    ({"op": "current", "person": "person1", "id": 999}, 400, "no such shoe"),
+    (["add"], 400, "expected an object"),
+])
+async def test_shoe_validation(hass, live, body, status, detail):
+    c = await live("person1")
+    resp = await c.post(f"{UI}/shoes", json=body)
+    assert resp.status == status and await resp.json() == {"detail": detail}
+    assert await _shoes(c) == []
+
+
+async def test_current_takes_only_the_persons_own_shoes(hass, live):
+    person1, person2 = await live("person1"), await live("person2")
+    theirs = await _add(person2, "person2", "Hers")
+    resp = await person1.post(f"{UI}/shoes", json={"op": "current", "person": "person1", "id": theirs})
+    assert resp.status == 400 and await resp.json() == {"detail": "no such shoe"}
+
+
+async def test_moving_a_run_moves_its_km(hass, live):
+    c = await live("person1")
+    a, b = await _add(c, name="A"), await _add(c, name="B")
+    await c.post(f"{UI}/shoes", json={"op": "current", "person": "person1", "id": a})
+    _run(hass, "person1", "r1", 5, 2)
+    await hass.data[DOMAIN].runner.async_score_now()
+    body = await (await c.get(f"{UI}/scores")).json()
+    assert [(s["km"], s["runs"]) for s in body["people"]["person1"]["shoes"]] == [(5.0, 1), (0.0, 0)]
+    assert body["people"]["person1"]["run_shoes"] == {"r1": a}
+    resp = await c.post(f"{UI}/workouts", json={"action": "shoe", "person": "person1", "key": "r1", "shoe_id": b})
+    assert resp.status == 202 and await resp.json() == {"ok": True}
+    body = await (await c.get(f"{UI}/scores")).json()
+    assert [(s["km"], s["runs"]) for s in body["people"]["person1"]["shoes"]] == [(0.0, 0), (5.0, 1)]
+    assert body["people"]["person1"]["run_shoes"] == {"r1": b}
+
+
+async def test_moving_a_run_is_refused_when_it_should(hass, live):
+    person1, person2, robin = await live("person1"), await live("person2"), await live("robin")
+    a, theirs = await _add(person1, name="A"), await _add(person2, "person2", "Hers")
+    _run(hass, "person1", "r1", 5, 2)
+    _run(hass, "person2", "r2", 5, 2)
+    hass.data[DOMAIN].runner.store.add("person1", "w1", "opentracks", "completed", activity_type="walking", points=5, distance_m=3000,
+                                       start=dt_util.now().isoformat(), end=dt_util.now().isoformat(), duration_s=1800)
+    await hass.data[DOMAIN].runner.async_score_now()
+    for who, body, status, detail in (
+        (person1, {"person": "person2", "key": "r2", "shoe_id": theirs}, 403, "not allowed"),  # partner's, not admin
+        (robin, {"person": "person1", "key": "r1", "shoe_id": a}, 403, "not allowed"),
+        (person1, {"person": "person1", "key": "gone", "shoe_id": a}, 404, "not found"),
+        (person1, {"person": "person1", "key": "w1", "shoe_id": a}, 400, "not a run"),
+        (person1, {"person": "person1", "key": "r1", "shoe_id": theirs}, 400, "no such shoe"),  # somebody else's shoe
+        (person1, {"person": "person1", "key": "r1", "shoe_id": True}, 400, "shoe_id: a whole number"),
+        (person1, {"person": "person1", "key": "r1", "shoe_id": "1"}, 400, "shoe_id: a whole number"),
+        (person1, {"person": "person1", "key": "r1"}, 400, "shoe_id: a whole number"),
+        (person1, {"person": "person1", "key": 1, "shoe_id": a}, 400, "expected person, key and shoe_id"),
+    ):
+        resp = await who.post(f"{UI}/workouts", json={"action": "shoe", **body})
+        assert (resp.status, (await resp.json())["detail"]) == (status, detail), body
+    assert (await person2.post(f"{UI}/workouts", json={"action": "shoe", "person": "person2", "key": "r2", "shoe_id": theirs})).status == 202
+
+
+async def test_shoes_are_not_managed_during_shadow(hass, client, send, mqtt_mock):
+    await send(SCORES)  # the shadow entry: the page shows the LXC's scores, the engine's shoes are not what it counts
+    mqtt_mock.async_publish.reset_mock()
+    c = await client("alex")
+    for path, body in (("shoes", {"op": "add", "person": "p1", "name": "X", "replace_at_km": 700}),
+                       ("workouts", {"action": "shoe", "person": "p1", "key": "k1", "shoe_id": 1})):
+        resp = await c.post(f"{UI}/{path}", json=body)
+        assert resp.status == 409 and await resp.json() == {"detail": "shoes are managed after the switch"}
+    mqtt_mock.async_publish.assert_not_called()
+    assert (await c.get(f"{UI}/shoes")).status == 200
+
+
+async def test_carry_over_shoes_takes_the_endurain_shoes_and_their_km(hass, setup):
+    hass.states.async_set("sensor.trail", "412.4", {"nickname": "Trail"})
+    hass.states.async_set("sensor.old", "50", {"nickname": "Old", "active": False})  # retired in Endurain
+    hass.states.async_set("sensor.road", "unavailable", {"friendly_name": "Road"})
+    await setup({OPT_SHADOW: False, OPT_SHOES: {"person1": {"sensor.trail": 700, "sensor.old": 500, "sensor.road": 600, "sensor.gone": 400},
+                                                 "nobody": {"sensor.trail": 700}}})
+    _run(hass, "person1", "r1", 5, 2)
+    for _ in range(2):  # twice: nothing doubles
+        await hass.services.async_call(DOMAIN, "carry_over_shoes", {}, blocking=True)
+        rows = hass.data[DOMAIN].scores["people"]["person1"]["shoes"]
+        assert [(s["name"], s["km"], s["limit"], s["runs"], s["current"]) for s in rows] == [
+            ("Trail", 412.4, 700, 1, True), ("Road", 0.0, 600, 0, False)]
+    assert hass.data[DOMAIN].scores["people"]["person2"]["shoes"] == []

@@ -9,6 +9,9 @@ export const toast = $state({ on: false, text: "", undo: null });
 // Goals saved from the Goals sheet: {entry, at} until a payload's week.goal carries them (goalsDone); the tiles show them meanwhile.
 export const pendingGoals = $state({ entry: null, at: 0 });
 
+// Shoe changes are counted by the integration: after one the page reloads at once (App.svelte watches `refresh.n`).
+export const refresh = $state({ n: 0 });
+
 let hide, seq = 0;
 const sending = {}; // by "person/key": the last send, so an Undo is sent only after its Remove
 export function say(text, undo = null) {
@@ -52,4 +55,31 @@ export async function act(person, key, action) {
     }
     say(e.status === 403 ? "Not allowed" : e.status === 404 ? "Already gone" : "Couldn't reach Home Assistant");
   }
+}
+
+const why = (e) => e.detail ?? (e.status === 403 ? "Not allowed" : e.status === 404 ? "Already gone" : "Couldn't reach Home Assistant");
+
+// A change to a person's shoes (a body for POST shoes: add, update, current, retire); true once the integration took it.
+export async function shoeOp(body) {
+  try {
+    await send("POST", "shoes", body);
+  } catch (e) {
+    say(why(e));
+    return false;
+  }
+  refresh.n++;
+  return true;
+}
+
+// A run moved to another of its owner's shoes; true once the integration took it.
+export async function moveRun(person, key, shoe_id) {
+  try {
+    await send("POST", "workouts", { action: "shoe", person, key, shoe_id });
+  } catch (e) {
+    say(why(e));
+    return false;
+  }
+  refresh.n++;
+  say("Moved to the other shoe");
+  return true;
 }

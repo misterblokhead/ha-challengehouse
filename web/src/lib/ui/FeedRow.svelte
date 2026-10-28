@@ -1,14 +1,15 @@
 <script>
-  import { act, pending } from "../actions.svelte.js";
+  import { act, moveRun, pending } from "../actions.svelte.js";
   import { screen } from "../media.svelte.js";
-  import { feedRow } from "../model.js";
+  import { feedRow, shoePicker } from "../model.js";
   import { animate } from "../motion.js";
   import { createSpring } from "../spring.js";
 
   // One workout of the feed. Tap opens it in place (a height spring, from wherever it is, so a second tap reverses it mid-way):
   // the details, and Remove / Restore / Delete when `canEdit`. A sent change shows at once, dimmed with a spinner
   // until a payload confirms it (actions.svelte.js).
-  let { person, item, canEdit, record } = $props(); // record: this workout holds a personal record
+  // `shoes` (the owner's shoe rows, only when the viewer may move their runs) adds "Shoe: <name> ▾" to a run; `runShoes`: {run key: shoe id}.
+  let { person, item, canEdit, record, shoes = null, runShoes } = $props(); // record: this workout holds a personal record
 
   const ICONS = { run: "🏃", walk: "🚶", gym: "🏋️", home: "🧘", active_day: "👟" };
   const uid = $props.id();
@@ -19,7 +20,8 @@
       .filter(([, v]) => v),
   );
   const deleting = $derived(entry?.want === null);
-  const expandable = $derived(facts.length > 0 || (canEdit && !!row.removable)); // an active day has nothing to open
+  const picker = $derived(shoes && item.kind === "run" ? shoePicker(shoes, runShoes?.[item.key]) : null);
+  const expandable = $derived(facts.length > 0 || (canEdit && !!row.removable) || !!picker?.options.length); // an active day has nothing to open
 
   let open = $state(false);
   let confirming = $state(false);
@@ -41,6 +43,11 @@
     }
     if (!run.running) spring.value = box.offsetHeight; // from what is on screen
     run.to(open ? inner.offsetHeight : 0);
+  }
+
+  async function pick(e) {
+    const select = e.currentTarget;
+    if (!(await moveRun(person, item.key, Number(select.value)))) select.value = String(picker.value); // refused: back to the shoe it is on
   }
 
   const label = { remove: "Remove", restore: "Restore", delete: "Delete" };
@@ -74,6 +81,15 @@
         <dl>
           {#each facts as [k, v] (k)}<div><dt>{k}</dt><dd>{v}</dd></div>{/each}
         </dl>
+      {/if}
+      {#if picker?.options.length}
+        <label class="shoe">
+          Shoe:
+          <select value={picker.value} onchange={pick}>
+            {#if picker.extra}<option value="" disabled>{picker.extra}</option>{/if}
+            {#each picker.options as o (o.id)}<option value={o.id}>{o.label}</option>{/each}
+          </select>
+        </label>
       {/if}
       <div class="acts">
         {#if canEdit && !deleting && row.removable}
@@ -127,6 +143,12 @@
   dl { display: grid; grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr)); gap: 0.5rem 1rem; margin: 0 0 0.75rem; }
   dt { color: var(--muted); font-size: 0.75rem; font-weight: 600; }
   dd { margin: 0; font-weight: 600; }
+  .shoe { display: flex; align-items: center; gap: 0.5rem; margin: 0 0 0.75rem; font-weight: 600; }
+  select {
+    min-height: 2.75rem; max-width: 100%; padding: 0 0.5rem; border: 1px solid var(--line); border-radius: var(--radius-ctl);
+    background: var(--card); color: var(--fg); font: inherit; font-size: 1rem; /* 16 px: iOS does not zoom into it */
+  }
+  select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .acts { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
   .acts:empty { display: none; }
   .danger { color: var(--warn-text); }

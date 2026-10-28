@@ -15,7 +15,7 @@
       "init": {
         "title": "Fitness",
         "menu_options": {
-          "viewers": "Who is who, shoes and step sensors",
+          "viewers": "Who is who and step sensors",
           "opengym": "Pair with openGym",
           "people": "openGym users",
           "inputs": "Webhooks and watch folders"
@@ -24,14 +24,6 @@
       "viewers": {
         "title": "Who is who",
         "description": "Pick the fitbridge person for each Home Assistant user. Users set to Nobody see the household read-only."
-      },
-      "shoes": {
-        "title": "Shoes",
-        "description": "Pick each person's running shoes from Endurain. Shoes retired in Endurain don't show on the page."
-      },
-      "limits": {
-        "title": "Replace at",
-        "description": "The distance at which each shoe should be replaced. The page warns from 90%."
       },
       "steps": {
         "title": "Step sensors",
@@ -137,6 +129,10 @@
           "description": "Indoor, for example on a treadmill."
         }
       }
+    },
+    "carry_over_shoes": {
+      "name": "Carry over shoes",
+      "description": "Copies each person's Endurain shoes (the ones chosen earlier in the options) into Fitness: same name and replace-at distance, each person's earlier runs on their first shoe, and the distance Endurain shows kept. Safe to run twice."
     }
   }
 }

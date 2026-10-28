@@ -499,28 +499,31 @@
       ],
       "shoes": [
         {
-          "entity_id": "sensor.endurain_alex_trail_distance",
+          "id": 1,
           "name": "Trail Runner",
           "km": 412.4,
           "limit": 700,
           "runs": 40,
-          "last_run": "2026-10-26T16:48:53Z"
+          "last_run": "2026-10-26",
+          "current": true
         },
         {
-          "entity_id": "sensor.endurain_alex_road_distance",
+          "id": 2,
           "name": "Road Racer",
           "km": 655,
           "limit": 700,
           "runs": 71,
-          "last_run": "2026-10-21T06:30:00Z"
+          "last_run": "2026-10-21",
+          "current": false
         },
         {
-          "entity_id": "sensor.endurain_alex_old_distance",
+          "id": 3,
           "name": "Old Pair",
           "km": 812.6,
           "limit": 800,
           "runs": 95,
-          "last_run": "2026-09-30T17:00:00Z"
+          "last_run": "2026-09-30",
+          "current": false
         }
       ],
       "steps_today": 6820,
@@ -528,6 +531,11 @@
         "2026-10-26": 12034,
         "2026-10-27": 8412,
         "2026-10-28": 3100
+      },
+      "run_shoes": {
+        "endurain:101": 1,
+        "endurain:98": 1,
+        "endurain:95": 2
       }
     },
     "sam": {
@@ -698,16 +706,20 @@
       ],
       "shoes": [
         {
-          "entity_id": "sensor.endurain_sam_shoes_distance",
+          "id": 4,
           "name": "Everyday Shoes",
-          "km": null,
+          "km": 5.1,
           "limit": 700,
-          "runs": null,
-          "last_run": null
+          "runs": 1,
+          "last_run": "2026-10-20",
+          "current": true
         }
       ],
       "steps_today": null,
-      "steps_week": null
+      "steps_week": null,
+      "run_shoes": {
+        "endurain:201": 4
+      }
     }
   },
   "group": {

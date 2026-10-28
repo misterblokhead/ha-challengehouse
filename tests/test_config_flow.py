@@ -62,45 +62,29 @@ async def test_options_map_users_to_people(hass, entry, send):
     assert sorted(fields) == ["Alex", "Robin (aaaaaa)", "Robin (bbbbbb)", "Sam", "cccccc"]
     result = await hass.config_entries.options.async_configure(
         result["flow_id"], {"Alex": "p1", "Sam": "", "Robin (bbbbbb)": "p2"})
-    assert result["type"] is FlowResultType.FORM and result["step_id"] == "shoes"
+    assert result["type"] is FlowResultType.FORM and result["step_id"] == "steps"  # the shoes steps are gone: shoes are managed on the page
     assert sorted(str(k) for k in result["data_schema"].schema) == ["Alex", "Sam"]  # the payload's people, by name
-    result = await hass.config_entries.options.async_configure(result["flow_id"], {})
-    assert result["type"] is FlowResultType.FORM and result["step_id"] == "steps"  # no shoes: no limits step, still steps
     result = await hass.config_entries.options.async_configure(result["flow_id"], {})
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert entry.options == {OPT_SHADOW: True,  # options the flow does not show are kept
-                             OPT_VIEWERS: {alex.id: "p1", twins[1].id: "p2"}, OPT_SHOES: {}, OPT_STEPS: {}}
+                             OPT_VIEWERS: {alex.id: "p1", twins[1].id: "p2"}, OPT_STEPS: {}}
     assert sam.id not in entry.options[OPT_VIEWERS]
 
 
-async def test_options_shoes_and_their_limits(hass, entry, send):
+async def test_options_keep_the_saved_endurain_shoes_for_the_carry_over(hass, entry, send):
     await send(SCORES)
-    hass.states.async_set("sensor.trail", "12.0", {"nickname": "Trail"})
-    hass.states.async_set("sensor.road", "3.0", {"nickname": "Trail"})  # same nickname: labels get the entity id
-    hass.states.async_set("sensor.nike", "0.0", {"friendly_name": "Nike Distance"})
-    hass.config_entries.async_update_entry(entry, options={OPT_VIEWERS: {}, OPT_SHOES: {"p1": {"sensor.trail": 800}}})
+    shoes = {"p1": {"sensor.trail": 800}}
+    hass.config_entries.async_update_entry(entry, options={OPT_VIEWERS: {}, OPT_SHOES: shoes})
     result = await _open(hass, entry, "viewers")
     result = await hass.config_entries.options.async_configure(result["flow_id"], {})
-    defaults = {str(k): k.default() for k in result["data_schema"].schema}
-    assert defaults == {"Alex": ["sensor.trail"], "Sam": []}  # earlier choices are kept
-    result = await hass.config_entries.options.async_configure(
-        result["flow_id"], {"Alex": ["sensor.trail", "sensor.road"], "Sam": ["sensor.nike"]})
-    assert result["type"] is FlowResultType.FORM and result["step_id"] == "limits"
-    defaults = {str(k): k.default() for k in result["data_schema"].schema}
-    assert defaults == {"Trail (sensor.trail)": 800, "Trail (sensor.road)": 700, "Nike Distance": 700}
-    result = await hass.config_entries.options.async_configure(
-        result["flow_id"], {"Trail (sensor.trail)": 800, "Trail (sensor.road)": 650, "Nike Distance": 700})
-    assert result["type"] is FlowResultType.FORM and result["step_id"] == "steps"
     result = await hass.config_entries.options.async_configure(result["flow_id"], {})
-    assert result["type"] is FlowResultType.CREATE_ENTRY
-    assert entry.options[OPT_SHOES] == {"p1": {"sensor.trail": 800, "sensor.road": 650}, "p2": {"sensor.nike": 700}}
+    assert result["type"] is FlowResultType.CREATE_ENTRY and entry.options[OPT_SHOES] == shoes
 
 
-async def test_options_step_sensors_after_shoes(hass, entry, send):
+async def test_options_step_sensors_after_viewers(hass, entry, send):
     await send(SCORES)
     hass.config_entries.async_update_entry(entry, options={OPT_VIEWERS: {}, OPT_STEPS: {"p2": "sensor.old_steps"}})
     result = await _open(hass, entry, "viewers")
-    result = await hass.config_entries.options.async_configure(result["flow_id"], {})
     result = await hass.config_entries.options.async_configure(result["flow_id"], {})
     assert result["type"] is FlowResultType.FORM and result["step_id"] == "steps"
     assert {str(k): k.description for k in result["data_schema"].schema} == {
