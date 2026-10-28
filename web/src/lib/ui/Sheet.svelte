@@ -108,7 +108,7 @@
   });
 </script>
 
-<svelte:window onkeydown={(e) => e.key === "Escape" && close()} />
+<svelte:window onkeydown={(e) => e.key === "Escape" && !document.querySelector("dialog[open]") && close()} /> <!-- an open modal <dialog> takes the Esc -->
 
 <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions (Esc and the Close button are the keyboard way) -->
 <div class="scrim" class:fade={still} style:opacity={opacity * Math.min(1, Math.max(0, 1 - y / h))} onclick={close} aria-hidden="true"></div>

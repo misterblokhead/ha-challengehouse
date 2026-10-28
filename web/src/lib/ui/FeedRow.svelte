@@ -6,7 +6,7 @@
   import { createSpring } from "../spring.js";
 
   // One workout of the feed. Tap opens it in place (a height spring, from wherever it is, so a second tap reverses it mid-way):
-  // the details, "Open in Endurain", and Remove / Restore / Delete when `canEdit`. A sent change shows at once, dimmed with a spinner
+  // the details, and Remove / Restore / Delete when `canEdit`. A sent change shows at once, dimmed with a spinner
   // until a payload confirms it (actions.svelte.js).
   let { person, item, canEdit, record } = $props(); // record: this workout holds a personal record
 
@@ -19,7 +19,7 @@
       .filter(([, v]) => v),
   );
   const deleting = $derived(entry?.want === null);
-  const expandable = $derived(facts.length > 0 || !!row.detail.url || (canEdit && !!row.removable)); // an active day has nothing to open
+  const expandable = $derived(facts.length > 0 || (canEdit && !!row.removable)); // an active day has nothing to open
 
   let open = $state(false);
   let confirming = $state(false);
@@ -76,7 +76,6 @@
         </dl>
       {/if}
       <div class="acts">
-        {#if row.detail.url}<a class="btn link" href={row.detail.url} target="_blank" rel="noopener noreferrer">Open in Endurain</a>{/if}
         {#if canEdit && !deleting && row.removable}
           {#if confirming}
             <span class="ask">Delete manual entry?</span>
@@ -130,7 +129,6 @@
   dd { margin: 0; font-weight: 600; }
   .acts { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
   .acts:empty { display: none; }
-  .link { display: inline-flex; align-items: center; text-decoration: none; }
   .danger { color: var(--warn-text); }
   .ask { flex-basis: 100%; font-weight: 600; }
   @media (prefers-reduced-motion: reduce) { .spin { animation: none; border-right-color: var(--muted); opacity: 0.6; } }

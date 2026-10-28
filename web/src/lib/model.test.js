@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { counts, goals, ringFractions, stepsLine, togetherLine, rewardLine, levelProgress, weekLabel, staleSince, feedRow, planBar, layout, shortDate, pendingDone, PENDING_MS, serial, shoeRow, goalsDraft, clampGoal, isoWeek, goalsDone, withPendingGoals, weekBars, localDay, stepsSummary, liftSet, liftLine, recentLifts, allLifts, paceText, recordKeys } from "./model.js";
+import { counts, goals, ringFractions, stepsLine, togetherLine, rewardLine, levelProgress, weekLabel, staleSince, feedRow, planBar, layout, shortDate, pendingDone, PENDING_MS, serial, shoeRow, goalsDraft, clampGoal, isoWeek, goalsDone, withPendingGoals, weekBars, localDay, stepsSummary, liftSet, liftLine, GROUPS, groupRows, groupedLifts, paceText, recordKeys } from "./model.js";
 
 const week = { runs: 1, workouts: 2, active_days: 3, bonus: 1, goal: { runs: 2, workouts: 2, active_days: 4, steps: 10000 }, days_left: 3, week: "2026-W44" };
 
@@ -339,11 +339,37 @@ test("liftLine: name, weight without a trailing .0, reps, day and short month", 
   assert.equal(liftLine({ ...lifts[0], w: 40.0, date: "2026-09-03" }), "Barbell row · 40 kg × 8 · 3 Sep");
 });
 
-test("recentLifts: the first n as sent (newest first); allLifts: A-Z by name, input untouched", () => {
-  assert.deepEqual(recentLifts(lifts).map((l) => l.id), ["1", "2", "3", "4", "5"]);
-  assert.deepEqual(recentLifts(lifts, 2).map((l) => l.id), ["1", "2"]);
-  assert.deepEqual(allLifts(lifts).map((l) => l.name), ["Barbell row", "Bench press", "Curl", "Deadlift", "Goblet squat", "Overhead press"]);
-  assert.equal(lifts[0].id, "1");
+const grouped = [
+  { id: "1", name: "Barbell row", group: "Back", sessions: 4, date: "2026-10-12" },
+  { id: "2", name: "Lat pulldown", group: "Back", sessions: 9, date: "2026-09-01" },
+  { id: "3", name: "Bench press", group: "Chest", sessions: 5, date: "2026-10-01" },
+  { id: "4", name: "Incline press", group: "Chest", sessions: 5, date: "2026-10-20" },
+  { id: "5", name: "Fly", group: "Chest", sessions: 5, date: "2026-10-20" },
+  { id: "6", name: "Squat", group: "Legs", sessions: 2, date: "2026-10-05" },
+  { id: "7", name: "Mystery", date: "2026-10-06" },
+];
+
+test("GROUPS: the seven groups, Other last", () => {
+  assert.deepEqual(GROUPS, ["Chest", "Back", "Shoulders", "Arms", "Legs", "Core", "Other"]);
+});
+
+test("groupRows: one row per group with lifts in GROUPS order; its most-done lift (tie: most recent, then A-Z); the count", () => {
+  assert.deepEqual(groupRows(grouped).map((r) => [r.group, r.lift.name, r.count]),
+    [["Chest", "Fly", 3], ["Back", "Lat pulldown", 2], ["Legs", "Squat", 1], ["Other", "Mystery", 1]]);
+});
+
+test("groupRows: a lift without group counts as Other, without sessions as 0; no lifts, no rows", () => {
+  assert.deepEqual(groupRows([{ id: "a", name: "A", date: "2026-10-01" }, { id: "b", name: "B", group: "Core", date: "2026-10-01" }]).map((r) => [r.group, r.lift.id]),
+    [["Core", "b"], ["Other", "a"]]);
+  assert.deepEqual(groupRows([]), []);
+  assert.deepEqual(groupRows(undefined), []);
+});
+
+test("groupedLifts: groups in GROUPS order, lifts A-Z by name, input untouched", () => {
+  assert.deepEqual(groupedLifts(grouped).map((g) => [g.group, g.lifts.map((l) => l.name)]),
+    [["Chest", ["Bench press", "Fly", "Incline press"]], ["Back", ["Barbell row", "Lat pulldown"]], ["Legs", ["Squat"]], ["Other", ["Mystery"]]]);
+  assert.equal(grouped[0].id, "1");
+  assert.deepEqual(groupedLifts(undefined), []);
 });
 
 test("paceText: m:ss", () => {
@@ -360,8 +386,6 @@ test("recordKeys: the keys of the lift records and the fastest 1 km", () => {
 
 test("an older payload without steps_week, pbs.lifts or pbs.fastest_1k never throws", () => {
   assert.equal(weekBars(undefined, undefined, "2026-10-28"), null);
-  assert.deepEqual(recentLifts(undefined), []);
-  assert.deepEqual(allLifts(undefined), []);
   const old = { longest_session_km: 6.2, prs: 2, gym_tonnes: 0 };
   assert.deepEqual([...recordKeys(old)], []);
   assert.deepEqual([...recordKeys({ ...old, lifts: lifts.slice(0, 1) })], ["lift:1"]);
@@ -370,8 +394,7 @@ test("an older payload without steps_week, pbs.lifts or pbs.fastest_1k never thr
 
 test("one session holding two lift records: both lifts stay, the key is shared", () => {
   const two = [lifts[0], { ...lifts[2], key: lifts[0].key }];
-  assert.deepEqual(recentLifts(two).map((l) => l.id), ["1", "3"]);
-  assert.deepEqual(allLifts(two).map((l) => l.id), ["1", "3"]);
+  assert.deepEqual(groupedLifts(two)[0].lifts.map((l) => l.id), ["1", "3"]);
   assert.deepEqual([...recordKeys({ lifts: two })], ["lift:1"]);
   assert.equal(new Set(two.map((l) => l.id)).size, 2); // the each-key
 });
