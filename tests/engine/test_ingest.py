@@ -142,8 +142,9 @@ class FlowTests(unittest.TestCase):
     def test_unreadable_gpx_in_folder_is_retried_when_it_changes(self):
         path = self.sync / "half.gpx"
         path.write_bytes(gpx_with_points()[:200])
-        with self.assertLogs("custom_components.fitbridge", "WARNING"):
+        with self.assertLogs("custom_components.fitbridge", "WARNING") as logs:
             ingest.scan_folder(self.store, self.archive, P0, self.sync)
+        self.assertEqual(logs.output, ["WARNING:custom_components.fitbridge.engine.ingest:unreadable GPX half.gpx: ParseError"])
         self.assertEqual(self.store.counts(), {})
         path.write_bytes(gpx_with_points())  # synced in full: new size
         ingest.scan_folder(self.store, self.archive, P0, self.sync)
@@ -190,7 +191,17 @@ class FlowTests(unittest.TestCase):
         self.assertEqual(ingest.ingest_export(self.store, self.archive, P1, body), (2, 2))
         self.assertEqual(ingest.ingest_export(self.store, self.archive, P1, body), (2, 0))
         self.assertEqual(self.store.counts(), {P1: {"archived": 1, "awaiting_route": 1}})
-        self.assertEqual(len(list((self.archive / P1).glob("export-*.body"))), 2)
+        self.assertEqual(len(list((self.archive / P1).glob("export-*.body"))), 1)  # an exact repeat brings nothing new
+
+    def test_a_zip_expanding_past_32_mb_is_unreadable_and_writes_nothing(self):
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+            z.writestr("x/x.json", json.dumps({"workouts": [hex_workout("A")], "pad": " " * (32 * 1024 * 1024)}))
+        self.assertLess(len(buf.getvalue()), 1024 * 1024)
+        with self.assertRaises(ingest.Unreadable):
+            ingest.ingest_body(self.store, self.archive, P1, buf.getvalue())
+        self.assertEqual(self.store.all_rows(), [])
+        self.assertFalse(self.archive.exists())
 
     def test_unreadable_export_raises(self):
         for body in (b"not a zip", b"{"):
@@ -248,12 +259,19 @@ class FlowTests(unittest.TestCase):
         self.assertEqual(Path(self.store.rows("stored")[0]["file"]).read_bytes(), gpx_with_points())
 
     def test_late_route_attaches_once(self):
+        def bodies():
+            return len(list((self.archive / P1).glob("export-*.body")))
         self.route_export(with_gpx=False)
-        self.assertEqual(self.store.counts(), {P1: {"awaiting_route": 1}})
+        self.assertEqual((self.store.counts(), bodies()), ({P1: {"awaiting_route": 1}}, 1))
         self.route_export()
-        self.assertEqual(self.store.counts(), {P1: {"stored": 1}})
+        self.assertEqual((self.store.counts(), bodies()), ({P1: {"stored": 1}}, 2))  # the route is news: kept
         self.route_export()
-        self.assertEqual(self.store.counts(), {P1: {"stored": 1}})
+        self.assertEqual((self.store.counts(), bodies()), ({P1: {"stored": 1}}, 2))
+
+    def test_an_unreadable_route_is_logged_by_class_only(self):
+        with self.assertLogs("custom_components.fitbridge", "WARNING") as logs:
+            self.route_export(gpx=b"<gpx><trk>")
+        self.assertEqual(logs.output, ["WARNING:custom_components.fitbridge.engine.ingest:unreadable route GPX for R: ParseError"])
 
     def test_late_route_is_logged_and_archived_gpx_never_rewritten(self):
         self.route_export(with_gpx=False)

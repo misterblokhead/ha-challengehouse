@@ -14,7 +14,7 @@ from .scoring_config import HOME_TYPES, KINDS, finite
 
 log = logging.getLogger(__name__)
 
-MAX_BODY = 200 * 1024 * 1024
+MAX_UNZIPPED = 32 * 1024 * 1024  # read into HA's memory from an internet-facing webhook
 GPX_NS = "{http://www.topografix.com/GPX/1/1}"
 HK = "HKQuantityTypeIdentifier"
 ROUTE_TYPES = {"running", "walking", "hiking"}  # HealthKit activityType names that carry a route
@@ -100,9 +100,10 @@ def parse_hex_export(body: bytes):
     docs, gpx = [], {}
     if zipfile.is_zipfile(io.BytesIO(body)):
         with zipfile.ZipFile(io.BytesIO(body)) as z:
-            if sum(i.file_size for i in z.infolist()) > MAX_BODY:
+            wanted = [i for i in z.infolist() if i.filename.endswith((".json", ".gpx"))]
+            if sum(i.file_size for i in wanted) > MAX_UNZIPPED:  # zipfile never reads past an entry's file_size
                 raise ValueError("zip expands too large")
-            for info in z.infolist():
+            for info in wanted:
                 if info.filename.endswith(".json"):
                     docs.append(json.loads(z.read(info)))
                 elif info.filename.endswith(".gpx"):
@@ -178,24 +179,22 @@ def scan_folder(store, archive: Path, person: str, folder: Path):
             ingest_gpx(store, archive, person, data)
         except (ET.ParseError, ValueError, TypeError) as e:
             # shortcut: a half-synced file parses badly; it is retried when mtime/size change
-            log.warning("unreadable GPX %s: %s", path.name, e)
+            log.warning("unreadable GPX %s: %s", path.name, type(e.__cause__ or e).__name__)  # Unreadable: its cause
             continue
         store.mark_seen(path)
 
 
 def ingest_export(store, archive: Path, person: str, body: bytes):
-    """Archive a raw export under archive/<person>/ and record its workouts. Returns (total, new).
-    Raises Unreadable, before anything is written, for a body that is no usable export."""
+    """Record an export's workouts, and archive the raw export under archive/<person>/ when it brought a new workout or
+    route. Returns (total, new). Raises Unreadable, before anything is written, for a body that is no usable export."""
     workouts, gpx = _parsed(parse_hex_export, body)
     inbox = archive / person
     inbox.mkdir(parents=True, exist_ok=True)
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%f")
-    (inbox / f"export-{stamp}.body").write_bytes(body)
     for name, data in gpx.items():
         (inbox / "gpx").mkdir(exist_ok=True)
         if not (inbox / "gpx" / name).exists():  # same name = same route; never rewrite a stored one
             (inbox / "gpx" / name).write_bytes(data)
-    new = 0
+    new = attached = 0
     for w in workouts:
         key, route = w.pop("key"), Path(w.pop("route_file") or "").name
         status, linked = _route_status(w, gpx.get(route), inbox / "gpx" / route, key)
@@ -203,7 +202,11 @@ def ingest_export(store, archive: Path, person: str, body: bytes):
             new += 1
             log.info("%s: %s %s %s (%s)", person, key, w["activity_type"], w["start"], status)
         elif linked and store.attach_route(person, key, status, **linked):
+            attached += 1
             log.info("%s: %s route attached (%s)", person, key, status)
+    if new or attached:  # an exact repeat (a phone retry) is not kept again
+        stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%f")
+        (inbox / f"export-{stamp}.body").write_bytes(body)
     return len(workouts), new
 
 
@@ -218,7 +221,7 @@ def _route_status(w, gpx_data, path, key):
     try:
         points = parse_gpx(gpx_data)["points"]
     except (ET.ParseError, ValueError, TypeError) as e:
-        log.warning("unreadable route GPX for %s: %s", key, e)
+        log.warning("unreadable route GPX for %s: %s", key, type(e).__name__)
         return "awaiting_route", {}
     return ("stored" if points else "skipped_no_gps"), {"file": str(path), "points": points}
 
