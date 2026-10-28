@@ -8,6 +8,44 @@ min_run_min = 10
 min_gym_min = 20
 min_home_min = 15
 
+# Which workout types count. health_exporter: `match` is the exact HealthKit type, lower case. opentracks: `match` is
+# a lower-case substring of the activity type, first hit wins (a run needs GPS points). kind: run | walk | home.
+# min_min defaults to the kind's rules.min_<kind>_min; effort: true applies the effort check. Other types are stored
+# but do not count.
+[types]
+health_exporter = [
+  { match = "running", kind = "run", name = "Run" },
+  { match = "walking", kind = "walk", name = "Walk" },
+  { match = "hiking", kind = "walk", name = "Hike" },
+  { match = "traditionalstrengthtraining", kind = "home", name = "Strength training" },
+  { match = "functionalstrengthtraining", kind = "home", name = "Functional strength" },
+  { match = "highintensityintervaltraining", kind = "home", name = "HIIT" },
+  { match = "coretraining", kind = "home", name = "Core training" },
+  { match = "mixedcardio", kind = "home", name = "Mixed cardio" },
+  { match = "yoga", kind = "home", name = "Yoga" },
+  { match = "pilates", kind = "home", name = "Pilates" },
+  { match = "dance", kind = "home", name = "Dance" },
+  { match = "cardiodance", kind = "home", name = "Cardio dance" },
+  { match = "socialdance", kind = "home", name = "Social dance" },
+  { match = "flexibility", kind = "home", name = "Flexibility" },
+  { match = "cycling", kind = "home", name = "Cycling", min_min = 20, effort = true },
+  { match = "swimming", kind = "home", name = "Swimming", min_min = 20, effort = true },
+  { match = "rowing", kind = "home", name = "Rowing", min_min = 20, effort = true },
+  { match = "elliptical", kind = "home", name = "Elliptical", min_min = 20, effort = true },
+  { match = "stairclimbing", kind = "home", name = "Stair climbing", min_min = 20, effort = true },
+  { match = "stairs", kind = "home", name = "Stairs", min_min = 20, effort = true },
+  { match = "steptraining", kind = "home", name = "Step training", min_min = 20, effort = true },
+]
+opentracks = [
+  { match = "run", kind = "run", name = "Run" },
+  { match = "hardlop", kind = "run", name = "Run" },
+  { match = "walk", kind = "walk", name = "Walk" },
+  { match = "wandel", kind = "walk", name = "Walk" },
+  { match = "bik", kind = "home", name = "Cycling", min_min = 20, effort = true },
+  { match = "cycl", kind = "home", name = "Cycling", min_min = 20, effort = true },
+  { match = "fiets", kind = "home", name = "Cycling", min_min = 20, effort = true },
+]
+
 [goal]
 runs = 2
 workouts = 2

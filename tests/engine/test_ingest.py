@@ -15,6 +15,7 @@ from custom_components.fitbridge.engine.store import Store
 from .test_config import DEFAULT
 
 PEOPLE = tuple(load_config(DEFAULT)["people"])
+TYPES = load_config(DEFAULT)["types"]
 P0, P1 = PEOPLE[0], PEOPLE[-1]
 
 # Same shape as the real empty indoor OpenTracks export of 2026-10-25 (no fix -> empty trkseg)
@@ -114,7 +115,9 @@ class ParseTests(unittest.TestCase):
                 self.assertEqual(ingest.detect(body), want)
 
     def test_classify(self):
-        c = ingest.classify
+        def c(*args):
+            r = ingest.classify(*args, TYPES)
+            return r and r["kind"]
         self.assertEqual(c("opentracks", "Hardlopen", 10), "run")
         self.assertEqual(c("opentracks", "running", 0), None)
         self.assertEqual(c("opentracks", "Wandelen", 10), "walk")
@@ -124,7 +127,7 @@ class ParseTests(unittest.TestCase):
         for t in ("yoga", "HighIntensityIntervalTraining", "functionalStrengthTraining", "cardioDance"):
             self.assertEqual(c("health_exporter", t, []), "home")
         self.assertEqual(c("manual", "home", []), "home")
-        self.assertIsNone(c("health_exporter", "swimming", []))
+        self.assertIsNone(c("health_exporter", "golf", []))
         self.assertEqual(c("manual", "gym", None), "gym")
         self.assertEqual(c("manual", "swim", None), None)
 
@@ -273,7 +276,7 @@ class FlowTests(unittest.TestCase):
         self.assertEqual((row["duration_s"], row["distance_m"], row["avg_hr"], row["indoor"]), (None, None, None, None))
         t = dict(start="2026-10-21T07:00:00+00:00", end="2026-10-21T07:20:00+00:00", activity_type="walking")
         self.store.add(P0, "old", "health_exporter", "archived", duration_s="an hour", distance_m="far", avg_hr="x", **t)
-        out = ingest.db_workouts(self.store, PEOPLE)  # a row stored before the check is harmless too
+        out = ingest.db_workouts(self.store, PEOPLE, TYPES)[0]  # a row stored before the check is harmless too
         self.assertEqual([(x["duration_s"], x["distance_m"], x["avg_hr"]) for x in out[P1] + out[P0]],
                          [(1800.0, None, None), (1200.0, None, None)])
 
@@ -316,7 +319,7 @@ class FlowTests(unittest.TestCase):
         w = dict(hex_workout("W", "walking"), indoor=True)
         ingest.ingest_export(self.store, self.archive, P1, hex_zip([w]))
         self.assertEqual(counts(self.store), {P1: {"no_route": 1}})
-        self.assertEqual([x["kind"] for x in ingest.db_workouts(self.store, PEOPLE)[P1]], ["walk"])
+        self.assertEqual([x["kind"] for x in ingest.db_workouts(self.store, PEOPLE, TYPES)[0][P1]], ["walk"])
 
     def test_route_without_points_is_skipped(self):
         self.route_export(gpx=EMPTY_GPX)
@@ -325,10 +328,10 @@ class FlowTests(unittest.TestCase):
     def test_db_workouts_keys_rows_and_skips(self):
         t = dict(start="2026-10-27T18:00:00+01:00", end="2026-10-27T18:30:00+01:00", duration_s=1800)
         self.store.add(P0, "w", "health_exporter", "archived", activity_type="walking", indoor=0, **t)
-        self.store.add(P0, "s", "health_exporter", "archived", activity_type="swimming", **t)
+        self.store.add(P0, "s", "health_exporter", "archived", activity_type="golf", **t)
         self.store.add("nobody", "x", "health_exporter", "archived", activity_type="running", **t)
         self.store.add(P0, "e", "opentracks", "completed", activity_type="running", points=10, endurain_ids="[42]", **t)
-        out = ingest.db_workouts(self.store, PEOPLE)
+        out = ingest.db_workouts(self.store, PEOPLE, TYPES)[0]
         self.assertEqual(set(out), set(PEOPLE))
         self.assertEqual([(w["key"], w["kind"], w["url"]) for w in out[P0]], [("w", "walk", None), ("e", "run", None)])
 

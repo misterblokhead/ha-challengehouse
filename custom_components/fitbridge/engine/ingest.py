@@ -10,14 +10,14 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from . import records
-from .scoring_config import HOME_TYPES, KINDS, finite
+from .scoring_config import KINDS, finite
 
 log = logging.getLogger(__name__)
 
 MAX_UNZIPPED = 32 * 1024 * 1024  # read into HA's memory from an internet-facing webhook
 GPX_NS = "{http://www.topografix.com/GPX/1/1}"
 HK = "HKQuantityTypeIdentifier"
-ROUTE_TYPES = {"running", "walking", "hiking"}  # HealthKit activityType names that carry a route
+ROUTE_TYPES = {"running", "walking", "hiking", "cycling"}  # HealthKit activityType names that carry a route
 BOM = b"\xef\xbb\xbf"
 
 
@@ -234,23 +234,26 @@ def _route_status(w, gpx_data, path, key):
 
 # ---------- scoring input ----------
 
-KIND_NAMES = {"run": "Run", "walk": "Walk", "gym": "Gym session", "home": "Home workout"}
+MANUAL_NAMES = {"run": "Run", "walk": "Walk", "gym": "Gym session", "home": "Home workout"}
 
 
-def classify(source, activity_type, points):
-    """Workout kind (run|walk|gym|home) per spec section 4, or None when it does not count."""
+def classify(source, activity_type, points, types):
+    """{"kind", "name", "min_min", "effort"} of a workout from the type table (config["types"]), or None when its
+    type does not count. A manual entry names its own kind (min_min None: the rules decide)."""
     t = str(activity_type or "").lower()
     if source == "manual":
-        return t if t in KINDS else None
-    if source == "opentracks":
-        if "run" in t or "hardlop" in t:
-            return "run" if points else None
-        return "walk" if "walk" in t or "wandel" in t else None
-    if source == "health_exporter":  # HealthKit names
-        if t in HOME_TYPES:
-            return "home"
-        return {"running": "run", "walking": "walk", "hiking": "walk"}.get(t)
+        return {"kind": t, "name": MANUAL_NAMES[t], "min_min": None, "effort": False} if t in KINDS else None
+    for e in types.get(source, ()):
+        if (t == e["match"]) if source == "health_exporter" else (e["match"] in t):  # opentracks: first substring hit wins
+            if e["kind"] == "run" and source == "opentracks" and not points:
+                return None  # a run needs GPS points
+            return {k: e[k] for k in ("kind", "name", "min_min", "effort")}
     return None
+
+
+def is_run(row, types):
+    c = classify(row["source"], row["activity_type"], row["points"], types)
+    return c is not None and c["kind"] == "run"
 
 
 def aware(text):
@@ -261,15 +264,16 @@ def aware(text):
     return dt if dt.tzinfo else None
 
 
-def db_workouts(store, people):
-    """All stored workouts as scorer dicts, per person. Rows we cannot place in time are skipped; a number stored as
+def db_workouts(store, people, types):
+    """All stored workouts as scorer dicts: (counted, uncounted), each {person: [workout]}. An uncounted one is of a type
+    the table does not know (kind None, name = its type). Rows we cannot place in time are skipped; a number stored as
     text (rows from before map_hex_workout checked them) counts as missing."""
-    out = {p: [] for p in people}
+    out, uncounted = {p: [] for p in people}, {p: [] for p in people}
     excluded, best_km = store.exclusions(), store.best_km()
     for r in store.all_rows():
-        kind = classify(r["source"], r["activity_type"], r["points"])
+        c = classify(r["source"], r["activity_type"], r["points"], types)
         start = aware(r["start"])
-        if r["person"] not in out or not kind or not start:
+        if r["person"] not in out or not start:
             continue
         end = aware(r["end"])
         dur = _number(r["duration_s"])
@@ -277,12 +281,14 @@ def db_workouts(store, people):
         if dur is None or dur <= 0:
             continue
         end = end or start + timedelta(seconds=dur)
-        out[r["person"]].append({
-            "person": r["person"], "key": r["key"], "source": r["source"], "kind": kind,
+        c = c or {"kind": None, "name": str(r["activity_type"] or "Unknown").title(), "min_min": None, "effort": False}
+        (out if c["kind"] else uncounted)[r["person"]].append({
+            "person": r["person"], "key": r["key"], "source": r["source"], "kind": c["kind"],
             "indoor": bool(r["indoor"]), "start": start, "end": end, "duration_s": float(dur),
             "distance_m": _number(r["distance_m"]), "avg_hr": _number(r["avg_hr"]), "vol_kg": 0.0, "prs": [],
-            "name": KIND_NAMES[kind], "best_1k_s": best_km.get((r["person"], r["key"])), "lifts": {}, "unit": "kg",
+            "max_hr": _number(r["max_hr"]), "kcal": _number(r["kcal"]), "min_min": c["min_min"], "effort": c["effort"],
+            "name": c["name"], "best_1k_s": best_km.get((r["person"], r["key"])), "lifts": {}, "unit": "kg",
             "url": None,  # no links since Endurain went
             "excluded": (r["person"], r["key"]) in excluded,
         })
-    return out
+    return out, uncounted

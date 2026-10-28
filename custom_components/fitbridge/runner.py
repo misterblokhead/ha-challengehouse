@@ -90,6 +90,11 @@ class Runner:
         config, _ = await self.hass.async_add_executor_job(self.holder.get)  # racing a cycle's get() only loads it twice
         return config["people"] if config else {}
 
+    async def async_types(self) -> dict:
+        """scoring.toml's type table (its last good config), for the shoe changes that must tell a run."""
+        config, _ = await self.hass.async_add_executor_job(self.holder.get)
+        return config["types"] if config else {}
+
     async def async_ingest(self, person: str, body: bytes) -> dict | None:
         """A webhook body stored (engine.ingest.ingest_body's reply, Unreadable for junk), then scored when it brought
         something new; None when stopped."""

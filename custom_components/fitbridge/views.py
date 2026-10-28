@@ -255,7 +255,8 @@ class UiView(HomeAssistantView):
         if find_workout(data.scores, person, key) is None:
             return _detail(self, "not found", HTTPStatus.NOT_FOUND)
         try:
-            await data.runner.async_shoes(lambda st: shoe_engine.move_run(st, person, key, shoe_id))
+            types = await data.runner.async_types()
+            await data.runner.async_shoes(lambda st: shoe_engine.move_run(st, person, key, shoe_id, types))
         except ValueError as err:
             return _detail(self, str(err), HTTPStatus.BAD_REQUEST)
         return self.json({"ok": True}, status_code=HTTPStatus.ACCEPTED)

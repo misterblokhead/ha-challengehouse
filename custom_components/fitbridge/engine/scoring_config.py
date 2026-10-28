@@ -21,12 +21,8 @@ POSITIVE = {
     "plan": ("max_sessions_per_day",),
 }
 KINDS = ("run", "walk", "gym", "home")
-# HealthKit activityType names (lowercase) that count as a home workout.
-HOME_TYPES = frozenset({
-    "functionalstrengthtraining", "traditionalstrengthtraining", "highintensityintervaltraining",
-    "coretraining", "yoga", "pilates", "dance", "cardiodance", "socialdance", "mixedcardio",
-    "flexibility",
-})
+TYPE_KINDS = ("run", "walk", "home")  # kinds a [types] entry may give (gym and manual entries come from elsewhere)
+TYPE_SOURCES = ("health_exporter", "opentracks")
 GOAL_DEFAULTS = {"active_days": 0, "steps": 10000}
 TARGET_TYPES = ("duration", "distance", "none")
 ID_RE = re.compile(r"^[a-z0-9_]+$")
@@ -156,6 +152,38 @@ def _check_group(errs, group, people):
         errs.append("group.members must be two distinct configured people ids")
 
 
+def _check_types(errs, types, rules):
+    """Validates [types] and fills each entry's defaults: min_min from rules.min_<kind>_min (None for a walk), effort false."""
+    if not isinstance(types, dict):
+        return errs.append("missing table [types]")
+    for source in TYPE_SOURCES:
+        entries, seen = types.get(source), set()
+        if not isinstance(entries, list):
+            errs.append(f"types.{source} must be a list")
+            continue
+        for e in entries:
+            where = f"types.{source} entry {e.get('match') if isinstance(e, dict) else e!r}"
+            if not isinstance(e, dict):
+                errs.append(f"{where} must be a table")
+                continue
+            m = e.get("match")
+            if not isinstance(m, str) or not m or m != m.lower():
+                errs.append(f"{where}: match must be a non-empty lower-case string")
+            elif m in seen:
+                errs.append(f"{where}: duplicate match")
+            else:
+                seen.add(m)
+            if e.get("kind") not in TYPE_KINDS:
+                errs.append(f"{where}: kind must be one of {', '.join(TYPE_KINDS)}")
+            if not isinstance(e.get("name"), str) or not e["name"].strip():
+                errs.append(f"{where}: name must be a non-empty string")
+            if "min_min" in e and not (finite(e["min_min"]) and e["min_min"] > 0):
+                errs.append(f"{where}: min_min must be a number > 0")
+            if not isinstance(e.setdefault("effort", False), bool):
+                errs.append(f"{where}: effort must be true or false")
+            e.setdefault("min_min", rules.get(f"min_{e.get('kind')}_min"))
+
+
 def _validate(cfg, errs):
     for name, keys in POSITIVE.items():
         if isinstance(cfg.get(name), dict):
@@ -173,6 +201,7 @@ def _validate(cfg, errs):
         ZoneInfo(rules.get("timezone"))
     except (ZoneInfoNotFoundError, ValueError, TypeError):
         errs.append(f"rules.timezone {rules.get('timezone')!r} is not a known timezone")
+    _check_types(errs, cfg.get("types"), rules)
     per_min = cfg.get("xp", {}).get("per_min", {})
     _check_numbers(errs, "xp.per_min", per_min if isinstance(per_min, dict) else {}, KINDS, False)
 

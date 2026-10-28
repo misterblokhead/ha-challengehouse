@@ -13,6 +13,7 @@ from custom_components.fitbridge.engine.store import Store
 from .test_config import DEFAULT
 
 PEOPLE = tuple(load_config(DEFAULT)["people"])
+TYPES = load_config(DEFAULT)["types"]
 P0 = PEOPLE[0]
 NOW = datetime(2026, 10, 28, 12, 0, tzinfo=timezone.utc)
 GOOD = {"action": "add", "person": P0, "kind": "run", "start": "2026-10-28T07:00:00+01:00", "minutes": 30}
@@ -34,12 +35,12 @@ class ManualTests(unittest.TestCase):
         msg = {**GOOD, "km": 4, "indoor": True}
         self.apply("m1", **msg)
         self.apply("m1", **msg)
-        ws = db_workouts(self.store, PEOPLE)[P0]
+        ws = db_workouts(self.store, PEOPLE, TYPES)[0][P0]
         self.assertEqual([(w["kind"], w["indoor"], w["distance_m"], w["duration_s"], w["source"]) for w in ws],
                          [("run", True, 4000, 1800, "manual")])
         self.assertEqual(ws[0]["end"] - ws[0]["start"], timedelta(minutes=30))
         self.apply("r1", action="remove", person=P0, key="manual:m1")
-        self.assertEqual(db_workouts(self.store, PEOPLE)[P0], [])
+        self.assertEqual(db_workouts(self.store, PEOPLE, TYPES)[0][P0], [])
 
     def test_remove_automatic_excludes_and_restore_brings_back(self):
         self.store.add(P0, "trk1", "opentracks", "completed", activity_type="running", points=10,
@@ -47,7 +48,7 @@ class ManualTests(unittest.TestCase):
                        endurain_ids="[42]")
         for action, expected in [("remove", True), ("restore", False)]:
             self.apply(action, action=action, person=P0, key="trk1")
-            w = db_workouts(self.store, PEOPLE)[P0][0]
+            w = db_workouts(self.store, PEOPLE, TYPES)[0][P0][0]
             self.assertEqual(w["excluded"], expected)
         self.assertIsNone(w["url"])
 

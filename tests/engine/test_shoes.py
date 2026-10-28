@@ -12,6 +12,7 @@ from .test_config import DEFAULT
 from .test_cycle import NOW
 
 PEOPLE = tuple(load_config(DEFAULT)["people"])
+TYPES = load_config(DEFAULT)["types"]
 P0, P1 = PEOPLE[0], PEOPLE[-1]
 
 
@@ -30,10 +31,10 @@ class ShoeTests(unittest.TestCase):
                        start=f"{day}T{hour:02d}:00:00+01:00", end=f"{day}T{hour:02d}:30:00+01:00", duration_s=1800)
 
     def rows(self, person=P0):
-        return shoes.rows(self.store, person, db_workouts(self.store, PEOPLE)[person])
+        return shoes.rows(self.store, person, db_workouts(self.store, PEOPLE, TYPES)[0][person])
 
     def assign(self, person=P0):
-        shoes.assign_new(self.store, person, [w["key"] for w in db_workouts(self.store, PEOPLE)[person] if w["kind"] == "run"])
+        shoes.assign_new(self.store, person, [w["key"] for w in db_workouts(self.store, PEOPLE, TYPES)[0][person] if w["kind"] == "run"])
 
     def count(self, table):
         return self.store.db.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
@@ -62,7 +63,7 @@ class ShoeTests(unittest.TestCase):
         self.workout("r1", km=5)
         self.workout("r2", km=4, day="2026-10-21")
         self.assign()
-        shoes.move_run(self.store, P0, "r2", b)
+        shoes.move_run(self.store, P0, "r2", b, TYPES)
         self.assertEqual([(r["name"], r["km"], r["runs"]) for r in self.rows()], [("A", 5.0, 1), ("B", 4.0, 1)])
 
     def test_add_makes_the_first_shoe_current_only_when_asked_and_only_without_one(self):
@@ -80,7 +81,7 @@ class ShoeTests(unittest.TestCase):
         self.workout("r1")
         self.workout("r2", day="2026-10-21")
         self.assign()
-        shoes.move_run(self.store, P0, "r2", b)
+        shoes.move_run(self.store, P0, "r2", b, TYPES)
         shoes.update(self.store, a, retired=True)
         self.assertEqual(shoes.assigned(self.store, P0), {"r1": a, "r2": b})
         self.assertEqual(shoes.assigned(self.store, P1), {})
@@ -148,12 +149,12 @@ class ShoeTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 shoes.set_current(self.store, P0, shoe)
             with self.assertRaises(ValueError):
-                shoes.move_run(self.store, P0, "r1", shoe)
+                shoes.move_run(self.store, P0, "r1", shoe, TYPES)
         for key in ("w1", "nope"):
             with self.assertRaises(ValueError):
-                shoes.move_run(self.store, P0, key, a)
+                shoes.move_run(self.store, P0, key, a, TYPES)
         with self.assertRaises(ValueError):
-            shoes.move_run(self.store, P1, "r1", other)  # P0's run
+            shoes.move_run(self.store, P1, "r1", other, TYPES)  # P0's run
         with self.assertRaises(ValueError):
             shoes.update(self.store, 999, name="x")
         shoes.update(self.store, a, name="Renamed", replace_at_km=700)
@@ -165,7 +166,7 @@ class ShoeTests(unittest.TestCase):
         self.workout("w1", activity="walking", km=9)
         endurain = [{"name": "A", "replace_at_km": 600, "km": 10.0}, {"name": "B", "replace_at_km": 800, "km": None}]
         for _ in range(2):
-            shoes.carry_over(self.store, P0, endurain)
+            shoes.carry_over(self.store, P0, endurain, TYPES)
             self.assertEqual([(r["name"], r["km"], r["runs"], r["current"]) for r in self.rows()],
                              [("A", 10.0, 2, True), ("B", 0.0, 0, False)])
         self.assertEqual(self.store.db.execute("SELECT start_km FROM shoes WHERE name='A'").fetchone()[0], 1.5)
@@ -173,7 +174,7 @@ class ShoeTests(unittest.TestCase):
 
     def test_carry_over_never_subtracts_runs_endurain_missed(self):
         self.workout("r1", km=2.0)  # never reached Endurain, so its shoe says 0 km
-        shoes.carry_over(self.store, P0, [{"name": "A", "replace_at_km": 600, "km": 0.0}])
+        shoes.carry_over(self.store, P0, [{"name": "A", "replace_at_km": 600, "km": 0.0}], TYPES)
         self.assertEqual([(r["km"], r["runs"]) for r in self.rows()], [(2.0, 1)])
 
     def test_old_database_gains_the_tables(self):

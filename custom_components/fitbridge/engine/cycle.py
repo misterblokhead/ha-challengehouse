@@ -8,7 +8,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from . import opengym, records, scoring, scoring_config, shoes
-from .ingest import aware, classify, db_workouts
+from .ingest import aware, db_workouts, is_run
 
 log = logging.getLogger(__name__)
 
@@ -31,12 +31,12 @@ class Cycle:
     gym_error: str | None = None         # class name of this cycle's openGym failure (the cache was used), or None
 
 
-def fill_best_km(store):
+def fill_best_km(store, types):
     """Fastest 1 km of every run file not read yet. A file that cannot be read or parsed stores NULL, so it is
     logged once and never re-read."""
     done = store.best_km()
     for r in store.all_rows():
-        if (r["person"], r["key"]) in done or not r["file"] or classify(r["source"], r["activity_type"], r["points"]) != "run":
+        if (r["person"], r["key"]) in done or not r["file"] or not is_run(r, types):
             continue
         try:
             seconds = records.fastest_1k_s(Path(r["file"]).read_bytes())
@@ -174,8 +174,9 @@ def score_cycle(store, holder, og, inputs: Inputs, now, live: bool) -> Cycle:
     gym_error = type(gym_failure).__name__ if gym_failure else None
     steps, steps_as_of, _ = _cached(store, "steps_cache", now, lambda: (
         _steps(inputs.steps, people, json.loads(store.kv_get("steps_cache") or "null"))))
-    fill_best_km(store)
-    workouts, excluded = db_workouts(store, people), store.exclusions()
+    fill_best_km(store, config["types"])
+    workouts, _uncounted = db_workouts(store, people, config["types"])  # a later task scores the uncounted
+    excluded = store.exclusions()
     for p, ws in workouts.items():  # assigning is not announcing: shadow mode does it too
         shoes.assign_new(store, p, [w["key"] for w in ws if w["kind"] == "run"])
     for p, ws in (gym or {}).items():

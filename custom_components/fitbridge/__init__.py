@@ -72,8 +72,9 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
         carried = {p: [{"name": r["name"], "replace_at_km": r["limit"], "km": r["km"]}
                        for r in endurain_shoes(limits, states) if states[r["entity_id"]] is not None]  # a sensor HA lacks has no name
                    for p, limits in chosen.items()}
+        types = await data.runner.async_types()
         try:
-            await data.runner.async_shoes(lambda store: [shoe_engine.carry_over(store, p, shoes) for p, shoes in carried.items() if shoes])
+            await data.runner.async_shoes(lambda store: [shoe_engine.carry_over(store, p, shoes, types) for p, shoes in carried.items() if shoes])
         except ValueError as err:
             raise ServiceValidationError(str(err)) from err
 

@@ -1,6 +1,6 @@
 """Shoes: km counted from the owner's runs, each run on one shoe, one current shoe per person."""
 from . import scoring, store as store_mod
-from .ingest import classify, db_workouts
+from .ingest import db_workouts, is_run
 
 
 def _current(store, person):
@@ -47,11 +47,11 @@ def set_current(store, person, shoe_id):
     store.kv_set(f"current_shoe:{person}", str(shoe_id))
 
 
-def move_run(store, person, key, shoe_id):
+def move_run(store, person, key, shoe_id, types):
     _shoe(store, person, shoe_id)
     with store.lock:
         r = store.db.execute("SELECT * FROM workouts WHERE person=? AND key=?", (person, key)).fetchone()
-    if not r or classify(r["source"], r["activity_type"], r["points"]) != "run":
+    if not r or not is_run(r, types):
         raise ValueError("not a run")
     with store.lock, store.db:
         store.db.execute("INSERT OR REPLACE INTO run_shoes VALUES(?,?,?)", (person, key, shoe_id))
@@ -97,11 +97,11 @@ def rows(store, person, runs):
     return out
 
 
-def carry_over(store, person, endurain):
+def carry_over(store, person, endurain, types):
     """Shoes from Endurain ({"name", "replace_at_km", "km"} each): the first becomes current and takes every existing
     run; each start_km is Endurain's km minus what fitbridge counts, never below 0 (Endurain missed those runs' uploads).
     Safe to run twice (shoes match by name)."""
-    runs = db_workouts(store, (person,))[person]
+    runs = db_workouts(store, (person,), types)[0][person]
     with store.lock:
         known = {r["name"]: r["id"] for r in store.db.execute("SELECT id, name FROM shoes WHERE person=?", (person,))}
     ids = [known.get(e["name"]) or add(store, person, e["name"], e["replace_at_km"]) for e in endurain]
