@@ -1,13 +1,13 @@
 <script>
   import { shoeRow } from "../model.js";
 
-  // A person's running shoes (fitbridge's own, or Endurain's during the shadow run): km toward each one's replace-at limit.
+  // A person's running shoes: km toward each one's replace-at limit.
   let { shoes } = $props();
   const rows = $derived(shoes.map(shoeRow));
 </script>
 
 <ul class="card">
-  {#each rows as s, i (shoes[i].id ?? shoes[i].entity_id)}
+  {#each rows as s, i (shoes[i].id)}
     <li class={s.state}>
       <div class="top"><span class="name">{s.name}</span><span class="km">{s.km}</span></div>
       <span class="bar" aria-hidden="true"><i style:width="{s.frac * 100}%"></i></span>

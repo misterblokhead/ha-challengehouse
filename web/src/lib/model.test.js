@@ -418,7 +418,6 @@ test("shoesManageable: only live data (shoe ids, or run_shoes for a person witho
   assert.equal(shoesManageable({ shoes: [], run_shoes: {} }, true), true); // live, no shoes yet: the first one is added in Manage
   assert.equal(shoesManageable({ shoes: live }, true), true);
   assert.equal(shoesManageable({ shoes: live, run_shoes: {} }, false), false);
-  assert.equal(shoesManageable({ shoes: [{ entity_id: "sensor.x", name: "Endurain", km: 1, limit: 700 }] }, true), false); // shadow: Endurain rows
   assert.equal(shoesManageable({ shoes: [] }, true), false);
   assert.equal(shoesManageable({}, true), false);
 });

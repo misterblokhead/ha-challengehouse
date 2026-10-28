@@ -152,8 +152,8 @@ export function shoeRow(s) {
 export const SHOE_LIMITS = { name: [1, 40], replace_at_km: [100, 3000, 10] };
 export const SHOE_DEFAULT_KM = 700;
 
-// "Manage" and the run's shoe picker: for who may edit this person, and only with the integration's own shoes (Endurain rows, shown
-// during the shadow run, carry no id). A live person without shoes yet has `run_shoes` ({}), so the first shoe can still be added.
+// "Manage" and the run's shoe picker: for who may edit this person, and only with the integration's shoes (ids). A person without
+// shoes yet has `run_shoes` ({}), so the first shoe can still be added.
 export const shoesManageable = (p, canEdit) => !!canEdit && (p.run_shoes !== undefined || (p.shoes ?? []).some((s) => s.id != null));
 
 // The form's raw name and km as a POST body's fields, or {error}. `partial`: a field left out (undefined) is skipped (an update of one).

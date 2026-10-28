@@ -515,7 +515,7 @@ function gn(e, t) {
 	W(t, !0);
 	let n = _(() => t.shoes.map(g));
 	var i = hn();
-	J(i, 23, () => r(n), (e, n) => t.shoes[n].id ?? t.shoes[n].entity_id, (e, t) => {
+	J(i, 23, () => r(n), (e, n) => t.shoes[n].id, (e, t) => {
 		var n = mn(), i = p(n), a = p(i), o = T(a, !0), s = L(a), c = T(s, !0);
 		x(i);
 		var l = L(i, 2), u = p(l);
