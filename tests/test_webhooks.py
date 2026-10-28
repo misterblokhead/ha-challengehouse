@@ -169,10 +169,14 @@ async def test_a_missing_folder_raises_its_issue_and_other_inputs_go_on(hass, se
 async def test_urls_are_homeassistants_own_never_a_cloudhook(hass, setup):
     hook = list((await setup()).data[WEBHOOKS].values())[0]
     assert webhooks.async_url(hass, hook).endswith(f":8123/api/webhook/{hook}")  # no external URL: the internal one
-    with patch.object(webhooks.webhook, "async_generate_url", side_effect=NoURLAvailableError):
-        assert webhooks.async_url(hass, hook) == f"/api/webhook/{hook}"  # none at all: the path to put a host before
-    hass.config.external_url = "https://ha.example.test"
     hass.config.components.add("cloud")  # Nabu Casa subscribed: its relay carries bodies as text, a ZIP would break
-    with patch("homeassistant.components.cloud.async_active_subscription", return_value=True),             patch("homeassistant.components.cloud.async_get_or_create_cloudhook",
+    with patch("homeassistant.components.cloud.async_active_subscription", return_value=True), \
+            patch("homeassistant.components.cloud.async_remote_ui_url", return_value="https://abc.ui.example.test"), \
+            patch("homeassistant.components.cloud.async_get_or_create_cloudhook",
                   AsyncMock(return_value="https://hooks.example.test/abc")):
+        # remote UI only: its address (a TLS passthrough, bodies intact), never the internal one
+        assert webhooks.async_url(hass, hook) == f"https://abc.ui.example.test/api/webhook/{hook}"
+        hass.config.external_url = "https://ha.example.test"
         assert webhooks.async_url(hass, hook) == f"https://ha.example.test/api/webhook/{hook}"
+    with patch.object(webhooks, "get_url", side_effect=NoURLAvailableError):
+        assert webhooks.async_url(hass, hook) == f"/api/webhook/{hook}"  # none at all: the path to put a host before

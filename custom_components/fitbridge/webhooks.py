@@ -5,7 +5,7 @@ from aiohttp import web
 from homeassistant.components import webhook
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.network import NoURLAvailableError
+from homeassistant.helpers.network import NoURLAvailableError, get_url
 
 from .const import DOMAIN, WEBHOOKS
 from .engine.ingest import Unreadable
@@ -17,10 +17,11 @@ MAX_BODY = 16 * 1024 * 1024  # HA's own request limit
 
 @callback
 def async_url(hass: HomeAssistant, webhook_id: str) -> str:
-    """HA's external (or internal) URL; the bare path when there is none. Never a Nabu Casa cloudhook: its relay
-    carries the body as text, which breaks ZIP exports (the remote UI address passes them intact)."""
+    """HA's external URL, else its Nabu Casa remote UI URL, else its internal one; the bare path when there is none.
+    Not webhook.async_generate_url: it never offers the remote UI URL. Never a Nabu Casa cloudhook: its relay carries
+    the body as text, which breaks ZIP exports (the remote UI is a TLS passthrough, so it passes them intact)."""
     try:
-        return webhook.async_generate_url(hass, webhook_id, prefer_external=True)
+        return get_url(hass, prefer_external=True) + webhook.async_generate_path(webhook_id)
     except NoURLAvailableError:
         return webhook.async_generate_path(webhook_id)
 
