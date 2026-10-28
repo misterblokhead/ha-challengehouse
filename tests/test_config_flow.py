@@ -28,7 +28,7 @@ GYM = "https://gym.example.test"
 async def _open(hass, entry, step):
     """The options flow, past its menu."""
     result = await hass.config_entries.options.async_init(entry.entry_id)
-    assert result["type"] is FlowResultType.MENU and result["menu_options"] == ["viewers", "opengym", "people", "inputs"]
+    assert result["type"] is FlowResultType.MENU and result["menu_options"] == ["viewers", "opengym", "people", "inputs", "mode"]
     return await hass.config_entries.options.async_configure(result["flow_id"], {"next_step_id": step})
 
 
@@ -110,6 +110,21 @@ async def test_inputs_show_each_persons_url_and_take_existing_folders_only(hass,
     assert e.options == {OPT_SHADOW: False, OPT_VIEWERS: {"u1": P0}, OPT_FOLDERS: {P0: str(tmp_path)}}
     await hass.async_block_till_done(wait_background_tasks=True)
     assert hass.data[DOMAIN].runner.folders == {P0: tmp_path}  # reloaded with it
+
+
+async def test_mode_turns_shadow_on_and_off_and_keeps_the_other_options(hass, setup, mqtt_mock, send):
+    e = await setup({OPT_SHADOW: False, OPT_VIEWERS: {"u1": P0}})
+    for shadow in (True, False):
+        if shadow is False:
+            await send(SCORES)  # in shadow the options wait for the LXC's scores
+        result = await _open(hass, e, "mode")
+        assert result["type"] is FlowResultType.FORM and result["step_id"] == "mode"
+        assert [k.default() for k in result["data_schema"].schema] == [not shadow]  # the current mode
+        result = await hass.config_entries.options.async_configure(result["flow_id"], {OPT_SHADOW: shadow})
+        assert result["type"] is FlowResultType.CREATE_ENTRY
+        await hass.async_block_till_done(wait_background_tasks=True)
+        assert e.options == {OPT_SHADOW: shadow, OPT_VIEWERS: {"u1": P0}}
+        assert hass.data[DOMAIN].runner.shadow is shadow  # reloaded in that mode
 
 
 async def test_opengym_pairing_stores_the_token_and_clears_the_issue(hass, setup, aioclient_mock, caplog):

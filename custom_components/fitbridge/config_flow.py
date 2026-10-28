@@ -60,13 +60,13 @@ class FitbridgeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 class FitbridgeOptionsFlow(config_entries.OptionsFlowWithReload):
     """A menu: viewers (which fitbridge person each HA user is, nobody, "", meaning the read-only household view; then
     each person's phone step sensor),
-    the openGym pairing, each person's openGym user, and each person's webhook URL and watch folder."""
+    the openGym pairing, each person's openGym user, each person's webhook URL and watch folder, and shadow mode."""
 
     async def async_step_init(self, user_input=None):
         data = self.hass.data.get(DOMAIN)
         if data is None or data.scores is None:
             return self.async_abort(reason="waiting_for_fitbridge")
-        return self.async_show_menu(step_id="init", menu_options=["viewers", "opengym", "people", "inputs"])
+        return self.async_show_menu(step_id="init", menu_options=["viewers", "opengym", "people", "inputs", "mode"])
 
     async def async_step_viewers(self, user_input=None):
         data = self.hass.data[DOMAIN]
@@ -164,3 +164,10 @@ class FitbridgeOptionsFlow(config_entries.OptionsFlowWithReload):
         return self.async_show_form(
             step_id="inputs", errors=errors, description_placeholders={"urls": "\n".join(urls)},
             data_schema=self.add_suggested_values_to_schema(schema, user_input or {labels[p]: f for p, f in old.items() if p in labels}))
+
+    async def async_step_mode(self, user_input=None):
+        """Shadow mode on or off: the switch from the LXC's fitbridge and back."""
+        if user_input is not None:
+            return self.async_create_entry(data={**self.config_entry.options, OPT_SHADOW: user_input[OPT_SHADOW]})
+        return self.async_show_form(step_id="mode", data_schema=vol.Schema({
+            vol.Required(OPT_SHADOW, default=self.config_entry.options.get(OPT_SHADOW, False)): bool}))

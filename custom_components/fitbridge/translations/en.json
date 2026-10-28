@@ -18,7 +18,8 @@
           "viewers": "Who is who and step sensors",
           "opengym": "Pair with openGym",
           "people": "openGym users",
-          "inputs": "Webhooks and watch folders"
+          "inputs": "Webhooks and watch folders",
+          "mode": "Shadow mode"
         }
       },
       "viewers": {
@@ -44,6 +45,13 @@
       "inputs": {
         "title": "Webhooks and watch folders",
         "description": "Each person's phone posts workouts to their own webhook: a Health Exporter export (ZIP or JSON) or an OpenTracks GPX file as the request body.\n\n{urls}\n\nOptionally, give a person a folder (for example under /share or /media) that is scanned for GPX files every minute. Leave it empty for none."
+      },
+      "mode": {
+        "title": "Shadow mode",
+        "description": "In shadow mode fitbridge on the LXC stays the live system: Fitness scores silently into /config/fitbridge/shadow-scores.json, creates no sensors or events, and the page keeps the LXC's scores. Turn it off to switch to Fitness (stop the LXC's fitbridge first); turn it on to go back.",
+        "data": {
+          "shadow": "Shadow mode"
+        }
       }
     },
     "abort": {
