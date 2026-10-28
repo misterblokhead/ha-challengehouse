@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { counts, goals, ringFractions, stepsLine, togetherLine, rewardLine, levelProgress, weekLabel, staleSince, feedRow, planBar, layout, shortDate, pendingDone, PENDING_MS, serial, shoeRow, goalsDraft, clampGoal, isoWeek, goalsDone, withPendingGoals, weekBars, stepsSummary, liftLine, recentLifts, allLifts, paceText, recordKeys } from "./model.js";
+import { counts, goals, ringFractions, stepsLine, togetherLine, rewardLine, levelProgress, weekLabel, staleSince, feedRow, planBar, layout, shortDate, pendingDone, PENDING_MS, serial, shoeRow, goalsDraft, clampGoal, isoWeek, goalsDone, withPendingGoals, weekBars, localDay, stepsSummary, liftLine, recentLifts, allLifts, paceText, recordKeys } from "./model.js";
 
 const week = { runs: 1, workouts: 2, active_days: 3, bonus: 1, goal: { runs: 2, workouts: 2, active_days: 4, steps: 10000 }, days_left: 3, week: "2026-W44" };
 
@@ -277,7 +277,7 @@ test("withPendingGoals: the people with their pending goals shown, flagged; unch
 const wed = { "2026-10-26": 8412, "2026-10-27": 12034, "2026-10-28": 3000 };
 
 test("weekBars: Monday to Sunday of today's week, the days after today future", () => {
-  const bars = weekBars(wed, 10000, "2026-10-28");
+  const { bars, goalFrac } = weekBars(wed, 10000, "2026-10-28");
   assert.deepEqual(bars.map((b) => b.label), ["M", "T", "W", "T", "F", "S", "S"]);
   assert.deepEqual(bars.map((b) => b.date), ["2026-10-26", "2026-10-27", "2026-10-28", "2026-10-29", "2026-10-30", "2026-10-31", "2026-11-01"]);
   assert.deepEqual(bars.map((b) => b.future), [false, false, false, true, true, true, true]);
@@ -286,29 +286,37 @@ test("weekBars: Monday to Sunday of today's week, the days after today future", 
   assert.deepEqual(bars.map((b) => b.steps), [8412, 12034, 3000, null, null, null, null]);
   assert.equal(bars[0].frac, 8412 / 12034); // the tallest bar fills the chart when it passes the goal
   assert.equal(bars[3].frac, 0);
+  assert.equal(goalFrac, 10000 / 12034); // the goal line sits at the same scale as the bars
 });
 
 test("weekBars: the goal sets the scale, a missing past day is 0 steps, goal 0 activates nothing", () => {
-  const bars = weekBars({ "2026-10-28": 2500 }, 10000, "2026-10-28");
+  const { bars, goalFrac } = weekBars({ "2026-10-28": 2500 }, 10000, "2026-10-28");
+  assert.equal(goalFrac, 1);
   assert.equal(bars[2].frac, 0.25);
   assert.equal(bars[0].steps, 0);
   assert.equal(bars[0].future, false);
-  assert.ok(weekBars(wed, 0, "2026-10-28").every((b) => !b.active));
-  assert.ok(weekBars({}, 0, "2026-10-28").every((b) => b.frac === 0));
+  assert.ok(weekBars(wed, 0, "2026-10-28").bars.every((b) => !b.active));
+  assert.ok(weekBars({}, 0, "2026-10-28").bars.every((b) => b.frac === 0));
+  assert.equal(weekBars(wed, 0, "2026-10-28").goalFrac, null); // no goal, no line
 });
 
 test("weekBars: Sunday closes the week, Monday opens a new one; no step sensor or an older payload gives null", () => {
-  assert.equal(weekBars({}, 10000, "2026-11-01")[6].isToday, true);
-  assert.equal(weekBars({}, 10000, "2026-11-01")[0].date, "2026-10-26");
-  assert.equal(weekBars({}, 10000, "2026-11-02")[0].isToday, true);
+  assert.equal(weekBars({}, 10000, "2026-11-01").bars[6].isToday, true);
+  assert.equal(weekBars({}, 10000, "2026-11-01").bars[0].date, "2026-10-26");
+  assert.equal(weekBars({}, 10000, "2026-11-02").bars[0].isToday, true);
   assert.equal(weekBars(null, 10000, "2026-10-28"), null);
   assert.equal(weekBars(undefined, 10000, "2026-10-28"), null);
 });
 
+test("localDay: YYYY-MM-DD from the local date parts, zero-padded, whatever the locale", () => {
+  assert.equal(localDay(new Date(2026, 9, 28, 23, 59)), "2026-10-28");
+  assert.equal(localDay(new Date(2026, 0, 5, 0, 1)), "2026-01-05");
+});
+
 test("stepsSummary: active days and the week's steps, singular for one", () => {
-  assert.equal(stepsSummary(weekBars(wed, 10000, "2026-10-28")), "1 active day · 23,446 steps");
-  assert.equal(stepsSummary(weekBars({ ...wed, "2026-10-28": 11000 }, 10000, "2026-10-28")), "2 active days · 31,446 steps");
-  assert.equal(stepsSummary(weekBars({}, 10000, "2026-10-28")), "0 active days · 0 steps");
+  assert.equal(stepsSummary(weekBars(wed, 10000, "2026-10-28").bars), "1 active day · 23,446 steps");
+  assert.equal(stepsSummary(weekBars({ ...wed, "2026-10-28": 11000 }, 10000, "2026-10-28").bars), "2 active days · 31,446 steps");
+  assert.equal(stepsSummary(weekBars({}, 10000, "2026-10-28").bars), "0 active days · 0 steps");
 });
 
 const lifts = [

@@ -2612,75 +2612,79 @@ function _a(e, t) {
 	}
 	return n;
 }
-function va(e, t, n) {
+var va = (e = /* @__PURE__ */ new Date()) => `${e.getFullYear()}-${Ri(e.getMonth() + 1)}-${Ri(e.getDate())}`;
+function ya(e, t, n) {
 	if (e == null) return null;
 	let r = Date.parse(`${n}T00:00:00Z`), i = r - (new Date(r).getUTCDay() + 6) % 7 * 864e5, a = Array.from({ length: 7 }, (e, t) => new Date(i + t * 864e5).toISOString().slice(0, 10)), o = a.map((t) => t > n ? null : e[t] ?? 0), s = Math.max(t ?? 0, ...o.map((e) => e ?? 0));
-	return a.map((e, r) => ({
-		label: "MTWTFSS"[r],
-		date: e,
-		steps: o[r],
-		frac: s > 0 ? (o[r] ?? 0) / s : 0,
-		active: t > 0 && o[r] >= t,
-		isToday: e === n,
-		future: e > n
-	}));
+	return {
+		bars: a.map((e, r) => ({
+			label: "MTWTFSS"[r],
+			date: e,
+			steps: o[r],
+			frac: s > 0 ? (o[r] ?? 0) / s : 0,
+			active: t > 0 && o[r] >= t,
+			isToday: e === n,
+			future: e > n
+		})),
+		goalFrac: t > 0 ? t / s : null
+	};
 }
-function ya(e) {
+function ba(e) {
 	let t = e.filter((e) => e.active).length;
 	return `${t} active ${t === 1 ? "day" : "days"} · ${Wi(e.reduce((e, t) => e + (t.steps ?? 0), 0))} steps`;
 }
-var ba = (e) => `${e.name} · ${e.w} ${e.unit} × ${e.r} · ${aa(e.date)}`, xa = (e, t = 5) => (e ?? []).slice(0, t), Sa = (e) => [...e ?? []].sort((e, t) => e.name.localeCompare(t.name)), Ca = (e) => `${Math.floor(e / 60)}:${Ri(e % 60)}`, wa = (e) => new Set([...(e?.lifts ?? []).map((e) => e.key), e?.fastest_1k?.key].filter(Boolean)), Ta = 5e3, Ea = Qt({}), Da = Qt({
+var xa = (e) => `${e.name} · ${e.w} ${e.unit} × ${e.r} · ${aa(e.date)}`, Sa = (e, t = 5) => (e ?? []).slice(0, t), Ca = (e) => [...e ?? []].sort((e, t) => e.name.localeCompare(t.name)), wa = (e) => `${Math.floor(e / 60)}:${Ri(e % 60)}`, Ta = (e) => new Set([...(e?.lifts ?? []).map((e) => e.key), e?.fastest_1k?.key].filter(Boolean)), Ea = 5e3, Da = Qt({}), Oa = Qt({
 	on: !1,
 	text: "",
 	undo: null
-}), Oa = Qt({
+}), ka = Qt({
 	entry: null,
 	at: 0
-}), ka, Aa = 0, ja = {};
-function Ma(e, t = null) {
-	clearTimeout(ka), Object.assign(Da, {
+}), Aa, ja = 0, Ma = {};
+function Na(e, t = null) {
+	clearTimeout(Aa), Object.assign(Oa, {
 		on: !0,
 		text: e,
 		undo: t
-	}), ka = setTimeout(() => Da.on = !1, Ta);
+	}), Aa = setTimeout(() => Oa.on = !1, Ea);
 }
-function Na(e, t = Date.now()) {
-	for (let [n, r] of Object.entries(Ea)) oa(r, e[r.person]?.feed ?? [], t) && delete Ea[n];
-	Oa.entry && ga(Oa, e, t) && (Oa.entry = null);
+function Pa(e, t = Date.now()) {
+	for (let [n, r] of Object.entries(Da)) oa(r, e[r.person]?.feed ?? [], t) && delete Da[n];
+	ka.entry && ga(ka, e, t) && (ka.entry = null);
 }
-async function Pa(e, t) {
+async function Fa(e, t) {
 	try {
 		await n("POST", "settings", e);
 	} catch (e) {
-		return Ma(e.detail ?? (e.status === 403 ? "Not allowed" : e.status === 503 ? "Waiting for fitbridge" : "Couldn't reach Home Assistant")), !1;
+		return Na(e.detail ?? (e.status === 403 ? "Not allowed" : e.status === 503 ? "Waiting for fitbridge" : "Couldn't reach Home Assistant")), !1;
 	}
-	return Object.assign(Oa, {
+	return Object.assign(ka, {
 		entry: e,
 		at: Date.now()
-	}), Na(t), Ma("Saved · updates within 5 min"), !0;
+	}), Pa(t), Na("Saved · updates within 5 min"), !0;
 }
-async function Fa(e, t, r) {
-	let i = `${e}/${t}`, a = Ea[i], o = ++Aa, s = t.startsWith("manual:");
-	Ea[i] = {
+async function Ia(e, t, r) {
+	let i = `${e}/${t}`, a = Da[i], o = ++ja, s = t.startsWith("manual:");
+	Da[i] = {
 		person: e,
 		key: t,
 		want: s && r === "remove" ? null : r === "remove",
 		at: Date.now(),
 		n: o
-	}, r === "remove" && !s && Ma("Removed", () => Fa(e, t, "restore"));
+	}, r === "remove" && !s && Na("Removed", () => Ia(e, t, "restore"));
 	try {
-		await sa(ja, i, () => n("POST", "workouts", {
+		await sa(Ma, i, () => n("POST", "workouts", {
 			person: e,
 			key: t,
 			action: r
 		}));
 	} catch (e) {
-		Ea[i]?.n === o && (a ? Ea[i] = a : delete Ea[i]), Ma(e.status === 403 ? "Not allowed" : e.status === 404 ? "Already gone" : "Couldn't reach Home Assistant");
+		Da[i]?.n === o && (a ? Da[i] = a : delete Da[i]), Na(e.status === 403 ? "Not allowed" : e.status === 404 ? "Already gone" : "Couldn't reach Home Assistant");
 	}
 }
 // src/lib/ui/Badges.svelte
-var Ia = /* @__PURE__ */ q("<li class=\"new svelte-m8wnum\"><span class=\"medal svelte-m8wnum\" aria-hidden=\"true\"> </span> <span class=\"t svelte-m8wnum\"> </span> <span class=\"s svelte-m8wnum\"> </span></li>"), La = /* @__PURE__ */ q("<ul class=\"svelte-m8wnum\"></ul>"), Ra = /* @__PURE__ */ q("<li class=\"locked svelte-m8wnum\"><span class=\"medal svelte-m8wnum\" aria-hidden=\"true\"> </span> <span class=\"t svelte-m8wnum\"> </span> <span class=\"s svelte-m8wnum\"> </span> <span class=\"prog svelte-m8wnum\" aria-hidden=\"true\"><i class=\"svelte-m8wnum\"></i></span></li>"), za = /* @__PURE__ */ q("<p class=\"caption svelte-m8wnum\">No badges yet.</p>"), Ba = /* @__PURE__ */ q("<div class=\"card badges svelte-m8wnum\"><!> <!> <!></div>");
-function Va(e, t) {
+var La = /* @__PURE__ */ q("<li class=\"new svelte-m8wnum\"><span class=\"medal svelte-m8wnum\" aria-hidden=\"true\"> </span> <span class=\"t svelte-m8wnum\"> </span> <span class=\"s svelte-m8wnum\"> </span></li>"), Ra = /* @__PURE__ */ q("<ul class=\"svelte-m8wnum\"></ul>"), za = /* @__PURE__ */ q("<li class=\"locked svelte-m8wnum\"><span class=\"medal svelte-m8wnum\" aria-hidden=\"true\"> </span> <span class=\"t svelte-m8wnum\"> </span> <span class=\"s svelte-m8wnum\"> </span> <span class=\"prog svelte-m8wnum\" aria-hidden=\"true\"><i class=\"svelte-m8wnum\"></i></span></li>"), Ba = /* @__PURE__ */ q("<p class=\"caption svelte-m8wnum\">No badges yet.</p>"), Va = /* @__PURE__ */ q("<div class=\"card badges svelte-m8wnum\"><!> <!> <!></div>");
+function Ha(e, t) {
 	j(t, !0);
 	let n = {
 		run: "🏃",
@@ -2703,10 +2707,10 @@ function Va(e, t) {
 		yoga: "🧘",
 		"shoe-print": "👟"
 	}, r = (e) => n[String(e.icon).replace(/^mdi:/, "")] ?? "🏅", i = (e) => e.toLocaleString(void 0, { maximumFractionDigits: 1 });
-	var a = Ba(), o = R(a), s = (e) => {
-		var n = La();
+	var a = Va(), o = R(a), s = (e) => {
+		var n = Ra();
 		Z(n, 21, () => t.badges.recent, (e) => e.id, (e, t) => {
-			var n = Ia(), i = R(n), a = B(i, !0), o = V(i, 2), s = B(o, !0), c = B(V(o, 2), !0);
+			var n = La(), i = R(n), a = B(i, !0), o = V(i, 2), s = B(o, !0), c = B(V(o, 2), !0);
 			k(n), H((e, n) => {
 				Y(a, e), Y(s, G(t).title), Y(c, n);
 			}, [() => r(G(t)), () => aa(G(t).unlocked_at)]), J(e, n);
@@ -2716,9 +2720,9 @@ function Va(e, t) {
 		t.badges.recent.length && e(s);
 	});
 	var c = V(o, 2), l = (e) => {
-		var n = La();
+		var n = Ra();
 		Z(n, 21, () => t.badges.next, (e) => e.id, (e, t) => {
-			var n = Ra(), a = R(n), o = B(a, !0), s = V(a, 2), c = B(s, !0), l = V(s, 2), u = B(l), d = V(l, 2), f = R(d);
+			var n = za(), a = R(n), o = B(a, !0), s = V(a, 2), c = B(s, !0), l = V(s, 2), u = B(l), d = V(l, 2), f = R(d);
 			let p;
 			k(d), k(n), H((e, n, r, i) => {
 				Y(o, e), Y(c, G(t).title), Y(u, `${n ?? ""} of ${r ?? ""}`), p = di(f, "", p, { width: i });
@@ -2734,22 +2738,22 @@ function Va(e, t) {
 		t.badges.next.length && e(l);
 	});
 	var u = V(c, 2), d = (e) => {
-		J(e, za());
+		J(e, Ba());
 	};
 	X(u, (e) => {
 		!t.badges.recent.length && !t.badges.next.length && e(d);
 	}), k(a), J(e, a), M();
 }
 // src/lib/media.svelte.js
-var Ha = Qt({
+var Ua = Qt({
 	wide: !1,
 	reducedMotion: !1
-}), Ua = matchMedia("(min-width: 768px)"), Wa = matchMedia("(prefers-reduced-motion: reduce)"), Ga = () => {
-	Ha.wide = Ua.matches, Ha.reducedMotion = Wa.matches;
+}), Wa = matchMedia("(min-width: 768px)"), Ga = matchMedia("(prefers-reduced-motion: reduce)"), Ka = () => {
+	Ua.wide = Wa.matches, Ua.reducedMotion = Ga.matches;
 };
-Ua.addEventListener("change", Ga), Wa.addEventListener("change", Ga), Ga();
+Wa.addEventListener("change", Ka), Ga.addEventListener("change", Ka), Ka();
 // src/lib/motion.js
-function Ka(e, { onFrame: t, onSettle: n, snap: r = {
+function qa(e, { onFrame: t, onSettle: n, snap: r = {
 	distance: .5,
 	speed: .5
 }, frame: i = requestAnimationFrame, cancel: a = cancelAnimationFrame, now: o = performance.now.bind(performance) }) {
@@ -2775,9 +2779,9 @@ function Ka(e, { onFrame: t, onSettle: n, snap: r = {
 		}
 	};
 }
-var qa = (e) => parseFloat(e) * (e.trim().endsWith("ms") ? 1 : 1e3), Ja = (e) => qa(getComputedStyle(document.documentElement).getPropertyValue(e));
+var Ja = (e) => parseFloat(e) * (e.trim().endsWith("ms") ? 1 : 1e3), Ya = (e) => Ja(getComputedStyle(document.documentElement).getPropertyValue(e));
 // src/lib/spring.js
-function Ya({ value: e = 0, response: t = .35, damping: n = 1 } = {}) {
+function Xa({ value: e = 0, response: t = .35, damping: n = 1 } = {}) {
 	let r = (2 * Math.PI / t) ** 2, i = 4 * Math.PI * n / t, a = {
 		value: e,
 		velocity: 0,
@@ -2796,8 +2800,8 @@ function Ya({ value: e = 0, response: t = .35, damping: n = 1 } = {}) {
 	return a;
 }
 // src/lib/ui/FeedRow.svelte
-var Xa = /* @__PURE__ */ q("<span class=\"mini svelte-69s4be\"> </span>"), Za = /* @__PURE__ */ q("<span class=\"mini svelte-69s4be\">Together</span>"), Qa = /* @__PURE__ */ q("<span role=\"img\" aria-label=\"Holds a record\">🏆</span>"), $a = /* @__PURE__ */ q("<span class=\"spin svelte-69s4be\" role=\"img\" aria-label=\"Saving\"></span>"), eo = /* @__PURE__ */ q("<div><dt class=\"svelte-69s4be\"> </dt><dd class=\"svelte-69s4be\"> </dd></div>"), to = /* @__PURE__ */ q("<dl class=\"svelte-69s4be\"></dl>"), no = /* @__PURE__ */ q("<a class=\"btn link svelte-69s4be\" target=\"_blank\" rel=\"noopener noreferrer\">Open in Endurain</a>"), ro = /* @__PURE__ */ q("<span class=\"ask svelte-69s4be\">Delete manual entry?</span> <button type=\"button\" class=\"btn\">Cancel</button> <button type=\"button\" class=\"btn danger svelte-69s4be\">Delete</button>", 1), io = /* @__PURE__ */ q("<button type=\"button\"> </button>"), ao = /* @__PURE__ */ q("<div><div class=\"inner svelte-69s4be\"><!> <div class=\"acts svelte-69s4be\"><!> <!></div></div></div>"), oo = /* @__PURE__ */ q("<li><button type=\"button\" class=\"head svelte-69s4be\"><span aria-hidden=\"true\"> </span> <span class=\"main svelte-69s4be\"><span class=\"t1 svelte-69s4be\"> <!> <!> <!></span> <span class=\"t2 svelte-69s4be\"> </span></span> <span class=\"right svelte-69s4be\"><!> </span></button> <!></li>");
-function so(e, t) {
+var Za = /* @__PURE__ */ q("<span class=\"mini svelte-69s4be\"> </span>"), Qa = /* @__PURE__ */ q("<span class=\"mini svelte-69s4be\">Together</span>"), $a = /* @__PURE__ */ q("<span role=\"img\" aria-label=\"Holds a record\">🏆</span>"), eo = /* @__PURE__ */ q("<span class=\"spin svelte-69s4be\" role=\"img\" aria-label=\"Saving\"></span>"), to = /* @__PURE__ */ q("<div><dt class=\"svelte-69s4be\"> </dt><dd class=\"svelte-69s4be\"> </dd></div>"), no = /* @__PURE__ */ q("<dl class=\"svelte-69s4be\"></dl>"), ro = /* @__PURE__ */ q("<a class=\"btn link svelte-69s4be\" target=\"_blank\" rel=\"noopener noreferrer\">Open in Endurain</a>"), io = /* @__PURE__ */ q("<span class=\"ask svelte-69s4be\">Delete manual entry?</span> <button type=\"button\" class=\"btn\">Cancel</button> <button type=\"button\" class=\"btn danger svelte-69s4be\">Delete</button>", 1), ao = /* @__PURE__ */ q("<button type=\"button\"> </button>"), oo = /* @__PURE__ */ q("<div><div class=\"inner svelte-69s4be\"><!> <div class=\"acts svelte-69s4be\"><!> <!></div></div></div>"), so = /* @__PURE__ */ q("<li><button type=\"button\" class=\"head svelte-69s4be\"><span aria-hidden=\"true\"> </span> <span class=\"main svelte-69s4be\"><span class=\"t1 svelte-69s4be\"> <!> <!> <!></span> <span class=\"t2 svelte-69s4be\"> </span></span> <span class=\"right svelte-69s4be\"><!> </span></button> <!></li>");
+function co(e, t) {
 	let n = Ir();
 	j(t, !0);
 	let r = {
@@ -2806,7 +2810,7 @@ function so(e, t) {
 		gym: "🏋️",
 		home: "🧘",
 		active_day: "👟"
-	}, i = /* @__PURE__ */ P(() => Ea[`${t.person}/${t.item.key}`]), a = /* @__PURE__ */ P(() => na(G(i) && G(i).want !== null ? {
+	}, i = /* @__PURE__ */ P(() => Da[`${t.person}/${t.item.key}`]), a = /* @__PURE__ */ P(() => na(G(i) && G(i).want !== null ? {
 		...t.item,
 		excluded: G(i).want
 	} : t.item)), o = /* @__PURE__ */ P(() => [
@@ -2814,16 +2818,16 @@ function so(e, t) {
 		["Pace", G(a).detail.pace],
 		["Avg heart rate", G(a).detail.hr],
 		["Plan session", G(a).detail.plan]
-	].filter(([, e]) => e)), s = /* @__PURE__ */ P(() => G(i)?.want === null), c = /* @__PURE__ */ P(() => G(o).length > 0 || !!G(a).detail.url || t.canEdit && !!G(a).removable), l = /* @__PURE__ */ I(!1), u = /* @__PURE__ */ I(!1), d = /* @__PURE__ */ I(void 0), f = /* @__PURE__ */ I(void 0), p = Ya({
+	].filter(([, e]) => e)), s = /* @__PURE__ */ P(() => G(i)?.want === null), c = /* @__PURE__ */ P(() => G(o).length > 0 || !!G(a).detail.url || t.canEdit && !!G(a).removable), l = /* @__PURE__ */ I(!1), u = /* @__PURE__ */ I(!1), d = /* @__PURE__ */ I(void 0), f = /* @__PURE__ */ I(void 0), p = Xa({
 		response: .35,
 		damping: 1
-	}), m = Ka(p, {
+	}), m = qa(p, {
 		onFrame: (e) => G(d).style.height = `${e}px`,
 		onSettle: () => G(l) && (G(d).style.height = "auto")
 	});
 	xn(() => m.stop);
 	function h() {
-		G(c) && (L(l, !G(l)), L(u, !1), Ha.reducedMotion ? G(d).style.height = G(l) ? "auto" : "0px" : (m.running || (p.value = G(d).offsetHeight), m.to(G(l) ? G(f).offsetHeight : 0)));
+		G(c) && (L(l, !G(l)), L(u, !1), Ua.reducedMotion ? G(d).style.height = G(l) ? "auto" : "0px" : (m.running || (p.value = G(d).offsetHeight), m.to(G(l) ? G(f).offsetHeight : 0)));
 	}
 	let g = {
 		remove: "Remove",
@@ -2831,25 +2835,25 @@ function so(e, t) {
 		delete: "Delete"
 	};
 	function _() {
-		G(a).removable === "delete" ? L(u, !0) : Fa(t.person, t.item.key, G(a).removable);
+		G(a).removable === "delete" ? L(u, !0) : Ia(t.person, t.item.key, G(a).removable);
 	}
-	var v = oo();
+	var v = so();
 	let b;
 	var x = R(v), S = R(x), C = B(S, !0), w = V(S, 2), T = R(w), ee = R(T), te = V(ee), ne = (e) => {
-		var n = Xa(), r = B(n, !0);
+		var n = Za(), r = B(n, !0);
 		H(() => Y(r, t.item.plan)), J(e, n);
 	};
 	X(te, (e) => {
 		t.item.plan && e(ne);
 	});
 	var re = V(te, 2), ie = (e) => {
-		J(e, Za());
+		J(e, Qa());
 	};
 	X(re, (e) => {
 		t.item.joint && e(ie);
 	});
 	var ae = V(re, 2), oe = (e) => {
-		J(e, Qa());
+		J(e, $a());
 	};
 	X(ae, (e) => {
 		t.record && e(oe);
@@ -2857,7 +2861,7 @@ function so(e, t) {
 	var se = B(V(T, 2));
 	k(w);
 	var ce = V(w, 2), le = R(ce), ue = (e) => {
-		J(e, $a());
+		J(e, eo());
 	};
 	X(le, (e) => {
 		G(i) && e(ue);
@@ -2865,14 +2869,14 @@ function so(e, t) {
 	var de = V(le);
 	k(ce), k(x);
 	var fe = V(x, 2), pe = (e) => {
-		var r = ao();
+		var r = oo();
 		let i;
 		var c = R(r), p = R(c), m = (e) => {
-			var t = to();
+			var t = no();
 			Z(t, 21, () => G(o), ([e, t]) => e, (e, t) => {
 				var n = /* @__PURE__ */ P(() => y(G(t), 2));
 				let r = () => G(n)[0], i = () => G(n)[1];
-				var a = eo(), o = R(a), s = B(o, !0), c = B(V(o), !0);
+				var a = to(), o = R(a), s = B(o, !0), c = B(V(o), !0);
 				k(a), H(() => {
 					Y(s, r()), Y(c, i());
 				}), J(e, a);
@@ -2882,7 +2886,7 @@ function so(e, t) {
 			G(o).length && e(m);
 		});
 		var v = V(p, 2), b = R(v), x = (e) => {
-			var t = no();
+			var t = ro();
 			H(() => $(t, "href", G(a).detail.url)), J(e, t);
 		};
 		X(b, (e) => {
@@ -2890,10 +2894,10 @@ function so(e, t) {
 		});
 		var S = V(b, 2), C = (e) => {
 			var n = Fr(), r = z(n), i = (e) => {
-				var n = ro(), r = V(z(n), 2), i = V(r, 2);
-				K("click", r, () => L(u, !1)), K("click", i, () => (h(), Fa(t.person, t.item.key, "remove"))), J(e, n);
+				var n = io(), r = V(z(n), 2), i = V(r, 2);
+				K("click", r, () => L(u, !1)), K("click", i, () => (h(), Ia(t.person, t.item.key, "remove"))), J(e, n);
 			}, o = (e) => {
-				var t = io();
+				var t = ao();
 				let n;
 				var r = B(t, !0);
 				H(() => {
@@ -2918,15 +2922,15 @@ function so(e, t) {
 }
 wr(["click"]);
 // src/lib/ui/Feed.svelte
-var co = /* @__PURE__ */ q("<ul class=\"card svelte-n1344i\"></ul>"), lo = /* @__PURE__ */ q("<p class=\"caption empty svelte-n1344i\">No workouts in the last 30 days.</p>");
-function uo(e, t) {
+var lo = /* @__PURE__ */ q("<ul class=\"card svelte-n1344i\"></ul>"), uo = /* @__PURE__ */ q("<p class=\"caption empty svelte-n1344i\">No workouts in the last 30 days.</p>");
+function fo(e, t) {
 	j(t, !0);
 	var n = Fr(), r = z(n), i = (e) => {
-		var n = co();
+		var n = lo();
 		Z(n, 21, () => t.items, (e) => e.key, (e, n) => {
 			{
 				let r = /* @__PURE__ */ P(() => t.records?.has(G(n).key));
-				so(e, {
+				co(e, {
 					get person() {
 						return t.person;
 					},
@@ -2943,19 +2947,19 @@ function uo(e, t) {
 			}
 		}), k(n), J(e, n);
 	}, a = (e) => {
-		J(e, lo());
+		J(e, uo());
 	};
 	X(r, (e) => {
 		t.items.length ? e(i) : e(a, -1);
 	}), J(e, n), M();
 }
 // src/lib/ui/PlanBar.svelte
-var fo = /* @__PURE__ */ q("<span> </span>"), po = /* @__PURE__ */ q("<i class=\"svelte-1y5m0aq\"></i>"), mo = /* @__PURE__ */ q("<div class=\"segs svelte-1y5m0aq\" role=\"img\"></div> <div class=\"legend caption svelte-1y5m0aq\"><span><i class=\"dot svelte-1y5m0aq\"></i> run · <i class=\"dot svelte-1y5m0aq\"></i> walk</span> <span> </span></div>", 1), ho = /* @__PURE__ */ q("<div class=\"card plan svelte-1y5m0aq\"><div class=\"top svelte-1y5m0aq\"><span class=\"big\"> </span> <!></div> <!></div>");
-function go(e, t) {
+var po = /* @__PURE__ */ q("<span> </span>"), mo = /* @__PURE__ */ q("<i class=\"svelte-1y5m0aq\"></i>"), ho = /* @__PURE__ */ q("<div class=\"segs svelte-1y5m0aq\" role=\"img\"></div> <div class=\"legend caption svelte-1y5m0aq\"><span><i class=\"dot svelte-1y5m0aq\"></i> run · <i class=\"dot svelte-1y5m0aq\"></i> walk</span> <span> </span></div>", 1), go = /* @__PURE__ */ q("<div class=\"card plan svelte-1y5m0aq\"><div class=\"top svelte-1y5m0aq\"><span class=\"big\"> </span> <!></div> <!></div>");
+function _o(e, t) {
 	j(t, !0);
 	let n = /* @__PURE__ */ P(() => ra(t.plan)), r = /* @__PURE__ */ P(() => Math.round(((t.plan.warmup_s ?? 0) + t.plan.intervals.reduce((e, [, t]) => e + t, 0)) / 60));
-	var i = ho(), a = R(i), o = R(a), s = B(o, !0), c = V(o, 2), l = (e) => {
-		var n = fo();
+	var i = go(), a = R(i), o = R(a), s = B(o, !0), c = V(o, 2), l = (e) => {
+		var n = po();
 		let r;
 		var i = B(n, !0);
 		H(() => {
@@ -2966,9 +2970,9 @@ function go(e, t) {
 		G(n).length && e(l);
 	}), k(a);
 	var u = V(a, 2), d = (e) => {
-		var t = mo(), i = z(t);
+		var t = ho(), i = z(t);
 		Z(i, 21, () => G(n), Kr, (e, t) => {
-			var n = po();
+			var n = mo();
 			let r;
 			H(() => r = di(n, "", r, {
 				"flex-grow": G(t).frac,
@@ -2987,89 +2991,89 @@ function go(e, t) {
 	}), k(i), H(() => Y(s, t.plan.state)), J(e, i), M();
 }
 // src/lib/ui/StepBars.svelte
-var _o = /* @__PURE__ */ q("<li><span class=\"col svelte-1f099m\" aria-hidden=\"true\"><i></i></span> <span class=\"day svelte-1f099m\" aria-hidden=\"true\"> </span></li>"), vo = /* @__PURE__ */ q("<span class=\"goal svelte-1f099m\" aria-hidden=\"true\"></span>"), yo = /* @__PURE__ */ q("<div class=\"chart svelte-1f099m\"><ul aria-label=\"Steps this week\" class=\"svelte-1f099m\"></ul> <!></div>");
-function bo(e, t) {
+var vo = /* @__PURE__ */ q("<li><span class=\"col svelte-1f099m\" aria-hidden=\"true\"><i></i></span> <span class=\"day svelte-1f099m\" aria-hidden=\"true\"> </span></li>"), yo = /* @__PURE__ */ q("<span class=\"goal svelte-1f099m\" aria-hidden=\"true\"></span>"), bo = /* @__PURE__ */ q("<div class=\"chart svelte-1f099m\"><ul aria-label=\"Steps this week\" class=\"svelte-1f099m\"></ul> <!></div>");
+function xo(e, t) {
 	j(t, !0);
-	let n = /* @__PURE__ */ P(() => Math.max(t.goal, ...t.bars.map((e) => e.steps ?? 0))), r = /* @__PURE__ */ P(() => t.goal > 0 ? t.goal / G(n) : null), i = (e) => (/* @__PURE__ */ new Date(`${e}T00:00:00Z`)).toLocaleDateString("en-GB", {
+	let n = (e) => (/* @__PURE__ */ new Date(`${e}T00:00:00Z`)).toLocaleDateString("en-GB", {
 		weekday: "long",
 		timeZone: "UTC"
-	}), a = (e) => `${i(e.date)} ${e.steps.toLocaleString("en-US")} steps`;
-	var o = yo(), s = R(o);
-	Z(s, 21, () => t.bars, (e) => e.date, (e, t) => {
-		var n = _o();
-		let r;
-		var i = R(n), o = R(i);
+	}), r = (e) => `${n(e.date)} ${e.steps.toLocaleString("en-US")} steps`;
+	var i = bo(), a = R(i);
+	Z(a, 21, () => t.bars, (e) => e.date, (e, t) => {
+		var n = vo();
+		let i;
+		var a = R(n), o = R(a);
 		let s, c;
-		k(i);
-		var l = B(V(i, 2), !0);
+		k(a);
+		var l = B(V(a, 2), !0);
 		k(n), H((e) => {
-			$(n, "aria-label", e), $(n, "aria-hidden", G(t).future ? "true" : void 0), $(n, "aria-current", G(t).isToday ? "date" : void 0), r = Q(n, 1, "svelte-1f099m", null, r, { today: G(t).isToday }), s = Q(o, 1, "svelte-1f099m", null, s, {
+			$(n, "aria-label", e), $(n, "aria-hidden", G(t).future ? "true" : void 0), $(n, "aria-current", G(t).isToday ? "date" : void 0), i = Q(n, 1, "svelte-1f099m", null, i, { today: G(t).isToday }), s = Q(o, 1, "svelte-1f099m", null, s, {
 				active: G(t).active,
 				future: G(t).future
 			}), c = di(o, "", c, { height: `${G(t).frac * 100}%` }), Y(l, G(t).label);
-		}, [() => G(t).future ? void 0 : a(G(t))]), J(e, n);
-	}), k(s);
-	var c = V(s, 2), l = (e) => {
-		var t = vo();
-		let n;
-		H(() => n = di(t, "", n, { bottom: `calc(1.5rem + (100% - 1.5rem) * ${G(r) ?? ""})` })), J(e, t);
+		}, [() => G(t).future ? void 0 : r(G(t))]), J(e, n);
+	}), k(a);
+	var o = V(a, 2), s = (e) => {
+		var n = yo();
+		let r;
+		H(() => r = di(n, "", r, { bottom: `calc(1.5rem + (100% - 1.5rem) * ${t.goalFrac ?? ""})` })), J(e, n);
 	};
-	X(c, (e) => {
-		G(r) !== null && e(l);
-	}), k(o), J(e, o), M();
+	X(o, (e) => {
+		t.goalFrac !== null && e(s);
+	}), k(i), J(e, i), M();
 }
 // src/lib/ui/Progress.svelte
-var xo = /* @__PURE__ */ q("<div class=\"card steps svelte-kr1x1f\"><!> <p class=\"caption svelte-kr1x1f\"> </p></div>"), So = /* @__PURE__ */ q("<li class=\"svelte-kr1x1f\"> </li>"), Co = /* @__PURE__ */ q("<button type=\"button\" class=\"btn more svelte-kr1x1f\"> </button>"), wo = /* @__PURE__ */ q("<ul class=\"svelte-kr1x1f\"></ul> <!>", 1), To = /* @__PURE__ */ q("<p class=\"caption empty svelte-kr1x1f\">Your heaviest sets appear here after your first gym session.</p>"), Eo = /* @__PURE__ */ q("<a target=\"_blank\" rel=\"noopener noreferrer\" class=\"svelte-kr1x1f\"> </a>"), Do = /* @__PURE__ */ q("<div class=\"row svelte-kr1x1f\"><span class=\"k svelte-kr1x1f\">Fastest 1 km</span> <span class=\"v svelte-kr1x1f\"><!> </span></div>"), Oo = /* @__PURE__ */ q("<p class=\"caption empty svelte-kr1x1f\">Run 1 km with GPS to set your first time.</p>"), ko = /* @__PURE__ */ q("<!> <div class=\"card svelte-kr1x1f\"><!></div> <div class=\"card rows svelte-kr1x1f\"><!> <div class=\"row svelte-kr1x1f\"><span class=\"k svelte-kr1x1f\">Longest session</span><span class=\"v svelte-kr1x1f\"> </span></div> <div class=\"row svelte-kr1x1f\"><span class=\"k svelte-kr1x1f\">Total lifted</span><span class=\"v svelte-kr1x1f\"> </span></div></div>", 1);
-function Ao(e, t) {
+var So = /* @__PURE__ */ q("<div class=\"card steps svelte-kr1x1f\"><!> <p class=\"caption svelte-kr1x1f\"> </p></div>"), Co = /* @__PURE__ */ q("<li class=\"svelte-kr1x1f\"> </li>"), wo = /* @__PURE__ */ q("<button type=\"button\" class=\"btn more svelte-kr1x1f\"> </button>"), To = /* @__PURE__ */ q("<ul class=\"svelte-kr1x1f\"></ul> <!>", 1), Eo = /* @__PURE__ */ q("<p class=\"caption empty svelte-kr1x1f\">Your heaviest sets appear here after your first gym session.</p>"), Do = /* @__PURE__ */ q("<a target=\"_blank\" rel=\"noopener noreferrer\" class=\"svelte-kr1x1f\"> </a>"), Oo = /* @__PURE__ */ q("<div class=\"row svelte-kr1x1f\"><span class=\"k svelte-kr1x1f\">Fastest 1 km</span> <span class=\"v svelte-kr1x1f\"><!> </span></div>"), ko = /* @__PURE__ */ q("<p class=\"caption empty svelte-kr1x1f\">Run 1 km with GPS to set your first time.</p>"), Ao = /* @__PURE__ */ q("<!> <div class=\"card svelte-kr1x1f\"><!></div> <div class=\"card rows svelte-kr1x1f\"><!> <div class=\"row svelte-kr1x1f\"><span class=\"k svelte-kr1x1f\">Longest session</span><span class=\"v svelte-kr1x1f\"> </span></div> <div class=\"row svelte-kr1x1f\"><span class=\"k svelte-kr1x1f\">Total lifted</span><span class=\"v svelte-kr1x1f\"> </span></div></div>", 1);
+function jo(e, t) {
 	let n = Ir();
 	j(t, !0);
-	let r = /* @__PURE__ */ P(() => t.person.week.goal.steps ?? 0), i = /* @__PURE__ */ P(() => va(t.person.steps_week, G(r), (/* @__PURE__ */ new Date()).toLocaleDateString("en-CA"))), a = /* @__PURE__ */ P(() => t.person.pbs.lifts ?? []), o = /* @__PURE__ */ I(!1), s = /* @__PURE__ */ P(() => G(o) ? Sa(G(a)) : xa(G(a))), c = /* @__PURE__ */ P(() => t.person.pbs.fastest_1k), l = /* @__PURE__ */ P(() => t.person.pbs.gym_tonnes.toLocaleString(void 0, { maximumFractionDigits: 1 }));
-	var u = ko(), d = z(u), f = (e) => {
-		var t = xo(), n = R(t);
-		bo(n, {
+	let r = /* @__PURE__ */ P(() => t.person.week.goal.steps ?? 0), i = /* @__PURE__ */ P(() => ya(t.person.steps_week, G(r), va())), a = /* @__PURE__ */ P(() => t.person.pbs.lifts ?? []), o = /* @__PURE__ */ I(!1), s = /* @__PURE__ */ P(() => G(o) ? Ca(G(a)) : Sa(G(a))), c = /* @__PURE__ */ P(() => t.person.pbs.fastest_1k), l = /* @__PURE__ */ P(() => t.person.pbs.gym_tonnes.toLocaleString(void 0, { maximumFractionDigits: 1 }));
+	var u = Ao(), d = z(u), f = (e) => {
+		var t = So(), n = R(t);
+		xo(n, {
 			get bars() {
-				return G(i);
+				return G(i).bars;
 			},
-			get goal() {
-				return G(r);
+			get goalFrac() {
+				return G(i).goalFrac;
 			}
 		});
-		var a = B(V(n, 2), !0);
-		k(t), H((e) => Y(a, e), [() => ya(G(i))]), J(e, t);
+		var r = B(V(n, 2), !0);
+		k(t), H((e) => Y(r, e), [() => ba(G(i).bars)]), J(e, t);
 	};
 	X(d, (e) => {
 		G(i) && e(f);
 	});
 	var p = V(d, 2), m = R(p), h = (e) => {
-		var t = wo(), r = z(t);
+		var t = To(), r = z(t);
 		Z(r, 21, () => G(s), (e) => e.id, (e, t) => {
-			var n = So(), r = B(n, !0);
-			H((e) => Y(r, e), [() => ba(G(t))]), J(e, n);
+			var n = Co(), r = B(n, !0);
+			H((e) => Y(r, e), [() => xa(G(t))]), J(e, n);
 		}), k(r);
 		var i = V(r, 2), c = (e) => {
-			var t = Co(), r = B(t, !0);
+			var t = wo(), r = B(t, !0);
 			H(() => {
 				$(t, "aria-expanded", G(o)), $(t, "aria-controls", `${n}-lifts`), Y(r, G(o) ? "Show fewer" : `Show all (${G(a).length})`);
 			}), K("click", t, () => L(o, !G(o))), J(e, t);
-		}, l = /* @__PURE__ */ P(() => G(a).length > xa(G(a)).length);
+		}, l = /* @__PURE__ */ P(() => G(a).length > Sa(G(a)).length);
 		X(i, (e) => {
 			G(l) && e(c);
 		}), H(() => $(r, "id", `${n}-lifts`)), J(e, t);
 	}, g = (e) => {
-		J(e, To());
+		J(e, Eo());
 	};
 	X(m, (e) => {
 		G(a).length ? e(h) : e(g, -1);
 	}), k(p);
 	var _ = V(p, 2), v = R(_), y = (e) => {
-		var t = Do(), n = V(R(t), 2), r = R(n), i = (e) => {
-			var t = Eo(), n = B(t, !0);
+		var t = Oo(), n = V(R(t), 2), r = R(n), i = (e) => {
+			var t = Do(), n = B(t, !0);
 			H((e) => {
 				$(t, "href", G(c).url), Y(n, e);
-			}, [() => Ca(G(c).seconds)]), J(e, t);
+			}, [() => wa(G(c).seconds)]), J(e, t);
 		}, a = (e) => {
 			var t = Pr();
-			H((e) => Y(t, e), [() => Ca(G(c).seconds)]), J(e, t);
+			H((e) => Y(t, e), [() => wa(G(c).seconds)]), J(e, t);
 		};
 		X(r, (e) => {
 			G(c).url ? e(i) : e(a, -1);
@@ -3077,7 +3081,7 @@ function Ao(e, t) {
 		var o = V(r);
 		k(n), k(t), H((e) => Y(o, ` · ${e ?? ""}`), [() => aa(G(c).date)]), J(e, t);
 	}, b = (e) => {
-		J(e, Oo());
+		J(e, ko());
 	};
 	X(v, (e) => {
 		G(c) ? e(y) : e(b, -1);
@@ -3091,19 +3095,19 @@ function Ao(e, t) {
 }
 wr(["click"]);
 // src/lib/ui/Shoes.svelte
-var jo = /* @__PURE__ */ q("<span class=\"label svelte-eu7fja\"> </span>"), Mo = /* @__PURE__ */ q("<li><div class=\"top svelte-eu7fja\"><span class=\"name svelte-eu7fja\"> </span><span class=\"km svelte-eu7fja\"> </span></div> <span class=\"bar svelte-eu7fja\" aria-hidden=\"true\"><i class=\"svelte-eu7fja\"></i></span> <div class=\"caption svelte-eu7fja\"><span> </span> <!></div></li>"), No = /* @__PURE__ */ q("<ul class=\"card svelte-eu7fja\"></ul>");
-function Po(e, t) {
+var Mo = /* @__PURE__ */ q("<span class=\"label svelte-eu7fja\"> </span>"), No = /* @__PURE__ */ q("<li><div class=\"top svelte-eu7fja\"><span class=\"name svelte-eu7fja\"> </span><span class=\"km svelte-eu7fja\"> </span></div> <span class=\"bar svelte-eu7fja\" aria-hidden=\"true\"><i class=\"svelte-eu7fja\"></i></span> <div class=\"caption svelte-eu7fja\"><span> </span> <!></div></li>"), Po = /* @__PURE__ */ q("<ul class=\"card svelte-eu7fja\"></ul>");
+function Fo(e, t) {
 	j(t, !0);
 	let n = /* @__PURE__ */ P(() => t.shoes.map(ca));
-	var r = No();
+	var r = Po();
 	Z(r, 23, () => G(n), (e, n) => t.shoes[n].entity_id, (e, t) => {
-		var n = Mo(), r = R(n), i = R(r), a = B(i, !0), o = B(V(i), !0);
+		var n = No(), r = R(n), i = R(r), a = B(i, !0), o = B(V(i), !0);
 		k(r);
 		var s = V(r, 2), c = R(s);
 		let l;
 		k(s);
 		var u = V(s, 2), d = R(u), f = B(d, !0), p = V(d, 2), m = (e) => {
-			var n = jo(), r = B(n, !0);
+			var n = Mo(), r = B(n, !0);
 			H(() => Y(r, G(t).label)), J(e, n);
 		};
 		X(p, (e) => {
@@ -3114,14 +3118,14 @@ function Po(e, t) {
 	}), k(r), J(e, r), M();
 }
 // src/lib/ui/Details.svelte
-var Fo = /* @__PURE__ */ q("<section><h2 class=\"svelte-1341oik\">Plan</h2> <!></section>"), Io = /* @__PURE__ */ q("<section><h2 class=\"svelte-1341oik\">Shoes</h2> <!></section>"), Lo = /* @__PURE__ */ q("<!> <section><h2 class=\"svelte-1341oik\">Activity</h2> <!></section> <section><h2 class=\"svelte-1341oik\">Badges <small class=\"svelte-1341oik\"> </small></h2> <!></section> <section><h2 class=\"svelte-1341oik\">Progress</h2> <!></section> <!>", 1);
-function Ro(e, t) {
+var Io = /* @__PURE__ */ q("<section><h2 class=\"svelte-1341oik\">Plan</h2> <!></section>"), Lo = /* @__PURE__ */ q("<section><h2 class=\"svelte-1341oik\">Shoes</h2> <!></section>"), Ro = /* @__PURE__ */ q("<!> <section><h2 class=\"svelte-1341oik\">Activity</h2> <!></section> <section><h2 class=\"svelte-1341oik\">Badges <small class=\"svelte-1341oik\"> </small></h2> <!></section> <section><h2 class=\"svelte-1341oik\">Progress</h2> <!></section> <!>", 1);
+function zo(e, t) {
 	let n = Ir();
 	j(t, !0);
-	let r = /* @__PURE__ */ P(() => wa(t.person.pbs));
-	var i = Lo(), a = z(i), o = (e) => {
-		var r = Fo(), i = R(r);
-		go(V(i, 2), { get plan() {
+	let r = /* @__PURE__ */ P(() => Ta(t.person.pbs));
+	var i = Ro(), a = z(i), o = (e) => {
+		var r = Io(), i = R(r);
+		_o(V(i, 2), { get plan() {
 			return t.person.plan;
 		} }), k(r), H(() => {
 			$(r, "aria-labelledby", `${n}-plan`), $(i, "id", `${n}-plan`);
@@ -3131,7 +3135,7 @@ function Ro(e, t) {
 		t.person.plan && e(o);
 	});
 	var s = V(a, 2), c = R(s);
-	uo(V(c, 2), {
+	fo(V(c, 2), {
 		get person() {
 			return t.id;
 		},
@@ -3146,16 +3150,16 @@ function Ro(e, t) {
 		}
 	}), k(s);
 	var l = V(s, 2), u = R(l), d = B(V(R(u)));
-	k(u), Va(V(u, 2), { get badges() {
+	k(u), Ha(V(u, 2), { get badges() {
 		return t.person.badges;
 	} }), k(l);
 	var f = V(l, 2), p = R(f);
-	Ao(V(p, 2), { get person() {
+	jo(V(p, 2), { get person() {
 		return t.person;
 	} }), k(f);
 	var m = V(f, 2), h = (e) => {
-		var r = Io(), i = R(r);
-		Po(V(i, 2), { get shoes() {
+		var r = Lo(), i = R(r);
+		Fo(V(i, 2), { get shoes() {
 			return t.person.shoes;
 		} }), k(r), H(() => {
 			$(r, "aria-labelledby", `${n}-shoes`), $(i, "id", `${n}-shoes`);
@@ -3168,8 +3172,8 @@ function Ro(e, t) {
 	}), J(e, i), M();
 }
 // src/lib/ui/Goals.svelte
-var zo = /* @__PURE__ */ q("<div class=\"stepper svelte-7wncvy\" role=\"group\"><span class=\"name svelte-7wncvy\" aria-hidden=\"true\"> </span> <button type=\"button\" class=\"pm press svelte-7wncvy\">−</button> <output aria-live=\"polite\" class=\"svelte-7wncvy\"> </output> <button type=\"button\" class=\"pm press svelte-7wncvy\">+</button></div>"), Bo = /* @__PURE__ */ q("<p class=\"msg\" role=\"status\"> </p>"), Vo = /* @__PURE__ */ q("<section class=\"group glass svelte-7wncvy\"><h3 class=\"svelte-7wncvy\"> </h3> <!></section>"), Ho = /* @__PURE__ */ q("<label><input class=\"sr svelte-7wncvy\" type=\"radio\"/> </label>"), Uo = /* @__PURE__ */ q("<button type=\"button\" class=\"btn save svelte-7wncvy\">Save</button>"), Wo = /* @__PURE__ */ q("<p class=\"caption svelte-7wncvy\"> </p> <!> <section class=\"group glass svelte-7wncvy\"><h3 class=\"svelte-7wncvy\">Together</h3> <div class=\"seg svelte-7wncvy\" role=\"radiogroup\"></div> <p class=\"caption hint svelte-7wncvy\"> </p> <!> <label class=\"reward svelte-7wncvy\"><span class=\"name svelte-7wncvy\">Reward</span> <input type=\"text\" maxlength=\"60\" placeholder=\"Pizza night\" class=\"svelte-7wncvy\"/></label></section> <!>", 1), Go = /* @__PURE__ */ q("<h2 class=\"title svelte-7wncvy\">Goals</h2> <!>", 1);
-function Ko(e, t) {
+var Bo = /* @__PURE__ */ q("<div class=\"stepper svelte-7wncvy\" role=\"group\"><span class=\"name svelte-7wncvy\" aria-hidden=\"true\"> </span> <button type=\"button\" class=\"pm press svelte-7wncvy\">−</button> <output aria-live=\"polite\" class=\"svelte-7wncvy\"> </output> <button type=\"button\" class=\"pm press svelte-7wncvy\">+</button></div>"), Vo = /* @__PURE__ */ q("<p class=\"msg\" role=\"status\"> </p>"), Ho = /* @__PURE__ */ q("<section class=\"group glass svelte-7wncvy\"><h3 class=\"svelte-7wncvy\"> </h3> <!></section>"), Uo = /* @__PURE__ */ q("<label><input class=\"sr svelte-7wncvy\" type=\"radio\"/> </label>"), Wo = /* @__PURE__ */ q("<button type=\"button\" class=\"btn save svelte-7wncvy\">Save</button>"), Go = /* @__PURE__ */ q("<p class=\"caption svelte-7wncvy\"> </p> <!> <section class=\"group glass svelte-7wncvy\"><h3 class=\"svelte-7wncvy\">Together</h3> <div class=\"seg svelte-7wncvy\" role=\"radiogroup\"></div> <p class=\"caption hint svelte-7wncvy\"> </p> <!> <label class=\"reward svelte-7wncvy\"><span class=\"name svelte-7wncvy\">Reward</span> <input type=\"text\" maxlength=\"60\" placeholder=\"Pizza night\" class=\"svelte-7wncvy\"/></label></section> <!>", 1), Ko = /* @__PURE__ */ q("<h2 class=\"title svelte-7wncvy\">Goals</h2> <!>", 1);
+function qo(e, t) {
 	let n = Ir();
 	j(t, !0);
 	let i = [], a = (e, n = h, r = h, i = h) => {
@@ -3181,7 +3185,7 @@ function Ko(e, t) {
 				step: n
 			};
 		});
-		var o = zo(), s = R(o), c = B(s, !0), l = V(s, 2), u = V(l, 2), d = B(u, !0), f = V(u, 2);
+		var o = Bo(), s = R(o), c = B(s, !0), l = V(s, 2), u = V(l, 2), d = B(u, !0), f = V(u, 2);
 		k(o), H((e, s, u, p) => {
 			$(o, "aria-label", i()), Y(c, e), $(l, "aria-label", `Fewer ${s ?? ""}`), l.disabled = t.readOnly || n()[r()] <= G(a).lo, Y(d, u), $(f, "aria-label", `More ${p ?? ""}`), f.disabled = t.readOnly || n()[r()] >= G(a).hi;
 		}, [
@@ -3223,17 +3227,17 @@ function Ko(e, t) {
 	}, p = (e) => e[0].toLowerCase() + e.slice(1), m = (e, t) => e === "steps" ? t.toLocaleString("en-US") : String(t);
 	async function g() {
 		L(l, !0);
-		let e = await Pa(Je(G(c)), t.people);
+		let e = await Fa(Je(G(c)), t.people);
 		L(l, !1), e && t.onsaved();
 	}
-	var _ = Go(), v = V(z(_), 2), y = (e) => {
-		var t = Bo(), n = B(t, !0);
+	var _ = Ko(), v = V(z(_), 2), y = (e) => {
+		var t = Vo(), n = B(t, !0);
 		H(() => Y(n, G(s) ? G(s).status === 503 ? "Waiting for fitbridge" : "Couldn't reach Home Assistant" : "Loading…")), J(e, t);
 	}, b = (e) => {
-		var r = Wo(), s = z(r), p = B(s), m = V(s, 2);
+		var r = Go(), s = z(r), p = B(s), m = V(s, 2);
 		Z(m, 16, () => Object.keys(G(c).people), (e) => e, (e, r) => {
 			let i = /* @__PURE__ */ P(() => t.people[r]?.name ?? r);
-			var o = Vo(), s = R(o), l = B(s, !0);
+			var o = Ho(), s = R(o), l = B(s, !0);
 			Z(V(s, 2), 16, () => ua, (e) => e, (e, t) => {
 				a(e, () => G(c).people[r], () => t, () => `${u[t]}, ${G(i)}`);
 			}), k(o), H(() => {
@@ -3242,7 +3246,7 @@ function Ko(e, t) {
 		});
 		var h = V(m, 2), _ = R(h), v = V(_, 2);
 		Z(v, 21, () => d, (e) => e.mode, (e, r) => {
-			var a = Ho();
+			var a = Uo();
 			let o;
 			var s = R(a);
 			hi(s);
@@ -3260,7 +3264,7 @@ function Ko(e, t) {
 		var C = V(x, 2), w = V(R(C), 2);
 		hi(w), k(C), k(h);
 		var T = V(h, 2), ee = (e) => {
-			var t = Uo();
+			var t = Wo();
 			H(() => t.disabled = G(l)), K("click", t, g), J(e, t);
 		};
 		X(T, (e) => {
@@ -3275,13 +3279,13 @@ function Ko(e, t) {
 }
 wr(["click"]);
 // src/lib/ui/Header.svelte
-var qo = /* @__PURE__ */ q("<button type=\"button\" class=\"back press svelte-16l0jix\"><span aria-hidden=\"true\" class=\"svelte-16l0jix\">‹</span> Back</button>"), Jo = /* @__PURE__ */ q("<button type=\"button\" class=\"action press svelte-16l0jix\"> </button>"), Yo = /* @__PURE__ */ q("<header><div class=\"in svelte-16l0jix\"><!> <div class=\"row svelte-16l0jix\"><h1 class=\"svelte-16l0jix\"> </h1> <!></div> <p class=\"svelte-16l0jix\"> </p></div></header>");
-function Xo(e, t) {
+var Jo = /* @__PURE__ */ q("<button type=\"button\" class=\"back press svelte-16l0jix\"><span aria-hidden=\"true\" class=\"svelte-16l0jix\">‹</span> Back</button>"), Yo = /* @__PURE__ */ q("<button type=\"button\" class=\"action press svelte-16l0jix\"> </button>"), Xo = /* @__PURE__ */ q("<header><div class=\"in svelte-16l0jix\"><!> <div class=\"row svelte-16l0jix\"><h1 class=\"svelte-16l0jix\"> </h1> <!></div> <p class=\"svelte-16l0jix\"> </p></div></header>");
+function Zo(e, t) {
 	let n = Pi(t, "subtitle", 3, ""), r = Pi(t, "actionLabel", 3, ""), i = /* @__PURE__ */ I(0);
-	var a = Yo();
+	var a = Xo();
 	let o;
 	var s = R(a), c = R(s), l = (e) => {
-		var n = qo();
+		var n = Jo();
 		K("click", n, function(...e) {
 			t.onback?.apply(this, e);
 		}), J(e, n);
@@ -3290,7 +3294,7 @@ function Xo(e, t) {
 		t.onback && e(l);
 	});
 	var u = V(c, 2), d = R(u), f = B(d, !0), p = V(d, 2), m = (e) => {
-		var n = Jo(), i = B(n, !0);
+		var n = Yo(), i = B(n, !0);
 		H(() => Y(i, r())), K("click", n, function(...e) {
 			t.onaction?.apply(this, e);
 		}), J(e, n);
@@ -3305,14 +3309,14 @@ function Xo(e, t) {
 }
 wr(["click"]);
 // src/lib/ui/Rings.svelte
-var Zo = /* @__PURE__ */ Nr("<circle class=\"track svelte-1a5ed6t\"></circle><circle class=\"svelte-1a5ed6t\"></circle>", 1), Qo = /* @__PURE__ */ Nr("<svg aria-hidden=\"true\" class=\"svelte-1a5ed6t\"></svg>");
-function $o(e, t) {
+var Qo = /* @__PURE__ */ Nr("<circle class=\"track svelte-1a5ed6t\"></circle><circle class=\"svelte-1a5ed6t\"></circle>", 1), $o = /* @__PURE__ */ Nr("<svg aria-hidden=\"true\" class=\"svelte-1a5ed6t\"></svg>");
+function es(e, t) {
 	j(t, !0);
 	let n = Pi(t, "size", 3, 88), r = [
 		"run",
 		"gym",
 		"bonus"
-	], i = 1e3, a = /* @__PURE__ */ I(Qt(Ha.reducedMotion ? i : 0)), o = /* @__PURE__ */ P(() => n() * .11), s = /* @__PURE__ */ P(() => t.fractions.map((e, t) => {
+	], i = 1e3, a = /* @__PURE__ */ I(Qt(Ua.reducedMotion ? i : 0)), o = /* @__PURE__ */ P(() => n() * .11), s = /* @__PURE__ */ P(() => t.fractions.map((e, t) => {
 		let s = n() / 2 - G(o) / 2 - t * G(o) * 1.3, c = 2 * Math.PI * s;
 		return {
 			kind: r[t],
@@ -3323,17 +3327,17 @@ function $o(e, t) {
 	}));
 	Fi(() => {
 		if (G(a) === i) return;
-		let e = Ka(Ya({
+		let e = qa(Xa({
 			value: 0,
 			response: .35,
 			damping: 1
 		}), { onFrame: (e) => L(a, e, !0) });
 		return e.to(i), e.stop;
 	});
-	var c = Qo();
+	var c = $o();
 	let l;
 	Z(c, 21, () => G(s), (e) => e.kind, (e, t) => {
-		var r = Zo(), i = z(r);
+		var r = Qo(), i = z(r);
 		let a;
 		var s = V(i);
 		let c;
@@ -3345,8 +3349,8 @@ function $o(e, t) {
 	}), J(e, c), M();
 }
 // src/lib/ui/PersonTile.svelte
-var es = /* @__PURE__ */ q("<span class=\"star small svelte-1handop\" aria-hidden=\"true\">⭐</span>"), ts = /* @__PURE__ */ q("<span class=\"rings svelte-1handop\"><!> <!></span> <span class=\"sr\"> </span>", 1), ns = /* @__PURE__ */ q("<span class=\"streak svelte-1handop\"> </span>"), rs = /* @__PURE__ */ q("<span class=\"chev svelte-1handop\" aria-hidden=\"true\">›</span>"), is = /* @__PURE__ */ q("<span class=\"star svelte-1handop\" aria-hidden=\"true\">⭐</span>"), as = /* @__PURE__ */ q("<span class=\"stat svelte-1handop\"><span class=\"k svelte-1handop\"><i class=\"svelte-1handop\"></i> </span> <span class=\"v svelte-1handop\"> <small class=\"svelte-1handop\"> </small></span></span>"), os = /* @__PURE__ */ q("<span class=\"steps svelte-1handop\"> </span>"), ss = /* @__PURE__ */ q("<span class=\"body svelte-1handop\"><span class=\"rings svelte-1handop\"><!> <!></span> <span class=\"stats svelte-1handop\"></span></span> <!> <span class=\"xp svelte-1handop\"><span class=\"bar svelte-1handop\"><i class=\"svelte-1handop\"></i></span> <span class=\"caption svelte-1handop\"> </span></span>", 1), cs = /* @__PURE__ */ q("<button type=\"button\" class=\"hit svelte-1handop\"></button>"), ls = /* @__PURE__ */ q("<article><div><span class=\"head svelte-1handop\"><span class=\"avatar svelte-1handop\" aria-hidden=\"true\"> </span> <span class=\"who svelte-1handop\"><span class=\"name svelte-1handop\"> </span> <span class=\"lvl svelte-1handop\"> </span></span> <!> <!></span> <!></div> <!></article>");
-function us(e, t) {
+var ts = /* @__PURE__ */ q("<span class=\"star small svelte-1handop\" aria-hidden=\"true\">⭐</span>"), ns = /* @__PURE__ */ q("<span class=\"rings svelte-1handop\"><!> <!></span> <span class=\"sr\"> </span>", 1), rs = /* @__PURE__ */ q("<span class=\"streak svelte-1handop\"> </span>"), is = /* @__PURE__ */ q("<span class=\"chev svelte-1handop\" aria-hidden=\"true\">›</span>"), as = /* @__PURE__ */ q("<span class=\"star svelte-1handop\" aria-hidden=\"true\">⭐</span>"), os = /* @__PURE__ */ q("<span class=\"stat svelte-1handop\"><span class=\"k svelte-1handop\"><i class=\"svelte-1handop\"></i> </span> <span class=\"v svelte-1handop\"> <small class=\"svelte-1handop\"> </small></span></span>"), ss = /* @__PURE__ */ q("<span class=\"steps svelte-1handop\"> </span>"), cs = /* @__PURE__ */ q("<span class=\"body svelte-1handop\"><span class=\"rings svelte-1handop\"><!> <!></span> <span class=\"stats svelte-1handop\"></span></span> <!> <span class=\"xp svelte-1handop\"><span class=\"bar svelte-1handop\"><i class=\"svelte-1handop\"></i></span> <span class=\"caption svelte-1handop\"> </span></span>", 1), ls = /* @__PURE__ */ q("<button type=\"button\" class=\"hit svelte-1handop\"></button>"), us = /* @__PURE__ */ q("<article><div><span class=\"head svelte-1handop\"><span class=\"avatar svelte-1handop\" aria-hidden=\"true\"> </span> <span class=\"who svelte-1handop\"><span class=\"name svelte-1handop\"> </span> <span class=\"lvl svelte-1handop\"> </span></span> <!> <!></span> <!></div> <!></article>");
+function ds(e, t) {
 	j(t, !0);
 	let n = Pi(t, "index", 3, 0), r = Pi(t, "compact", 3, !1), i = [
 		["#30D158", "#0A84FF"],
@@ -3376,17 +3380,17 @@ function us(e, t) {
 		G(u).paused && "Week paused",
 		G(u).goal_pending && "New goals pending"
 	].filter(Boolean).join(" · ")), h = /* @__PURE__ */ P(() => `${t.person.name}, level ${G(l).level}. This week ${G(f).map((e) => `${e.label.toLowerCase()} ${e.n} of ${e.of}`).join(", ")}. ${G(u).goal_pending ? "New goals pending. " : ""}${G(u).bonus ? "Weekly bonus earned. " : ""}${G(p) ? G(p).replace("👟 ", "") + ". " : ""}Streak ${t.person.streak} weeks.`);
-	var g = ls();
+	var g = us();
 	let _;
 	var v = R(g), b = R(v), x = R(b);
 	let S;
 	var C = B(x, !0), w = V(x, 2), T = R(w), ee = B(T, !0), te = B(V(T, 2), !0);
 	k(w);
 	var ne = V(w, 2), re = (e) => {
-		var t = ts(), n = z(t), r = R(n);
+		var t = ns(), n = z(t), r = R(n);
 		{
 			let e = /* @__PURE__ */ P(() => Ui(G(u)));
-			$o(r, {
+			es(r, {
 				get fractions() {
 					return G(e);
 				},
@@ -3394,7 +3398,7 @@ function us(e, t) {
 			});
 		}
 		var i = V(r, 2), a = (e) => {
-			J(e, es());
+			J(e, ts());
 		};
 		X(i, (e) => {
 			G(u).bonus && e(a);
@@ -3402,23 +3406,23 @@ function us(e, t) {
 		var o = B(V(n, 2), !0);
 		H(() => Y(o, G(h))), J(e, t);
 	}, ie = (e) => {
-		var n = ns(), r = B(n);
+		var n = rs(), r = B(n);
 		H(() => Y(r, `🔥 ${t.person.streak ?? ""} wk`)), J(e, n);
 	};
 	X(ne, (e) => {
 		r() ? e(re) : e(ie, -1);
 	});
 	var ae = V(ne, 2), oe = (e) => {
-		J(e, rs());
+		J(e, is());
 	};
 	X(ae, (e) => {
 		t.onopen && e(oe);
 	}), k(b);
 	var se = V(b, 2), ce = (e) => {
-		var t = ss(), n = z(t), r = R(n), i = R(r);
+		var t = cs(), n = z(t), r = R(n), i = R(r);
 		{
-			let e = /* @__PURE__ */ P(() => Ui(G(u))), t = /* @__PURE__ */ P(() => Ha.wide ? 112 : 88);
-			$o(i, {
+			let e = /* @__PURE__ */ P(() => Ui(G(u))), t = /* @__PURE__ */ P(() => Ua.wide ? 112 : 88);
+			es(i, {
 				get fractions() {
 					return G(e);
 				},
@@ -3428,14 +3432,14 @@ function us(e, t) {
 			});
 		}
 		var a = V(i, 2), o = (e) => {
-			J(e, is());
+			J(e, as());
 		};
 		X(a, (e) => {
 			G(u).bonus && e(o);
 		}), k(r);
 		var s = V(r, 2);
 		Z(s, 21, () => G(f), (e) => e.kind, (e, t) => {
-			var n = as(), r = R(n), i = R(r);
+			var n = os(), r = R(n), i = R(r);
 			let a;
 			var o = V(i, 1, !0);
 			k(r);
@@ -3445,7 +3449,7 @@ function us(e, t) {
 			}), J(e, n);
 		}), k(s), k(n);
 		var c = V(n, 2), d = (e) => {
-			var t = os(), n = B(t, !0);
+			var t = ss(), n = B(t, !0);
 			H(() => Y(n, G(p))), J(e, t);
 		};
 		X(c, (e) => {
@@ -3463,7 +3467,7 @@ function us(e, t) {
 		r() || e(ce);
 	}), k(v);
 	var le = V(v, 2), ue = (e) => {
-		var n = cs();
+		var n = ls();
 		H(() => $(n, "aria-label", G(h))), K("click", n, function(...e) {
 			t.onopen?.apply(this, e);
 		}), J(e, n);
@@ -3482,15 +3486,15 @@ function us(e, t) {
 }
 wr(["click"]);
 // src/lib/gesture.js
-var ds = (e, t = .998) => e / 1e3 * t / (1 - t), fs = (e, t, n) => e + ds(t) > n / 2;
-function ps(e) {
+var fs = (e, t = .998) => e / 1e3 * t / (1 - t), ps = (e, t, n) => e + fs(t) > n / 2;
+function ms(e) {
 	let t = e[0], n = e[e.length - 1];
 	return t && n && n.t > t.t ? (n.x - t.x) / (n.t - t.t) * 1e3 : 0;
 }
-var ms = (e, t, n = .55) => e * t * n / (t + n * Math.abs(e)), hs = /* @__PURE__ */ q("<button type=\"button\" class=\"back press svelte-185xwm9\"><span aria-hidden=\"true\" class=\"svelte-185xwm9\">‹</span> Back</button>"), gs = /* @__PURE__ */ q("<div aria-hidden=\"true\"></div> <div role=\"dialog\" aria-modal=\"true\"><div class=\"grab svelte-185xwm9\"><span class=\"handle svelte-185xwm9\" aria-hidden=\"true\"></span> <div class=\"bar svelte-185xwm9\"><!> <button type=\"button\" class=\"close press svelte-185xwm9\" aria-label=\"Close\">✕</button></div></div> <div class=\"body svelte-185xwm9\"><!></div></div>", 1);
-function _s(e, t) {
+var hs = (e, t, n = .55) => e * t * n / (t + n * Math.abs(e)), gs = /* @__PURE__ */ q("<button type=\"button\" class=\"back press svelte-185xwm9\"><span aria-hidden=\"true\" class=\"svelte-185xwm9\">‹</span> Back</button>"), _s = /* @__PURE__ */ q("<div aria-hidden=\"true\"></div> <div role=\"dialog\" aria-modal=\"true\"><div class=\"grab svelte-185xwm9\"><span class=\"handle svelte-185xwm9\" aria-hidden=\"true\"></span> <div class=\"bar svelte-185xwm9\"><!> <button type=\"button\" class=\"close press svelte-185xwm9\" aria-label=\"Close\">✕</button></div></div> <div class=\"body svelte-185xwm9\"><!></div></div>", 1);
+function vs(e, t) {
 	j(t, !0);
-	let n = Pi(t, "from", 3, null), r = 1e3, i = Ha.reducedMotion, a = /* @__PURE__ */ I(Qt(i ? r : 0)), o = /* @__PURE__ */ I(0), s = /* @__PURE__ */ I(1), c = /* @__PURE__ */ I(!1), l = /* @__PURE__ */ I("50% 100%"), u, d, f = !1, p = null, m = /* @__PURE__ */ P(() => i ? +G(c) : Math.min(1, G(a) / 500)), h = /* @__PURE__ */ P(() => i ? 1 : .5 + .5 * G(a) / r), g = () => {
+	let n = Pi(t, "from", 3, null), r = 1e3, i = Ua.reducedMotion, a = /* @__PURE__ */ I(Qt(i ? r : 0)), o = /* @__PURE__ */ I(0), s = /* @__PURE__ */ I(1), c = /* @__PURE__ */ I(!1), l = /* @__PURE__ */ I("50% 100%"), u, d, f = !1, p = null, m = /* @__PURE__ */ P(() => i ? +G(c) : Math.min(1, G(a) / 500)), h = /* @__PURE__ */ P(() => i ? 1 : .5 + .5 * G(a) / r), g = () => {
 		f && (G(a) === 0 || G(o) >= G(s)) && (f = !1, t.onclose());
 	};
 	function _(e) {
@@ -3498,11 +3502,11 @@ function _s(e, t) {
 		return {
 			stop: () => n?.stop(),
 			to(r, i, { velocity: a = n?.running ? t.velocity : 0, damping: o = 1, response: s = .35 } = {}) {
-				n?.stop(), t = Ya({
+				n?.stop(), t = Xa({
 					value: r,
 					damping: o,
 					response: s
-				}), n = Ka(t, {
+				}), n = qa(t, {
 					onFrame: e,
 					onSettle: g
 				}), n.to(i, a);
@@ -3511,7 +3515,7 @@ function _s(e, t) {
 	}
 	let v = _((e) => L(a, e, !0)), y = _((e) => L(o, e, !0));
 	function b() {
-		f || p || (f = !0, i ? (L(c, !1), setTimeout(t.onclose, Ja("--fade"))) : v.to(G(a), 0, { response: .3 }));
+		f || p || (f = !0, i ? (L(c, !1), setTimeout(t.onclose, Ya("--fade"))) : v.to(G(a), 0, { response: .3 }));
 	}
 	function x(e) {
 		e.button > 0 || e.target.closest("button") || (e.currentTarget.setPointerCapture(e.pointerId), v.stop(), y.stop(), f = !1, p = {
@@ -3526,7 +3530,7 @@ function _s(e, t) {
 	function S(e) {
 		if (!p) return;
 		let t = p.from + e.clientY - p.start;
-		L(o, t < 0 ? -ms(-t, G(s)) : t, !0), p.samples.push({
+		L(o, t < 0 ? -hs(-t, G(s)) : t, !0), p.samples.push({
 			t: e.timeStamp,
 			x: e.clientY
 		}), p.samples.length > 8 && p.samples.shift();
@@ -3536,8 +3540,8 @@ function _s(e, t) {
 		let t = e.type === "pointercancel" ? [] : [{
 			t: e.timeStamp,
 			x: e.clientY
-		}], n = ps([...p.samples, ...t].filter((t) => e.timeStamp - t.t <= 100));
-		p = null, fs(G(o), n, G(s)) ? i ? b() : (f = !0, y.to(G(o), G(s), {
+		}], n = ms([...p.samples, ...t].filter((t) => e.timeStamp - t.t <= 100));
+		p = null, ps(G(o), n, G(s)) ? i ? b() : (f = !0, y.to(G(o), G(s), {
 			velocity: n,
 			response: .3
 		})) : i ? L(o, 0) : (y.to(G(o), 0, {
@@ -3557,14 +3561,14 @@ function _s(e, t) {
 			v.stop(), y.stop(), e.style.overflow = "";
 		};
 	});
-	var w = { close: b }, T = gs();
+	var w = { close: b }, T = _s();
 	Cr("keydown", tn, (e) => e.key === "Escape" && b());
 	var ee = z(T);
 	let te, ne;
 	var re = V(ee, 2);
 	let ie, ae;
 	var oe = R(re), se = V(R(oe), 2), ce = R(se), le = (e) => {
-		var n = hs();
+		var n = gs();
 		K("click", n, function(...e) {
 			t.onback?.apply(this, e);
 		}), J(e, n);
@@ -3590,26 +3594,26 @@ wr([
 	"pointerup"
 ]);
 // src/lib/ui/Status.svelte
-var vs = /* @__PURE__ */ q("<p class=\"warn card svelte-9nj5u4\" role=\"alert\"><b>Scoring config has an error.</b> </p>"), ys = /* @__PURE__ */ q("<p class=\"warn card svelte-9nj5u4\" role=\"alert\"><b>Goal settings have an error.</b> </p>"), bs = /* @__PURE__ */ q("<p class=\"caption stale svelte-9nj5u4\"> </p>"), xs = /* @__PURE__ */ q("<!> <!> <!>", 1);
-function Ss(e, t) {
+var ys = /* @__PURE__ */ q("<p class=\"warn card svelte-9nj5u4\" role=\"alert\"><b>Scoring config has an error.</b> </p>"), bs = /* @__PURE__ */ q("<p class=\"warn card svelte-9nj5u4\" role=\"alert\"><b>Goal settings have an error.</b> </p>"), xs = /* @__PURE__ */ q("<p class=\"caption stale svelte-9nj5u4\"> </p>"), Ss = /* @__PURE__ */ q("<!> <!> <!>", 1);
+function Cs(e, t) {
 	j(t, !0);
 	let n = /* @__PURE__ */ P(() => t.scoredAt ? Xi(t.scoredAt, t.now) : null);
-	var r = xs(), i = z(r), a = (e) => {
-		var n = vs(), r = V(R(n));
+	var r = Ss(), i = z(r), a = (e) => {
+		var n = ys(), r = V(R(n));
 		k(n), H(() => Y(r, ` fitbridge keeps the last valid one. ${t.configError ?? ""}`)), J(e, n);
 	};
 	X(i, (e) => {
 		t.configError && e(a);
 	});
 	var o = V(i, 2), s = (e) => {
-		var n = ys(), r = V(R(n));
+		var n = bs(), r = V(R(n));
 		k(n), H(() => Y(r, ` fitbridge keeps the last valid ones. ${t.settingsError ?? ""}`)), J(e, n);
 	};
 	X(o, (e) => {
 		t.settingsError && e(s);
 	});
 	var c = V(o, 2), l = (e) => {
-		var t = bs(), r = B(t, !0);
+		var t = xs(), r = B(t, !0);
 		H(() => Y(r, G(n))), J(e, t);
 	};
 	X(c, (e) => {
@@ -3619,36 +3623,36 @@ function Ss(e, t) {
 // node_modules/svelte/src/internal/flags/legacy.js
 Ke();
 // src/lib/ui/Toast.svelte
-var Cs = /* @__PURE__ */ q("<button type=\"button\" class=\"press svelte-1fk2ial\">Undo</button>"), ws = /* @__PURE__ */ q("<span> </span> <!>", 1), Ts = /* @__PURE__ */ q("<div role=\"status\" aria-live=\"polite\"><!></div>");
-function Es(e, t) {
+var ws = /* @__PURE__ */ q("<button type=\"button\" class=\"press svelte-1fk2ial\">Undo</button>"), Ts = /* @__PURE__ */ q("<span> </span> <!>", 1), Es = /* @__PURE__ */ q("<div role=\"status\" aria-live=\"polite\"><!></div>");
+function Ds(e, t) {
 	j(t, !1);
 	function n() {
-		let e = Da.undo;
-		Object.assign(Da, {
+		let e = Oa.undo;
+		Object.assign(Oa, {
 			on: !1,
 			undo: null
 		}), e();
 	}
 	Ai();
-	var r = Ts();
+	var r = Es();
 	let i;
 	var a = R(r), o = (e) => {
-		var t = ws(), r = z(t), i = B(r, !0), a = V(r, 2), o = (e) => {
-			var t = Cs();
+		var t = Ts(), r = z(t), i = B(r, !0), a = V(r, 2), o = (e) => {
+			var t = ws();
 			K("click", t, n), J(e, t);
 		};
 		X(a, (e) => {
-			Da.undo && e(o);
-		}), H(() => Y(i, Da.text)), J(e, t);
+			Oa.undo && e(o);
+		}), H(() => Y(i, Oa.text)), J(e, t);
 	};
 	X(a, (e) => {
-		Da.on && e(o);
-	}), k(r), H(() => i = Q(r, 1, "toast svelte-1fk2ial", null, i, { on: Da.on })), J(e, r), M();
+		Oa.on && e(o);
+	}), k(r), H(() => i = Q(r, 1, "toast svelte-1fk2ial", null, i, { on: Oa.on })), J(e, r), M();
 }
 wr(["click"]);
 // src/lib/ui/Together.svelte
-var Ds = /* @__PURE__ */ q("<p class=\"progress svelte-1tya3no\"> </p>"), Os = /* @__PURE__ */ q("<p> </p>"), ks = /* @__PURE__ */ q("<div><dt class=\"svelte-1tya3no\"> </dt><dd class=\"svelte-1tya3no\"> <small class=\"svelte-1tya3no\"> </small></dd></div>"), As = /* @__PURE__ */ q("<section class=\"together glass svelte-1tya3no\" aria-labelledby=\"together-title\"><h2 id=\"together-title\" class=\"svelte-1tya3no\">Together</h2> <!> <!> <dl class=\"svelte-1tya3no\"></dl></section>");
-function js(e, t) {
+var Os = /* @__PURE__ */ q("<p class=\"progress svelte-1tya3no\"> </p>"), ks = /* @__PURE__ */ q("<p> </p>"), As = /* @__PURE__ */ q("<div><dt class=\"svelte-1tya3no\"> </dt><dd class=\"svelte-1tya3no\"> <small class=\"svelte-1tya3no\"> </small></dd></div>"), js = /* @__PURE__ */ q("<section class=\"together glass svelte-1tya3no\" aria-labelledby=\"together-title\"><h2 id=\"together-title\" class=\"svelte-1tya3no\">Together</h2> <!> <!> <dl class=\"svelte-1tya3no\"></dl></section>");
+function Ms(e, t) {
 	j(t, !0);
 	let n = /* @__PURE__ */ P(() => t.group.week ? Ki(t.group.week, t.people) : ""), r = /* @__PURE__ */ P(() => t.group.week ? qi(t.group.week) : null), i = /* @__PURE__ */ P(() => [
 		{
@@ -3667,15 +3671,15 @@ function js(e, t) {
 			k: "Distance"
 		}
 	]);
-	var a = As(), o = V(R(a), 2), s = (e) => {
-		var t = Ds(), r = B(t, !0);
+	var a = js(), o = V(R(a), 2), s = (e) => {
+		var t = Os(), r = B(t, !0);
 		H(() => Y(r, G(n))), J(e, t);
 	};
 	X(o, (e) => {
 		G(n) && e(s);
 	});
 	var c = V(o, 2), l = (e) => {
-		var n = Os();
+		var n = ks();
 		let i;
 		var a = B(n, !0);
 		H(() => {
@@ -3687,15 +3691,15 @@ function js(e, t) {
 	});
 	var u = V(c, 2);
 	Z(u, 21, () => G(i), (e) => e.k, (e, t) => {
-		var n = ks(), r = R(n), i = B(r, !0), a = V(r), o = R(a, !0), s = B(V(o), !0);
+		var n = As(), r = R(n), i = B(r, !0), a = V(r), o = R(a, !0), s = B(V(o), !0);
 		k(a), k(n), H(() => {
 			Y(i, G(t).k), Y(o, G(t).v), Y(s, G(t).unit);
 		}), J(e, n);
 	}), k(u), k(a), J(e, a), M();
 }
 // src/App.svelte
-var Ms = /* @__PURE__ */ q("<p class=\"msg svelte-1n46o8q\" role=\"status\"> </p>"), Ns = /* @__PURE__ */ q("<div class=\"tiles svelte-1n46o8q\" aria-hidden=\"true\"><div class=\"tile skeleton glass svelte-1n46o8q\"></div> <div class=\"tile skeleton glass svelte-1n46o8q\"></div></div> <!>", 1), Ps = /* @__PURE__ */ q("<div class=\"tiles compact svelte-1n46o8q\"></div>"), Fs = /* @__PURE__ */ q("<!> <!>", 1), Is = /* @__PURE__ */ q("<div class=\"tiles svelte-1n46o8q\"></div>"), Ls = /* @__PURE__ */ q("<!> <!> <!> <!>", 1), Rs = /* @__PURE__ */ q("<div><!> <main class=\"svelte-1n46o8q\"><!></main></div> <!> <!>", 1);
-function zs(e, t) {
+var Ns = /* @__PURE__ */ q("<p class=\"msg svelte-1n46o8q\" role=\"status\"> </p>"), Ps = /* @__PURE__ */ q("<div class=\"tiles svelte-1n46o8q\" aria-hidden=\"true\"><div class=\"tile skeleton glass svelte-1n46o8q\"></div> <div class=\"tile skeleton glass svelte-1n46o8q\"></div></div> <!>", 1), Fs = /* @__PURE__ */ q("<div class=\"tiles compact svelte-1n46o8q\"></div>"), Is = /* @__PURE__ */ q("<!> <!>", 1), Ls = /* @__PURE__ */ q("<div class=\"tiles svelte-1n46o8q\"></div>"), Rs = /* @__PURE__ */ q("<!> <!> <!> <!>", 1), zs = /* @__PURE__ */ q("<div><!> <main class=\"svelte-1n46o8q\"><!></main></div> <!> <!>", 1);
+function Bs(e, t) {
 	j(t, !0);
 	let n = (() => {
 		try {
@@ -3717,7 +3721,7 @@ function zs(e, t) {
 	async function _() {
 		if (clearTimeout(g), !document.hidden) {
 			try {
-				L(p, await r("scores"), !0), L(m, null), Na(G(p).people), a && Object.hasOwn(G(p).people, a) && a !== ia(G(p).viewer, G(p).people).self && L(c, {
+				L(p, await r("scores"), !0), L(m, null), Pa(G(p).people), a && Object.hasOwn(G(p).people, a) && a !== ia(G(p).viewer, G(p).people).self && L(c, {
 					id: a,
 					from: null
 				}, !0), a = null;
@@ -3734,11 +3738,11 @@ function zs(e, t) {
 			clearTimeout(g), document.removeEventListener("visibilitychange", e);
 		};
 	});
-	let v = /* @__PURE__ */ P(() => _a(G(p)?.people ?? {}, Oa.entry)), y = /* @__PURE__ */ P(() => Object.keys(G(v))), b = /* @__PURE__ */ P(() => ia(G(p)?.viewer ?? {}, G(v))), x = /* @__PURE__ */ P(() => G(v)[G(b).self ?? G(y)[0]]?.week), S = (e) => !!G(p)?.viewer?.can_edit?.includes(e), C = /* @__PURE__ */ P(() => !!G(c) && Object.hasOwn(G(v), G(c).id) || !!G(u) && !!G(p));
-	var w = Rs(), T = z(w), ee = R(T);
+	let v = /* @__PURE__ */ P(() => _a(G(p)?.people ?? {}, ka.entry)), y = /* @__PURE__ */ P(() => Object.keys(G(v))), b = /* @__PURE__ */ P(() => ia(G(p)?.viewer ?? {}, G(v))), x = /* @__PURE__ */ P(() => G(v)[G(b).self ?? G(y)[0]]?.week), S = (e) => !!G(p)?.viewer?.can_edit?.includes(e), C = /* @__PURE__ */ P(() => !!G(c) && Object.hasOwn(G(v), G(c).id) || !!G(u) && !!G(p));
+	var w = zs(), T = z(w), ee = R(T);
 	{
 		let e = /* @__PURE__ */ P(() => G(x) ? Yi(G(x)) : ""), t = /* @__PURE__ */ P(() => G(p) ? (e) => L(u, { from: e.currentTarget }, !0) : void 0);
-		Xo(ee, {
+		Zo(ee, {
 			title: "Training",
 			get subtitle() {
 				return G(e);
@@ -3753,16 +3757,16 @@ function zs(e, t) {
 		});
 	}
 	var te = V(ee, 2), ne = R(te), re = (e) => {
-		var t = Ns(), n = V(z(t), 2), r = (e) => {
-			var t = Ms(), n = B(t, !0);
+		var t = Ps(), n = V(z(t), 2), r = (e) => {
+			var t = Ns(), n = B(t, !0);
 			H(() => Y(n, G(m).status === 503 ? "Waiting for fitbridge" : "Couldn't reach Home Assistant")), J(e, t);
 		};
 		X(n, (e) => {
 			G(m) && e(r);
 		}), J(e, t);
 	}, ie = (e) => {
-		var t = Ls(), n = z(t);
-		Ss(n, {
+		var t = Rs(), n = z(t);
+		Cs(n, {
 			get scoredAt() {
 				return G(p).scored_at;
 			},
@@ -3777,12 +3781,12 @@ function zs(e, t) {
 			}
 		});
 		var r = V(n, 2), i = (e) => {
-			var t = Fs(), n = z(t), r = (e) => {
-				var t = Ps();
+			var t = Is(), n = z(t), r = (e) => {
+				var t = Fs();
 				Z(t, 20, () => G(b).others, (e) => e, (e, t) => {
 					{
 						let n = /* @__PURE__ */ P(() => G(y).indexOf(t)), r = /* @__PURE__ */ P(() => l(t));
-						us(e, {
+						ds(e, {
 							get person() {
 								return G(v)[t];
 							},
@@ -3803,7 +3807,7 @@ function zs(e, t) {
 			var i = V(n, 2);
 			{
 				let e = /* @__PURE__ */ P(() => G(y).indexOf(G(b).self));
-				us(i, {
+				ds(i, {
 					get person() {
 						return G(v)[G(b).self];
 					},
@@ -3814,11 +3818,11 @@ function zs(e, t) {
 			}
 			J(e, t);
 		}, a = (e) => {
-			var t = Is();
+			var t = Ls();
 			Z(t, 20, () => G(b).others, (e) => e, (e, t) => {
 				{
 					let n = /* @__PURE__ */ P(() => G(y).indexOf(t)), r = /* @__PURE__ */ P(() => l(t));
-					us(e, {
+					ds(e, {
 						get person() {
 							return G(v)[t];
 						},
@@ -3836,7 +3840,7 @@ function zs(e, t) {
 			G(b).self ? e(i) : e(a, -1);
 		});
 		var o = V(r, 2), s = (e) => {
-			js(e, {
+			Ms(e, {
 				get group() {
 					return G(p).group;
 				},
@@ -3851,7 +3855,7 @@ function zs(e, t) {
 		var c = V(o, 2), u = (e) => {
 			{
 				let t = /* @__PURE__ */ P(() => S(G(b).self));
-				Ro(e, {
+				zo(e, {
 					get id() {
 						return G(b).self;
 					},
@@ -3872,7 +3876,7 @@ function zs(e, t) {
 		G(p) ? e(ie, -1) : e(re);
 	}), k(te), k(T);
 	var ae = V(T, 2), oe = (e) => {
-		Oi(_s(e, {
+		Oi(vs(e, {
 			label: "Goals",
 			get from() {
 				return G(u).from;
@@ -3884,7 +3888,7 @@ function zs(e, t) {
 			children: (e, t) => {
 				{
 					let t = /* @__PURE__ */ P(() => !G(b).self);
-					Ko(e, {
+					qo(e, {
 						get people() {
 							return G(p).people;
 						},
@@ -3898,7 +3902,7 @@ function zs(e, t) {
 			$$slots: { default: !0 }
 		}), (e) => L(d, e, !0), () => G(d));
 	}, se = (e) => {
-		_s(e, {
+		vs(e, {
 			get label() {
 				return `${G(v)[G(c).id].name ?? ""}'s details`;
 			},
@@ -3910,10 +3914,10 @@ function zs(e, t) {
 				return s;
 			},
 			children: (e, t) => {
-				var n = Fs(), r = z(n);
+				var n = Is(), r = z(n);
 				{
 					let e = /* @__PURE__ */ P(() => G(y).indexOf(G(c).id));
-					us(r, {
+					ds(r, {
 						get person() {
 							return G(v)[G(c).id];
 						},
@@ -3925,7 +3929,7 @@ function zs(e, t) {
 				var i = V(r, 2);
 				{
 					let e = /* @__PURE__ */ P(() => S(G(c).id));
-					Ro(i, {
+					zo(i, {
 						get id() {
 							return G(c).id;
 						},
@@ -3944,10 +3948,10 @@ function zs(e, t) {
 	};
 	X(ae, (e) => {
 		G(u) && G(p) ? e(oe) : G(C) && e(se, 1);
-	}), Es(V(ae, 2), {}), H(() => T.inert = G(C)), J(e, w), M();
+	}), Ds(V(ae, 2), {}), H(() => T.inert = G(C)), J(e, w), M();
 }
 // src/main.js
-var Bs = (e) => Vr(zs, { target: e }), Vs = () => new Promise((e) => {
+var Vs = (e) => Vr(Bs, { target: e }), Hs = () => new Promise((e) => {
 	let t = new URL(
 		/* @vite-ignore */
 		"panel.css",
@@ -3965,9 +3969,9 @@ customElements.define("fitbridge-panel", class extends HTMLElement {
 	set hass(e) {
 		t(e);
 		let n = e.themes?.darkMode ?? matchMedia("(prefers-color-scheme: dark)").matches;
-		document.documentElement.dataset.theme = n ? "dark" : "light", !this.#e && (this.#e = !0, this.style.display = "block", this.style.height = "100%", Vs().then(() => {
+		document.documentElement.dataset.theme = n ? "dark" : "light", !this.#e && (this.#e = !0, this.style.display = "block", this.style.height = "100%", Hs().then(() => {
 			let e = this.appendChild(document.createElement("div"));
-			e.id = "app", Bs(e);
+			e.id = "app", Vs(e);
 		}));
 	}
 });

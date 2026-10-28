@@ -189,8 +189,12 @@ export function withPendingGoals(people, entry) {
   return out;
 }
 
-// This week's steps as seven bars, Monday to Sunday of `today`'s week (`today`: the browser's local "YYYY-MM-DD"). `stepsWeek` has only the days
-// the sensor reported: a past day missing from it is 0 steps, a day after today has none (`steps` null). null without a step sensor.
+// A date's local "YYYY-MM-DD", from its own parts (toLocaleDateString depends on the browser's locale data).
+export const localDay = (d = new Date()) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+// This week's steps as {bars, goalFrac}: seven bars, Monday to Sunday of `today`'s week (`today`: the browser's local "YYYY-MM-DD"), and where
+// the goal line sits (0-1 of the chart height, null without a goal). `stepsWeek` has only the days the sensor reported: a past day missing
+// from it is 0 steps, a day after today has none (`steps` null). null without a step sensor.
 export function weekBars(stepsWeek, goal, today) {
   if (stepsWeek == null) return null;
   const t = Date.parse(`${today}T00:00:00Z`);
@@ -198,10 +202,11 @@ export function weekBars(stepsWeek, goal, today) {
   const days = Array.from({ length: 7 }, (_, i) => new Date(monday + i * 864e5).toISOString().slice(0, 10));
   const steps = days.map((d) => (d > today ? null : (stepsWeek[d] ?? 0)));
   const top = Math.max(goal ?? 0, ...steps.map((s) => s ?? 0));
-  return days.map((date, i) => ({
+  const bars = days.map((date, i) => ({
     label: "MTWTFSS"[i], date, steps: steps[i], frac: top > 0 ? (steps[i] ?? 0) / top : 0,
     active: goal > 0 && steps[i] >= goal, isToday: date === today, future: date > today,
   }));
+  return { bars, goalFrac: goal > 0 ? goal / top : null };
 }
 
 export function stepsSummary(bars) {

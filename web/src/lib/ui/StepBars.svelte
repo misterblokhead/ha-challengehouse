@@ -1,9 +1,7 @@
 <script>
-  // This week's steps, Monday to Sunday (`bars` from weekBars). Active days wear the active-days ring colour (--bonus): same meaning.
+  // This week's steps, Monday to Sunday (`bars` and `goalFrac` from weekBars). Active days wear the active-days ring colour (--bonus): same meaning.
   // The chart is a list of text labels for assistive tech, the drawing itself is decoration.
-  let { bars, goal } = $props();
-  const top = $derived(Math.max(goal, ...bars.map((b) => b.steps ?? 0)));
-  const goalFrac = $derived(goal > 0 ? goal / top : null);
+  let { bars, goalFrac } = $props();
   const weekday = (date) => new Date(`${date}T00:00:00Z`).toLocaleDateString("en-GB", { weekday: "long", timeZone: "UTC" });
   const label = (b) => `${weekday(b.date)} ${b.steps.toLocaleString("en-US")} steps`;
 </script>

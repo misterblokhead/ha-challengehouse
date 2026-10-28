@@ -1,5 +1,5 @@
 <script>
-  import { allLifts, liftLine, paceText, recentLifts, shortDate, stepsSummary, weekBars } from "../model.js";
+  import { allLifts, liftLine, localDay, paceText, recentLifts, shortDate, stepsSummary, weekBars } from "../model.js";
   import StepBars from "./StepBars.svelte";
 
   // A person's progress: this week's steps, their heaviest sets, the fastest 1 km and two lifetime lines. Older payloads may lack the
@@ -7,7 +7,7 @@
   let { person: p } = $props();
   const uid = $props.id();
   const goal = $derived(p.week.goal.steps ?? 0);
-  const bars = $derived(weekBars(p.steps_week, goal, new Date().toLocaleDateString("en-CA"))); // en-CA is YYYY-MM-DD, in the viewer's own day
+  const week = $derived(weekBars(p.steps_week, goal, localDay())); // the viewer's own day
   const lifts = $derived(p.pbs.lifts ?? []);
   let all = $state(false);
   const shown = $derived(all ? allLifts(lifts) : recentLifts(lifts));
@@ -15,10 +15,10 @@
   const t = $derived(p.pbs.gym_tonnes.toLocaleString(undefined, { maximumFractionDigits: 1 }));
 </script>
 
-{#if bars}
+{#if week}
   <div class="card steps">
-    <StepBars {bars} {goal} />
-    <p class="caption">{stepsSummary(bars)}</p>
+    <StepBars bars={week.bars} goalFrac={week.goalFrac} />
+    <p class="caption">{stepsSummary(week.bars)}</p>
   </div>
 {/if}
 
