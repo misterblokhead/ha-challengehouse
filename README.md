@@ -2,13 +2,12 @@
 
 Self-hosted fitness tracking and a training game for a household, wired into Home Assistant.
 
-fitbridge is a small stdlib-only Python service (no pip packages) that:
+fitbridge is a Home Assistant integration that:
 
-- **collects workouts** from phones: OpenTracks GPX files via Syncthing (Android) and Health Exporter & Shortcuts exports POSTed over Tailscale (iPhone/Apple Watch);
-- **uploads runs** to a self-hosted Endurain instance;
-- **reads gym sessions** from a self-hosted openGym instance (admin API);
-- **scores everything** from a TOML rule file: weekly goal (runs + gym), XP and levels, week streaks, a Couch to 5K plan, joint workouts, badges and records;
-- **publishes the scores to Home Assistant** as MQTT-discovery sensors, and takes manual entries, remove/restore requests and training pauses back over MQTT.
+- **collects workouts** through per-person HA webhooks: GPX files (e.g. OpenTracks, posted by an Automate/Tasker flow) and Health Exporter & Shortcuts exports (iPhone/Apple Watch), or from a watched folder;
+- **reads gym sessions** from a self-hosted openGym instance (optional, any address HA can reach);
+- **scores everything** from a TOML rule file: weekly goal, XP and levels, week streaks, a Couch to 5K plan, joint workouts, badges, records, and which workout types count;
+- **shows it** on a Fitness page in the sidebar (activity list, workout details with map and graphs, goals, shoes) and as sensors and events for automations.
 
 People, the optional two-person group, plans, XP values and badges all live in `scoring.toml`; nothing about a household is hard-coded. One person on their own works too.
 
@@ -20,7 +19,7 @@ People, the optional two-person group, plans, XP values and badges all live in `
 | `custom_components/fitbridge/engine/scoring.py` | Pure scoring rules (no I/O) |
 | `custom_components/fitbridge/engine/scoring_config.py`, `scoring.toml` | Rule file loader/validator and the default rules |
 | `custom_components/fitbridge/engine/{entities,opengym,records}.py` | Sensor and event data for HA, openGym client, record maths (best sets, fastest 1 km) |
-| `lxc-final` (git tag) | The last commit with the standalone LXC service and its `deploy.sh`, `fitbridge.service`, `env.example`, `opengym-pair.sh`; the setup steps below describe that install |
+| `lxc-final` (git tag) | The last commit with the standalone LXC service and its `deploy.sh`, `fitbridge.service`, `env.example`, `opengym-pair.sh` |
 | `custom_components/fitbridge/` | Home Assistant integration: the Fitness page in the sidebar, its per-user API and Remove/Restore; `frontend/` is the built page (committed) |
 | `web/` | Source of the Fitness page (Svelte + Vite); builds into `custom_components/fitbridge/frontend/` |
 | `tests/` | Integration tests (pytest-homeassistant-custom-component) |
@@ -29,14 +28,11 @@ People, the optional two-person group, plans, XP values and badges all live in `
 
 ## Setup (outline)
 
-1. Run Endurain and (optionally) openGym; expose fitbridge's port to the phones, e.g. with `tailscale serve`.
-2. From the `lxc-final` tag, copy `fitbridge/` to the host and run `deploy.sh` as root. It installs to `/opt/fitbridge`, creates `/opt/fitbridge/.env` from `env.example` (mode 600) and never overwrites an existing one.
-3. Edit `/opt/fitbridge/scoring.toml` (people, group, plans) and `.env` (per person: `ENDURAIN_KEY_<ID>`, `SYNC_DIR_<ID>`, `TAILSCALE_LOGIN_<ID>`, `OPENGYM_UID_<ID>`; MQTT broker and user).
-4. openGym: `bash /root/opengym-pair.sh` with a pairing code from openGym's settings.
-5. Home Assistant: an MQTT user for fitbridge, plus the pause-feed automation and the log/remove/restore scripts described in `specs/2026-10-26-scoring-design.md` §7.
-6. Fitness page (optional): add this repository to HACS as a custom repository (type Integration) and install it, or copy `custom_components/fitbridge` into HA's `custom_components/`; restart HA, then add the "Fitness (fitbridge)" integration. Once it has scored, its options map each HA user to a fitbridge person; unmapped users see the household read-only.
+1. Copy `custom_components/fitbridge` into HA's `custom_components/` (or add this repository to HACS as a custom repository, type Integration), restart HA and add the "Fitness" integration.
+2. Edit `/config/fitbridge/scoring.toml` (people, group, plans; written from the default on first start and never overwritten).
+3. In the integration's options: each HA user's person, each person's webhook URL (post GPX or Health Exporter exports to it) or watch folder, step sensors, and optionally openGym (address + pairing code).
 
-Check the result with `curl -s http://127.0.0.1:8091/scores`; a broken `scoring.toml` keeps the last good one and shows up as `config_error`.
+A broken `scoring.toml` keeps the last good one; the error is logged and shown on the Fitness page. The older standalone LXC service is kept at the `lxc-final` git tag.
 
 ## Changing the page
 
