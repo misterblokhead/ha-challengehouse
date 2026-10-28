@@ -227,8 +227,8 @@ test("goalsDraft: defaults (and couple own/1/8/\"\") without a current entry; a 
 });
 
 test("goalsDraft: the stored birth years are the field's values, none is null (what the POST body sends to clear)", () => {
-  const draft = goalsDraft({ current: null, defaults, profiles: { person1: { birth_year: 1990 } } }, twoPeople);
-  assert.deepEqual(draft.profiles, { person1: { birth_year: 1990 }, person2: { birth_year: null } });
+  const draft = goalsDraft({ current: null, defaults, profiles: { person1: { birth_year: 1900 } } }, twoPeople);
+  assert.deepEqual(draft.profiles, { person1: { birth_year: 1900 }, person2: { birth_year: null } });
   assert.equal(goalsDraft({ current: null, defaults }, twoPeople).profiles.person1.birth_year, null); // an older integration sends no profiles
 });
 
