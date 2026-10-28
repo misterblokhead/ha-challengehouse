@@ -71,6 +71,7 @@ def _fake(errors=None, tokens=None):
         if tokens is not None:
             tokens.append(og.get_token())
             og.save_token(f"token-{len(tokens)}")
+            tokens.append(og.get_token())  # what users() / user() send next, as in engine.cycle._gym
         return Cycle({"people": {}}, [], [], [], lambda: None, gym_error=errors.pop(0) if errors else None)
     return fake
 
@@ -181,9 +182,9 @@ async def test_a_renewed_token_lands_in_the_entry_without_a_reload(hass, setup, 
     with patch.object(runner_mod, "score_cycle", side_effect=_fake(tokens=tokens)):
         e = await setup(GYM, {"opengym_token": "token-0"})
         runner = _runner(hass)
-        assert tokens == ["token-0"] and e.data["opengym_token"] == "token-1"
+        assert tokens == ["token-0", "token-1"] and e.data["opengym_token"] == "token-1"  # the renewed one, at once
         await _tick(hass, 301)
-    assert tokens == ["token-0", "token-1"] and e.data["opengym_token"] == "token-2"
+    assert tokens == ["token-0", "token-1", "token-1", "token-3"] and e.data["opengym_token"] == "token-3"
     assert _runner(hass) is runner  # a data-only update does not reload
     assert "token-" not in caplog.text
 

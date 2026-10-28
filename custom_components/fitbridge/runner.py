@@ -128,11 +128,12 @@ class Runner:
         url = self.entry.options.get(OPT_OPENGYM_URL)
         if not url or not self.entry.data.get(OPENGYM_TOKEN):
             return None
-        return OpenGym(url, lambda: self.entry.data[OPENGYM_TOKEN], self._save_token)
+        renewed: list[str] = []  # this cycle's renewal: its next calls must not send the old token
 
-    def _save_token(self, token: str) -> None:
-        """Called by OpenGym in the executor: the entry is updated on the loop."""
-        self.hass.add_job(self._store_token, token)
+        def save_token(token: str) -> None:  # called by OpenGym in the executor: the entry is updated on the loop
+            renewed.append(token)
+            self.hass.add_job(self._store_token, token)
+        return OpenGym(url, lambda: renewed[-1] if renewed else self.entry.data[OPENGYM_TOKEN], save_token)
 
     @callback
     def _store_token(self, token: str) -> None:
