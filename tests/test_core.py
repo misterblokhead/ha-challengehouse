@@ -47,7 +47,7 @@ def test_can_edit(person, admin, target, expected):
 def test_shape_adds_viewer():
     out = core.shape(SCORES, "p1", False)
     assert out["viewer"] == {"person": "p1", "can_edit": ["p1"]}
-    assert out["people"] == {p: {**r, "shoes": [], "steps_today": None} for p, r in SCORES["people"].items()}
+    assert out["people"] == {p: {**r, "shoes": [], "steps_today": None, "steps_week": None} for p, r in SCORES["people"].items()}
     assert "viewer" not in SCORES and "shoes" not in SCORES["people"]["p1"]
     assert core.shape(SCORES, "p1", True)["viewer"]["can_edit"] == ["p1", "p2"]
     assert core.shape(SCORES, None, True)["viewer"] == {"person": None, "can_edit": []}
@@ -106,3 +106,8 @@ def test_shape_adds_shoes_per_person():
 def test_shape_adds_steps_today_per_person():
     out = core.shape(SCORES, None, False, None, {"p1": 812, "ghost": 5})
     assert out["people"]["p1"]["steps_today"] == 812 and out["people"]["p2"]["steps_today"] is None
+
+
+def test_shape_adds_steps_week_per_person():
+    out = core.shape(SCORES, None, False, None, None, {"p1": {"2026-10-26": 12000}, "ghost": {}})
+    assert out["people"]["p1"]["steps_week"] == {"2026-10-26": 12000} and out["people"]["p2"]["steps_week"] is None

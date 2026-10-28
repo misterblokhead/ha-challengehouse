@@ -45,7 +45,7 @@ async def test_scores_wait_for_the_first_payload(hass, client, send):
     resp = await c.get(f"{UI}/scores")
     assert resp.status == 200
     body = await resp.json()
-    assert body["people"] == {p: {**r, "shoes": [], "steps_today": None} for p, r in SCORES["people"].items()} and body["viewer"] == {"person": "p1", "can_edit": ["p1"]}
+    assert body["people"] == {p: {**r, "shoes": [], "steps_today": None, "steps_week": None} for p, r in SCORES["people"].items()} and body["viewer"] == {"person": "p1", "can_edit": ["p1"]}
     robin = await (await (await client("robin")).get(f"{UI}/scores")).json()
     assert robin["viewer"] == {"person": None, "can_edit": []}
 
@@ -80,6 +80,23 @@ async def test_steps_today_is_0_until_the_phone_reports_today(hass, entry, users
         with patch("custom_components.fitbridge.views.dt_util.now", return_value=dt_util.now() + timedelta(days=1)):  # next morning, no report yet
             body = await (await c.get(f"{UI}/scores")).json()
         assert body["people"]["p1"]["steps_today"] == expected
+
+async def test_scores_carry_this_weeks_steps_with_today_from_the_live_sensor(hass, entry, users, client, send, freezer):
+    freezer.move_to("2026-10-28 12:00:00+00:00")  # a Wednesday
+    await send(SCORES)
+    hass.config_entries.async_update_entry(entry, options={**entry.options, OPT_STEPS: {"p1": "sensor.phone_steps", "p2": "sensor.gone"}})
+    hass.data["fitbridge"].steps._days["p1"] = {"2026-10-25": 900, "2026-10-26": 12000, "2026-10-27": 8000}
+    c = await client("sam")
+    for state, today in (("3000", 3000), ("unavailable", None)):
+        hass.states.async_set("sensor.phone_steps", state)
+        body = await (await c.get(f"{UI}/scores")).json()
+        assert body["people"]["p1"]["steps_week"] == {"2026-10-26": 12000, "2026-10-27": 8000, **({"2026-10-28": today} if today else {})}
+        assert body["people"]["p2"]["steps_week"] == {}  # a sensor but nothing collected yet
+    hass.data["fitbridge"].steps._days["p1"]["2026-10-28"] = 9000  # collected beats a lower live value
+    hass.states.async_set("sensor.phone_steps", "100")
+    body = await (await c.get(f"{UI}/scores")).json()
+    assert body["people"]["p1"]["steps_week"]["2026-10-28"] == 9000
+
 
 @pytest.mark.parametrize("key,action", [("k1", "remove"), ("manual:a/b", "restore")])
 async def test_own_workout_publishes_retained_manual_message(hass, client, send, mqtt_mock, key, action):

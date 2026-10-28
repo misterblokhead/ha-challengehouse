@@ -13,7 +13,7 @@ from homeassistant.util import dt as dt_util
 from . import settings
 from .const import DOMAIN, OPT_SHOES, OPT_STEPS, OPT_VIEWERS
 from .core import can_edit, find_workout, manual_message, shape, shoes, viewer_person
-from .steps import parse
+from .steps import parse, week
 
 MAX_UI_BODY = 4 * 1024
 
@@ -89,7 +89,12 @@ class UiView(HomeAssistantView):
         states = {eid: (s.state, dict(s.attributes)) if (s := hass.states.get(eid)) else None
                   for limits in chosen.values() for eid in limits}
         steps = {p: _steps_today(hass.states.get(eid)) for p, eid in data.entry.options.get(OPT_STEPS, {}).items()}
-        return self.json(shape(data.scores, person, user.is_admin, {p: shoes(limits, states) for p, limits in chosen.items()}, steps))
+        today = dt_util.now().date()
+        weeks = {p: week(data.steps.days(p) if data.steps else {}, today) for p in steps}
+        for p, n in steps.items():
+            if n is not None:  # the live count leads the collector, which only files a phone's own reports
+                weeks[p][today.isoformat()] = max(weeks[p].get(today.isoformat(), 0), n)
+        return self.json(shape(data.scores, person, user.is_admin, {p: shoes(limits, states) for p, limits in chosen.items()}, steps, weeks))
 
     async def post(self, request: web.Request, path: str) -> web.Response:
         if path not in ("workouts", "settings"):

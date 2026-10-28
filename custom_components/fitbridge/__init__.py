@@ -24,6 +24,7 @@ class Data:
     warned: bool = False
     settings_history: list = field(default_factory=list)  # weekly goals history, oldest first
     settings_store: Store | None = None
+    steps: StepsCollector | None = None
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -42,7 +43,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             _LOGGER.warning("Ignored a %s payload the fitness page cannot use; keeping the last good one", SCORES_TOPIC)
 
     entry.async_on_unload(await mqtt.async_subscribe(hass, SCORES_TOPIC, received))
-    await StepsCollector(hass, entry, Store(hass, 1, "fitbridge.steps")).async_start(entry)
+    data.steps = StepsCollector(hass, entry, Store(hass, 1, "fitbridge.steps"))
+    await data.steps.async_start(entry)
     if data.settings_history:  # retained, but a broker that lost it must get it back
         await settings.publish(hass, data.settings_history)
     await async_register_http(hass)

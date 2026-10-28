@@ -39,6 +39,12 @@ def trim(days: dict[str, int], today: date) -> dict[str, int]:
     return {d: n for d, n in days.items() if d >= first}
 
 
+def week(days: dict[str, int], today: date) -> dict[str, int]:
+    """The days from the Monday of today's week up to today."""
+    first = (today - timedelta(days=today.weekday())).isoformat()
+    return {d: n for d, n in days.items() if first <= d <= today.isoformat()}
+
+
 class StepsCollector:
     def __init__(self, hass: HomeAssistant, entry, store: Store) -> None:
         self._hass, self._store = hass, store
@@ -56,6 +62,9 @@ class StepsCollector:
             entry.async_on_unload(async_track_state_change_event(self._hass, list(self._sensors.values()), self._changed))
         entry.async_on_unload(self._stop)
         await self._flush()
+
+    def days(self, person: str) -> dict[str, int]:
+        return self._days.get(person, {})
 
     def _record(self, person: str, value: str) -> None:
         if record(self._days.setdefault(person, {}), dt_util.now().date().isoformat(), value):
