@@ -23,7 +23,7 @@ class Inputs:
 
 @dataclass
 class Cycle:
-    scores: dict                         # the full result, as GET /scores served it
+    scores: dict                         # the full result; each person's `older` feed is served by GET feed only, not /scores
     badges: list[tuple[str, dict]]       # (person, badge) to announce
     workouts: list[tuple[str, dict]]     # (person, feed item) to announce
     records: list[tuple[str, dict]]      # (person, record event) to announce

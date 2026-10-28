@@ -53,6 +53,11 @@ def test_shape_adds_viewer():
     assert core.shape(SCORES, None, True)["viewer"] == {"person": None, "can_edit": []}
 
 
+def test_public_drops_older_and_keeps_an_error_payload():
+    assert core.public({"x": 1, "people": {"p1": {"feed": [], "older": [{"key": "k"}]}}}) == {"x": 1, "people": {"p1": {"feed": []}}}
+    assert core.public({"error": "no valid scoring config"}) == {"error": "no valid scoring config"}
+
+
 def test_find_workout():
     assert core.find_workout(SCORES, "p2", "k2") == {"key": "k2", "excluded": True}
     assert core.find_workout(SCORES, "p2", "nope") is None
