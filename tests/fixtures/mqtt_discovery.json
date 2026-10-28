@@ -1,0 +1,828 @@
+{
+ "scores": {
+  "people": {
+   "person1": {
+    "xp": 282,
+    "level": 3,
+    "level_floor": 200,
+    "next_level_xp": 450,
+    "week": {
+     "runs": 3,
+     "workouts": 2,
+     "active_days": 0,
+     "bonus": 1,
+     "goal_met": true,
+     "week": "2026-W44",
+     "paused": false,
+     "days_left": 1,
+     "progress": 100,
+     "goal": {
+      "active_days": 0,
+      "steps": 10000,
+      "runs": 2,
+      "workouts": 2
+     },
+     "last_week": null
+    },
+    "streak": 1,
+    "best_streak": 1,
+    "plan": {
+     "state": "W2D1",
+     "plan": "c25k",
+     "completed": 3,
+     "warmup_s": 300,
+     "week": 2,
+     "day": 1,
+     "target": {
+      "type": "duration",
+      "fraction": 0.8
+     },
+     "intervals": [
+      [
+       "run",
+       90
+      ],
+      [
+       "walk",
+       120
+      ],
+      [
+       "run",
+       90
+      ],
+      [
+       "walk",
+       120
+      ],
+      [
+       "run",
+       90
+      ],
+      [
+       "walk",
+       120
+      ],
+      [
+       "run",
+       90
+      ],
+      [
+       "walk",
+       120
+      ],
+      [
+       "run",
+       90
+      ],
+      [
+       "walk",
+       120
+      ],
+      [
+       "run",
+       90
+      ],
+      [
+       "walk",
+       120
+      ]
+     ],
+     "due_today": false
+    },
+    "name": "Person1",
+    "badges": {
+     "count": 5,
+     "recent": [
+      {
+       "id": "perfect_week_1",
+       "title": "Perfect Week",
+       "icon": "mdi:star-circle",
+       "category": "consistency",
+       "unlocked_at": "2026-10-29"
+      },
+      {
+       "id": "goal_weeks_1",
+       "title": "Goal met",
+       "icon": "mdi:target",
+       "category": "consistency",
+       "unlocked_at": "2026-10-29"
+      },
+      {
+       "id": "plan_week_1",
+       "title": "C25K week 1",
+       "icon": "mdi:calendar-check",
+       "category": "plan",
+       "unlocked_at": "2026-10-29"
+      }
+     ],
+     "next": [
+      {
+       "id": "run_km_10",
+       "title": "10 km run",
+       "icon": "mdi:map-marker-distance",
+       "category": "running",
+       "current": 8.5,
+       "target": 10
+      },
+      {
+       "id": "runs_5",
+       "title": "5 runs",
+       "icon": "mdi:run",
+       "category": "running",
+       "current": 3,
+       "target": 5
+      },
+      {
+       "id": "long_session_5",
+       "title": "Session of 5 km",
+       "icon": "mdi:ruler",
+       "category": "running",
+       "current": 3.0,
+       "target": 5
+      }
+     ],
+     "unlocked": [
+      {
+       "id": "perfect_week_1",
+       "title": "Perfect Week",
+       "icon": "mdi:star-circle",
+       "category": "consistency",
+       "unlocked_at": "2026-10-29"
+      },
+      {
+       "id": "goal_weeks_1",
+       "title": "Goal met",
+       "icon": "mdi:target",
+       "category": "consistency",
+       "unlocked_at": "2026-10-29"
+      },
+      {
+       "id": "plan_week_1",
+       "title": "C25K week 1",
+       "icon": "mdi:calendar-check",
+       "category": "plan",
+       "unlocked_at": "2026-10-29"
+      },
+      {
+       "id": "gym_1",
+       "title": "First session",
+       "icon": "mdi:dumbbell",
+       "category": "gym",
+       "unlocked_at": "2026-10-27"
+      },
+      {
+       "id": "runs_1",
+       "title": "First Steps",
+       "icon": "mdi:run",
+       "category": "running",
+       "unlocked_at": "2026-10-26"
+      }
+     ]
+    },
+    "pbs": {
+     "longest_session_km": 3.0,
+     "prs": 0,
+     "gym_tonnes": 0,
+     "lifts": [],
+     "fastest_1k": null
+    },
+    "recent": [
+     {
+      "key": "f3",
+      "aliases": [],
+      "kind": "gym",
+      "name": "",
+      "source": "opentracks",
+      "indoor": false,
+      "start": "2026-10-29T19:00:00+01:00",
+      "minutes": 60,
+      "km": null,
+      "avg_hr": null,
+      "xp": 60,
+      "plan": null,
+      "joint": false,
+      "excluded": false,
+      "url": null
+     },
+     {
+      "key": "f9",
+      "aliases": [],
+      "kind": "run",
+      "name": "",
+      "source": "opentracks",
+      "indoor": false,
+      "start": "2026-10-29T08:00:00+01:00",
+      "minutes": 20,
+      "km": 2.5,
+      "avg_hr": null,
+      "xp": 70,
+      "plan": "W1D3",
+      "joint": false,
+      "excluded": false,
+      "url": null
+     },
+     {
+      "key": "f1",
+      "aliases": [],
+      "kind": "run",
+      "name": "",
+      "source": "opentracks",
+      "indoor": false,
+      "start": "2026-10-28T18:00:00+01:00",
+      "minutes": 26,
+      "km": 3.0,
+      "avg_hr": null,
+      "xp": 46,
+      "plan": "W1D2",
+      "joint": false,
+      "excluded": false,
+      "url": null
+     },
+     {
+      "key": "f2",
+      "aliases": [],
+      "kind": "gym",
+      "name": "",
+      "source": "opentracks",
+      "indoor": false,
+      "start": "2026-10-27T19:00:00+01:00",
+      "minutes": 60,
+      "km": null,
+      "avg_hr": null,
+      "xp": 60,
+      "plan": null,
+      "joint": false,
+      "excluded": false,
+      "url": null
+     },
+     {
+      "key": "f0",
+      "aliases": [],
+      "kind": "run",
+      "name": "",
+      "source": "opentracks",
+      "indoor": false,
+      "start": "2026-10-26T18:00:00+01:00",
+      "minutes": 26,
+      "km": 3.0,
+      "avg_hr": null,
+      "xp": 46,
+      "plan": "W1D1",
+      "joint": false,
+      "excluded": false,
+      "url": null
+     }
+    ],
+    "feed": [
+     {
+      "key": "f3",
+      "aliases": [],
+      "kind": "gym",
+      "name": "",
+      "source": "opentracks",
+      "indoor": false,
+      "start": "2026-10-29T19:00:00+01:00",
+      "minutes": 60,
+      "km": null,
+      "avg_hr": null,
+      "xp": 60,
+      "plan": null,
+      "joint": false,
+      "excluded": false,
+      "url": null
+     },
+     {
+      "key": "f9",
+      "aliases": [],
+      "kind": "run",
+      "name": "",
+      "source": "opentracks",
+      "indoor": false,
+      "start": "2026-10-29T08:00:00+01:00",
+      "minutes": 20,
+      "km": 2.5,
+      "avg_hr": null,
+      "xp": 70,
+      "plan": "W1D3",
+      "joint": false,
+      "excluded": false,
+      "url": null
+     },
+     {
+      "key": "f1",
+      "aliases": [],
+      "kind": "run",
+      "name": "",
+      "source": "opentracks",
+      "indoor": false,
+      "start": "2026-10-28T18:00:00+01:00",
+      "minutes": 26,
+      "km": 3.0,
+      "avg_hr": null,
+      "xp": 46,
+      "plan": "W1D2",
+      "joint": false,
+      "excluded": false,
+      "url": null
+     },
+     {
+      "key": "f2",
+      "aliases": [],
+      "kind": "gym",
+      "name": "",
+      "source": "opentracks",
+      "indoor": false,
+      "start": "2026-10-27T19:00:00+01:00",
+      "minutes": 60,
+      "km": null,
+      "avg_hr": null,
+      "xp": 60,
+      "plan": null,
+      "joint": false,
+      "excluded": false,
+      "url": null
+     },
+     {
+      "key": "f0",
+      "aliases": [],
+      "kind": "run",
+      "name": "",
+      "source": "opentracks",
+      "indoor": false,
+      "start": "2026-10-26T18:00:00+01:00",
+      "minutes": 26,
+      "km": 3.0,
+      "avg_hr": null,
+      "xp": 46,
+      "plan": "W1D1",
+      "joint": false,
+      "excluded": false,
+      "url": null
+     }
+    ]
+   },
+   "person2": {
+    "xp": 0,
+    "level": 1,
+    "level_floor": 0,
+    "next_level_xp": 50,
+    "week": {
+     "runs": 0,
+     "workouts": 0,
+     "active_days": 0,
+     "bonus": 0,
+     "goal_met": false,
+     "week": "2026-W44",
+     "paused": false,
+     "days_left": 1,
+     "progress": 0,
+     "goal": {
+      "active_days": 0,
+      "steps": 10000,
+      "runs": 2,
+      "workouts": 2
+     },
+     "last_week": null
+    },
+    "streak": 0,
+    "best_streak": 0,
+    "plan": {
+     "state": "W1D1",
+     "plan": "c25k",
+     "completed": 0,
+     "warmup_s": 300,
+     "week": 1,
+     "day": 1,
+     "target": {
+      "type": "duration",
+      "fraction": 0.8
+     },
+     "intervals": [
+      [
+       "run",
+       60
+      ],
+      [
+       "walk",
+       90
+      ],
+      [
+       "run",
+       60
+      ],
+      [
+       "walk",
+       90
+      ],
+      [
+       "run",
+       60
+      ],
+      [
+       "walk",
+       90
+      ],
+      [
+       "run",
+       60
+      ],
+      [
+       "walk",
+       90
+      ],
+      [
+       "run",
+       60
+      ],
+      [
+       "walk",
+       90
+      ],
+      [
+       "run",
+       60
+      ],
+      [
+       "walk",
+       90
+      ],
+      [
+       "run",
+       60
+      ],
+      [
+       "walk",
+       90
+      ],
+      [
+       "run",
+       60
+      ],
+      [
+       "walk",
+       90
+      ]
+     ],
+     "due_today": true
+    },
+    "name": "Person2",
+    "badges": {
+     "count": 0,
+     "recent": [],
+     "next": [
+      {
+       "id": "runs_1",
+       "title": "First Steps",
+       "icon": "mdi:run",
+       "category": "running",
+       "current": 0,
+       "target": 1
+      },
+      {
+       "id": "run_km_10",
+       "title": "10 km run",
+       "icon": "mdi:map-marker-distance",
+       "category": "running",
+       "current": 0,
+       "target": 10
+      },
+      {
+       "id": "long_session_5",
+       "title": "Session of 5 km",
+       "icon": "mdi:ruler",
+       "category": "running",
+       "current": 0,
+       "target": 5
+      }
+     ],
+     "unlocked": []
+    },
+    "pbs": {
+     "longest_session_km": 0,
+     "prs": 0,
+     "gym_tonnes": 0,
+     "lifts": [],
+     "fastest_1k": null
+    },
+    "recent": [],
+    "feed": []
+   }
+  },
+  "group": {
+   "id": "couple",
+   "name": "Couple",
+   "members": [
+    "person1",
+    "person2"
+   ],
+   "streak": 0,
+   "best_streak": 0,
+   "week": {
+    "mode": "own",
+    "met": false,
+    "reward": "",
+    "together": {
+     "done": 0,
+     "target": 1
+    },
+    "team": {
+     "done": 5,
+     "target": 8
+    },
+    "members_met": {
+     "person1": true,
+     "person2": false
+    }
+   },
+   "month_joint": 0,
+   "km_together": 0
+  }
+ },
+ "messages": [
+  [
+   "homeassistant/sensor/fit_person1_xp/config",
+   "{\"name\": \"XP\", \"unique_id\": \"fit_person1_xp\", \"default_entity_id\": \"sensor.fit_person1_xp\", \"state_topic\": \"fitbridge/person1/xp/state\", \"json_attributes_topic\": \"fitbridge/person1/xp/attributes\", \"expire_after\": 1200, \"icon\": \"mdi:star-circle\", \"device\": {\"identifiers\": [\"fitbridge_person1\"], \"name\": \"Fitness Person1\", \"manufacturer\": \"fitbridge\"}, \"unit_of_measurement\": \"XP\", \"state_class\": \"measurement\"}",
+   true
+  ],
+  [
+   "fitbridge/person1/xp/state",
+   "282",
+   true
+  ],
+  [
+   "fitbridge/person1/xp/attributes",
+   "{\"level\": 3, \"level_floor\": 200, \"next_level_xp\": 450}",
+   true
+  ],
+  [
+   "homeassistant/sensor/fit_person1_week/config",
+   "{\"name\": \"Week\", \"unique_id\": \"fit_person1_week\", \"default_entity_id\": \"sensor.fit_person1_week\", \"state_topic\": \"fitbridge/person1/week/state\", \"json_attributes_topic\": \"fitbridge/person1/week/attributes\", \"expire_after\": 1200, \"icon\": \"mdi:calendar-week\", \"device\": {\"identifiers\": [\"fitbridge_person1\"], \"name\": \"Fitness Person1\", \"manufacturer\": \"fitbridge\"}, \"unit_of_measurement\": \"%\", \"state_class\": \"measurement\"}",
+   true
+  ],
+  [
+   "fitbridge/person1/week/state",
+   "100",
+   true
+  ],
+  [
+   "fitbridge/person1/week/attributes",
+   "{\"week\": \"2026-W44\", \"runs\": 3, \"workouts\": 2, \"active_days\": 0, \"bonus\": 1, \"goal\": {\"active_days\": 0, \"steps\": 10000, \"runs\": 2, \"workouts\": 2}, \"last_week\": null, \"goal_met\": true, \"paused\": false, \"days_left\": 1}",
+   true
+  ],
+  [
+   "homeassistant/sensor/fit_person1_streak_weeks/config",
+   "{\"name\": \"Streak\", \"unique_id\": \"fit_person1_streak_weeks\", \"default_entity_id\": \"sensor.fit_person1_streak_weeks\", \"state_topic\": \"fitbridge/person1/streak_weeks/state\", \"json_attributes_topic\": \"fitbridge/person1/streak_weeks/attributes\", \"expire_after\": 1200, \"icon\": \"mdi:fire\", \"device\": {\"identifiers\": [\"fitbridge_person1\"], \"name\": \"Fitness Person1\", \"manufacturer\": \"fitbridge\"}, \"unit_of_measurement\": \"wk\", \"state_class\": \"measurement\"}",
+   true
+  ],
+  [
+   "fitbridge/person1/streak_weeks/state",
+   "1",
+   true
+  ],
+  [
+   "fitbridge/person1/streak_weeks/attributes",
+   "{\"best\": 1}",
+   true
+  ],
+  [
+   "homeassistant/sensor/fit_person1_plan/config",
+   "{\"name\": \"Plan\", \"unique_id\": \"fit_person1_plan\", \"default_entity_id\": \"sensor.fit_person1_plan\", \"state_topic\": \"fitbridge/person1/plan/state\", \"json_attributes_topic\": \"fitbridge/person1/plan/attributes\", \"expire_after\": 1200, \"icon\": \"mdi:run-fast\", \"device\": {\"identifiers\": [\"fitbridge_person1\"], \"name\": \"Fitness Person1\", \"manufacturer\": \"fitbridge\"}}",
+   true
+  ],
+  [
+   "fitbridge/person1/plan/state",
+   "W2D1",
+   true
+  ],
+  [
+   "fitbridge/person1/plan/attributes",
+   "{\"state\": \"W2D1\", \"plan\": \"c25k\", \"completed\": 3, \"warmup_s\": 300, \"week\": 2, \"day\": 1, \"target\": {\"type\": \"duration\", \"fraction\": 0.8}, \"intervals\": [[\"run\", 90], [\"walk\", 120], [\"run\", 90], [\"walk\", 120], [\"run\", 90], [\"walk\", 120], [\"run\", 90], [\"walk\", 120], [\"run\", 90], [\"walk\", 120], [\"run\", 90], [\"walk\", 120]], \"due_today\": false}",
+   true
+  ],
+  [
+   "homeassistant/sensor/fit_person1_badges/config",
+   "{\"name\": \"Badges\", \"unique_id\": \"fit_person1_badges\", \"default_entity_id\": \"sensor.fit_person1_badges\", \"state_topic\": \"fitbridge/person1/badges/state\", \"json_attributes_topic\": \"fitbridge/person1/badges/attributes\", \"expire_after\": 1200, \"icon\": \"mdi:medal\", \"device\": {\"identifiers\": [\"fitbridge_person1\"], \"name\": \"Fitness Person1\", \"manufacturer\": \"fitbridge\"}}",
+   true
+  ],
+  [
+   "fitbridge/person1/badges/state",
+   "5",
+   true
+  ],
+  [
+   "fitbridge/person1/badges/attributes",
+   "{\"count\": 5, \"recent\": [{\"id\": \"perfect_week_1\", \"title\": \"Perfect Week\", \"icon\": \"mdi:star-circle\", \"category\": \"consistency\", \"unlocked_at\": \"2026-10-29\"}, {\"id\": \"goal_weeks_1\", \"title\": \"Goal met\", \"icon\": \"mdi:target\", \"category\": \"consistency\", \"unlocked_at\": \"2026-10-29\"}, {\"id\": \"plan_week_1\", \"title\": \"C25K week 1\", \"icon\": \"mdi:calendar-check\", \"category\": \"plan\", \"unlocked_at\": \"2026-10-29\"}], \"next\": [{\"id\": \"run_km_10\", \"title\": \"10 km run\", \"icon\": \"mdi:map-marker-distance\", \"category\": \"running\", \"current\": 8.5, \"target\": 10}, {\"id\": \"runs_5\", \"title\": \"5 runs\", \"icon\": \"mdi:run\", \"category\": \"running\", \"current\": 3, \"target\": 5}, {\"id\": \"long_session_5\", \"title\": \"Session of 5 km\", \"icon\": \"mdi:ruler\", \"category\": \"running\", \"current\": 3.0, \"target\": 5}], \"unlocked\": [{\"id\": \"perfect_week_1\", \"title\": \"Perfect Week\", \"icon\": \"mdi:star-circle\", \"category\": \"consistency\", \"unlocked_at\": \"2026-10-29\"}, {\"id\": \"goal_weeks_1\", \"title\": \"Goal met\", \"icon\": \"mdi:target\", \"category\": \"consistency\", \"unlocked_at\": \"2026-10-29\"}, {\"id\": \"plan_week_1\", \"title\": \"C25K week 1\", \"icon\": \"mdi:calendar-check\", \"category\": \"plan\", \"unlocked_at\": \"2026-10-29\"}, {\"id\": \"gym_1\", \"title\": \"First session\", \"icon\": \"mdi:dumbbell\", \"category\": \"gym\", \"unlocked_at\": \"2026-10-27\"}, {\"id\": \"runs_1\", \"title\": \"First Steps\", \"icon\": \"mdi:run\", \"category\": \"running\", \"unlocked_at\": \"2026-10-26\"}]}",
+   true
+  ],
+  [
+   "homeassistant/sensor/fit_person1_pbs/config",
+   "{\"name\": \"Personal bests\", \"unique_id\": \"fit_person1_pbs\", \"default_entity_id\": \"sensor.fit_person1_pbs\", \"state_topic\": \"fitbridge/person1/pbs/state\", \"json_attributes_topic\": \"fitbridge/person1/pbs/attributes\", \"expire_after\": 1200, \"icon\": \"mdi:trophy\", \"device\": {\"identifiers\": [\"fitbridge_person1\"], \"name\": \"Fitness Person1\", \"manufacturer\": \"fitbridge\"}, \"unit_of_measurement\": \"km\", \"state_class\": \"measurement\"}",
+   true
+  ],
+  [
+   "fitbridge/person1/pbs/state",
+   "3.0",
+   true
+  ],
+  [
+   "fitbridge/person1/pbs/attributes",
+   "{\"longest_session_km\": 3.0, \"prs\": 0, \"gym_tonnes\": 0, \"fastest_1k\": null}",
+   true
+  ],
+  [
+   "homeassistant/sensor/fit_person1_recent/config",
+   "{\"name\": \"Recent\", \"unique_id\": \"fit_person1_recent\", \"default_entity_id\": \"sensor.fit_person1_recent\", \"state_topic\": \"fitbridge/person1/recent/state\", \"json_attributes_topic\": \"fitbridge/person1/recent/attributes\", \"expire_after\": 1200, \"icon\": \"mdi:history\", \"device\": {\"identifiers\": [\"fitbridge_person1\"], \"name\": \"Fitness Person1\", \"manufacturer\": \"fitbridge\"}}",
+   true
+  ],
+  [
+   "fitbridge/person1/recent/state",
+   "5",
+   true
+  ],
+  [
+   "fitbridge/person1/recent/attributes",
+   "{\"workouts\": [{\"key\": \"f3\", \"aliases\": [], \"kind\": \"gym\", \"name\": \"\", \"source\": \"opentracks\", \"indoor\": false, \"start\": \"2026-10-29T19:00:00+01:00\", \"minutes\": 60, \"km\": null, \"avg_hr\": null, \"xp\": 60, \"plan\": null, \"joint\": false, \"excluded\": false, \"url\": null}, {\"key\": \"f9\", \"aliases\": [], \"kind\": \"run\", \"name\": \"\", \"source\": \"opentracks\", \"indoor\": false, \"start\": \"2026-10-29T08:00:00+01:00\", \"minutes\": 20, \"km\": 2.5, \"avg_hr\": null, \"xp\": 70, \"plan\": \"W1D3\", \"joint\": false, \"excluded\": false, \"url\": null}, {\"key\": \"f1\", \"aliases\": [], \"kind\": \"run\", \"name\": \"\", \"source\": \"opentracks\", \"indoor\": false, \"start\": \"2026-10-28T18:00:00+01:00\", \"minutes\": 26, \"km\": 3.0, \"avg_hr\": null, \"xp\": 46, \"plan\": \"W1D2\", \"joint\": false, \"excluded\": false, \"url\": null}, {\"key\": \"f2\", \"aliases\": [], \"kind\": \"gym\", \"name\": \"\", \"source\": \"opentracks\", \"indoor\": false, \"start\": \"2026-10-27T19:00:00+01:00\", \"minutes\": 60, \"km\": null, \"avg_hr\": null, \"xp\": 60, \"plan\": null, \"joint\": false, \"excluded\": false, \"url\": null}, {\"key\": \"f0\", \"aliases\": [], \"kind\": \"run\", \"name\": \"\", \"source\": \"opentracks\", \"indoor\": false, \"start\": \"2026-10-26T18:00:00+01:00\", \"minutes\": 26, \"km\": 3.0, \"avg_hr\": null, \"xp\": 46, \"plan\": \"W1D1\", \"joint\": false, \"excluded\": false, \"url\": null}]}",
+   true
+  ],
+  [
+   "homeassistant/sensor/fit_person2_xp/config",
+   "{\"name\": \"XP\", \"unique_id\": \"fit_person2_xp\", \"default_entity_id\": \"sensor.fit_person2_xp\", \"state_topic\": \"fitbridge/person2/xp/state\", \"json_attributes_topic\": \"fitbridge/person2/xp/attributes\", \"expire_after\": 1200, \"icon\": \"mdi:star-circle\", \"device\": {\"identifiers\": [\"fitbridge_person2\"], \"name\": \"Fitness Person2\", \"manufacturer\": \"fitbridge\"}, \"unit_of_measurement\": \"XP\", \"state_class\": \"measurement\"}",
+   true
+  ],
+  [
+   "fitbridge/person2/xp/state",
+   "0",
+   true
+  ],
+  [
+   "fitbridge/person2/xp/attributes",
+   "{\"level\": 1, \"level_floor\": 0, \"next_level_xp\": 50}",
+   true
+  ],
+  [
+   "homeassistant/sensor/fit_person2_week/config",
+   "{\"name\": \"Week\", \"unique_id\": \"fit_person2_week\", \"default_entity_id\": \"sensor.fit_person2_week\", \"state_topic\": \"fitbridge/person2/week/state\", \"json_attributes_topic\": \"fitbridge/person2/week/attributes\", \"expire_after\": 1200, \"icon\": \"mdi:calendar-week\", \"device\": {\"identifiers\": [\"fitbridge_person2\"], \"name\": \"Fitness Person2\", \"manufacturer\": \"fitbridge\"}, \"unit_of_measurement\": \"%\", \"state_class\": \"measurement\"}",
+   true
+  ],
+  [
+   "fitbridge/person2/week/state",
+   "0",
+   true
+  ],
+  [
+   "fitbridge/person2/week/attributes",
+   "{\"week\": \"2026-W44\", \"runs\": 0, \"workouts\": 0, \"active_days\": 0, \"bonus\": 0, \"goal\": {\"active_days\": 0, \"steps\": 10000, \"runs\": 2, \"workouts\": 2}, \"last_week\": null, \"goal_met\": false, \"paused\": false, \"days_left\": 1}",
+   true
+  ],
+  [
+   "homeassistant/sensor/fit_person2_streak_weeks/config",
+   "{\"name\": \"Streak\", \"unique_id\": \"fit_person2_streak_weeks\", \"default_entity_id\": \"sensor.fit_person2_streak_weeks\", \"state_topic\": \"fitbridge/person2/streak_weeks/state\", \"json_attributes_topic\": \"fitbridge/person2/streak_weeks/attributes\", \"expire_after\": 1200, \"icon\": \"mdi:fire\", \"device\": {\"identifiers\": [\"fitbridge_person2\"], \"name\": \"Fitness Person2\", \"manufacturer\": \"fitbridge\"}, \"unit_of_measurement\": \"wk\", \"state_class\": \"measurement\"}",
+   true
+  ],
+  [
+   "fitbridge/person2/streak_weeks/state",
+   "0",
+   true
+  ],
+  [
+   "fitbridge/person2/streak_weeks/attributes",
+   "{\"best\": 0}",
+   true
+  ],
+  [
+   "homeassistant/sensor/fit_person2_plan/config",
+   "{\"name\": \"Plan\", \"unique_id\": \"fit_person2_plan\", \"default_entity_id\": \"sensor.fit_person2_plan\", \"state_topic\": \"fitbridge/person2/plan/state\", \"json_attributes_topic\": \"fitbridge/person2/plan/attributes\", \"expire_after\": 1200, \"icon\": \"mdi:run-fast\", \"device\": {\"identifiers\": [\"fitbridge_person2\"], \"name\": \"Fitness Person2\", \"manufacturer\": \"fitbridge\"}}",
+   true
+  ],
+  [
+   "fitbridge/person2/plan/state",
+   "W1D1",
+   true
+  ],
+  [
+   "fitbridge/person2/plan/attributes",
+   "{\"state\": \"W1D1\", \"plan\": \"c25k\", \"completed\": 0, \"warmup_s\": 300, \"week\": 1, \"day\": 1, \"target\": {\"type\": \"duration\", \"fraction\": 0.8}, \"intervals\": [[\"run\", 60], [\"walk\", 90], [\"run\", 60], [\"walk\", 90], [\"run\", 60], [\"walk\", 90], [\"run\", 60], [\"walk\", 90], [\"run\", 60], [\"walk\", 90], [\"run\", 60], [\"walk\", 90], [\"run\", 60], [\"walk\", 90], [\"run\", 60], [\"walk\", 90]], \"due_today\": true}",
+   true
+  ],
+  [
+   "homeassistant/sensor/fit_person2_badges/config",
+   "{\"name\": \"Badges\", \"unique_id\": \"fit_person2_badges\", \"default_entity_id\": \"sensor.fit_person2_badges\", \"state_topic\": \"fitbridge/person2/badges/state\", \"json_attributes_topic\": \"fitbridge/person2/badges/attributes\", \"expire_after\": 1200, \"icon\": \"mdi:medal\", \"device\": {\"identifiers\": [\"fitbridge_person2\"], \"name\": \"Fitness Person2\", \"manufacturer\": \"fitbridge\"}}",
+   true
+  ],
+  [
+   "fitbridge/person2/badges/state",
+   "0",
+   true
+  ],
+  [
+   "fitbridge/person2/badges/attributes",
+   "{\"count\": 0, \"recent\": [], \"next\": [{\"id\": \"runs_1\", \"title\": \"First Steps\", \"icon\": \"mdi:run\", \"category\": \"running\", \"current\": 0, \"target\": 1}, {\"id\": \"run_km_10\", \"title\": \"10 km run\", \"icon\": \"mdi:map-marker-distance\", \"category\": \"running\", \"current\": 0, \"target\": 10}, {\"id\": \"long_session_5\", \"title\": \"Session of 5 km\", \"icon\": \"mdi:ruler\", \"category\": \"running\", \"current\": 0, \"target\": 5}], \"unlocked\": []}",
+   true
+  ],
+  [
+   "homeassistant/sensor/fit_person2_pbs/config",
+   "{\"name\": \"Personal bests\", \"unique_id\": \"fit_person2_pbs\", \"default_entity_id\": \"sensor.fit_person2_pbs\", \"state_topic\": \"fitbridge/person2/pbs/state\", \"json_attributes_topic\": \"fitbridge/person2/pbs/attributes\", \"expire_after\": 1200, \"icon\": \"mdi:trophy\", \"device\": {\"identifiers\": [\"fitbridge_person2\"], \"name\": \"Fitness Person2\", \"manufacturer\": \"fitbridge\"}, \"unit_of_measurement\": \"km\", \"state_class\": \"measurement\"}",
+   true
+  ],
+  [
+   "fitbridge/person2/pbs/state",
+   "0",
+   true
+  ],
+  [
+   "fitbridge/person2/pbs/attributes",
+   "{\"longest_session_km\": 0, \"prs\": 0, \"gym_tonnes\": 0, \"fastest_1k\": null}",
+   true
+  ],
+  [
+   "homeassistant/sensor/fit_person2_recent/config",
+   "{\"name\": \"Recent\", \"unique_id\": \"fit_person2_recent\", \"default_entity_id\": \"sensor.fit_person2_recent\", \"state_topic\": \"fitbridge/person2/recent/state\", \"json_attributes_topic\": \"fitbridge/person2/recent/attributes\", \"expire_after\": 1200, \"icon\": \"mdi:history\", \"device\": {\"identifiers\": [\"fitbridge_person2\"], \"name\": \"Fitness Person2\", \"manufacturer\": \"fitbridge\"}}",
+   true
+  ],
+  [
+   "fitbridge/person2/recent/state",
+   "0",
+   true
+  ],
+  [
+   "fitbridge/person2/recent/attributes",
+   "{\"workouts\": []}",
+   true
+  ],
+  [
+   "homeassistant/sensor/fit_couple_streak_weeks/config",
+   "{\"name\": \"Streak\", \"unique_id\": \"fit_couple_streak_weeks\", \"default_entity_id\": \"sensor.fit_couple_streak_weeks\", \"state_topic\": \"fitbridge/couple/streak_weeks/state\", \"json_attributes_topic\": \"fitbridge/couple/streak_weeks/attributes\", \"expire_after\": 1200, \"icon\": \"mdi:fire\", \"device\": {\"identifiers\": [\"fitbridge_couple\"], \"name\": \"Fitness Couple\", \"manufacturer\": \"fitbridge\"}, \"unit_of_measurement\": \"wk\", \"state_class\": \"measurement\"}",
+   true
+  ],
+  [
+   "fitbridge/couple/streak_weeks/state",
+   "0",
+   true
+  ],
+  [
+   "fitbridge/couple/streak_weeks/attributes",
+   "{\"best\": 0}",
+   true
+  ],
+  [
+   "homeassistant/sensor/fit_couple_week/config",
+   "{\"name\": \"Couple week\", \"unique_id\": \"fit_couple_week\", \"default_entity_id\": \"sensor.fit_couple_week\", \"state_topic\": \"fitbridge/couple/week/state\", \"json_attributes_topic\": \"fitbridge/couple/week/attributes\", \"expire_after\": 1200, \"icon\": \"mdi:heart-multiple\", \"device\": {\"identifiers\": [\"fitbridge_couple\"], \"name\": \"Fitness Couple\", \"manufacturer\": \"fitbridge\"}}",
+   true
+  ],
+  [
+   "fitbridge/couple/week/state",
+   "off",
+   true
+  ],
+  [
+   "fitbridge/couple/week/attributes",
+   "{\"mode\": \"own\", \"met\": false, \"reward\": \"\", \"together\": {\"done\": 0, \"target\": 1}, \"team\": {\"done\": 5, \"target\": 8}, \"members_met\": {\"person1\": true, \"person2\": false}}",
+   true
+  ],
+  [
+   "homeassistant/sensor/fit_couple_month/config",
+   "{\"name\": \"Joint workouts\", \"unique_id\": \"fit_couple_month\", \"default_entity_id\": \"sensor.fit_couple_month\", \"state_topic\": \"fitbridge/couple/month/state\", \"json_attributes_topic\": \"fitbridge/couple/month/attributes\", \"expire_after\": 1200, \"icon\": \"mdi:account-heart\", \"device\": {\"identifiers\": [\"fitbridge_couple\"], \"name\": \"Fitness Couple\", \"manufacturer\": \"fitbridge\"}}",
+   true
+  ],
+  [
+   "fitbridge/couple/month/state",
+   "0",
+   true
+  ],
+  [
+   "fitbridge/couple/month/attributes",
+   "{\"km_together\": 0}",
+   true
+  ],
+  [
+   "homeassistant/event/fit_badge_unlocked/config",
+   "{\"name\": \"Badge unlocked\", \"unique_id\": \"fit_badge_unlocked\", \"default_entity_id\": \"event.fit_badge_unlocked\", \"state_topic\": \"fitbridge/badge_unlocked\", \"event_types\": [\"badge_unlocked\"], \"icon\": \"mdi:medal\", \"device\": {\"identifiers\": [\"fitbridge\"], \"name\": \"Fitness\", \"manufacturer\": \"fitbridge\"}}",
+   true
+  ],
+  [
+   "homeassistant/event/fit_workout_scored/config",
+   "{\"name\": \"Workout scored\", \"unique_id\": \"fit_workout_scored\", \"default_entity_id\": \"event.fit_workout_scored\", \"state_topic\": \"fitbridge/workout_scored\", \"event_types\": [\"workout_scored\"], \"icon\": \"mdi:run\", \"device\": {\"identifiers\": [\"fitbridge\"], \"name\": \"Fitness\", \"manufacturer\": \"fitbridge\"}}",
+   true
+  ],
+  [
+   "homeassistant/event/fit_record_set/config",
+   "{\"name\": \"Record set\", \"unique_id\": \"fit_record_set\", \"default_entity_id\": \"event.fit_record_set\", \"state_topic\": \"fitbridge/record_set\", \"event_types\": [\"record_set\"], \"icon\": \"mdi:trophy\", \"device\": {\"identifiers\": [\"fitbridge\"], \"name\": \"Fitness\", \"manufacturer\": \"fitbridge\"}}",
+   true
+  ],
+  [
+   "fitbridge/badge_unlocked",
+   "{\"event_type\": \"badge_unlocked\", \"person\": \"person1\", \"id\": \"perfect_week_1\", \"title\": \"Perfect Week\", \"icon\": \"mdi:star-circle\", \"category\": \"consistency\", \"unlocked_at\": \"2026-10-29\"}",
+   false
+  ],
+  [
+   "fitbridge/workout_scored",
+   "{\"event_type\": \"workout_scored\", \"person\": \"person1\", \"key\": \"f3\", \"kind\": \"gym\", \"minutes\": 60, \"km\": null, \"xp\": 60, \"plan\": null, \"joint\": false}",
+   false
+  ],
+  [
+   "fitbridge/record_set",
+   "{\"event_type\": \"record_set\", \"person\": \"person1\", \"key\": \"f3\", \"lifts\": [{\"name\": \"Bent over row\", \"w\": 70, \"r\": 6, \"unit\": \"kg\"}], \"fastest_1k\": null}",
+   false
+  ]
+ ]
+}

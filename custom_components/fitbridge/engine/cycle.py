@@ -1,0 +1,210 @@
+"""The scoring cycle: sources (openGym, pauses, steps, settings) -> score -> what to announce."""
+import json
+import logging
+from collections.abc import Callable
+from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+from zoneinfo import ZoneInfo
+
+from . import opengym, records, scoring, scoring_config
+from .ingest import aware, classify, db_workouts
+
+log = logging.getLogger("fitbridge")
+
+
+@dataclass
+class Inputs:
+    pauses: list[dict]                   # the pause calendar's events: {"summary", "start", "end"}
+    steps: dict[str, dict[str, int]]     # {person: {"YYYY-MM-DD": steps}} as the steps collector keeps them; None: nothing yet
+    settings: dict | None                # {"history": [...]} as the settings store keeps it; None: nothing saved yet
+    opengym_uids: dict[str, str]         # person -> openGym uid
+
+
+@dataclass
+class Cycle:
+    scores: dict                         # the full result, as GET /scores served it
+    badges: list[tuple[str, dict]]       # (person, badge) to announce
+    workouts: list[tuple[str, dict]]     # (person, feed item) to announce
+    records: list[tuple[str, dict]]      # (person, record event) to announce
+    commit: Callable[[], None]           # records the above as announced; call it after announcing
+
+
+def fill_best_km(store):
+    """Fastest 1 km of every run file not read yet. A file that cannot be read or parsed stores NULL, so it is
+    logged once and never re-read."""
+    done = store.best_km()
+    for r in store.all_rows():
+        if (r["person"], r["key"]) in done or not r["file"] or classify(r["source"], r["activity_type"], r["points"]) != "run":
+            continue
+        try:
+            seconds = records.fastest_1k_s(Path(r["file"]).read_bytes())
+        except Exception as e:  # one bad file never blocks a cycle
+            log.warning("best 1 km of %s: %s", r["key"], type(e).__name__)
+            seconds = None
+        store.set_best_km(r["person"], r["key"], seconds)
+
+
+class ConfigHolder:
+    """scoring.toml, reloaded when its mtime changes; keeps the last good config when the new one is bad."""
+
+    def __init__(self, path: Path):
+        self.path, self.mtime, self.config, self.error = path, None, None, None
+
+    def get(self):
+        """(last good config or None, current error or None)."""
+        try:
+            mtime = self.path.stat().st_mtime
+        except OSError as e:
+            self.mtime, self.error = None, f"cannot read {self.path}: {e}"
+            return self.config, self.error
+        if mtime != self.mtime:
+            self.mtime = mtime
+            try:
+                new = scoring_config.load_config(self.path.read_text(encoding="utf-8"))
+                scoring.score({}, [], new, datetime.now(timezone.utc))  # a config that cannot score is broken too
+                self.config, self.error = new, None
+            except Exception as e:
+                self.error = f"{type(e).__name__}: {e}"
+                log.error("scoring config %s: %s", self.path, self.error)
+        return self.config, self.error
+
+
+def _why(e):
+    """Loggable reason: this one carries a token-free message; anything else is logged by class only."""
+    return f"{type(e).__name__}: {e}" if isinstance(e, opengym.OpenGymAuthError) else type(e).__name__
+
+
+class _NoPayload(Exception):
+    """An input has nothing yet: not an error."""
+
+
+def _cached(store, name, now, fetch):
+    """Run fetch() (None: source not configured) and keep its JSON in kv[name]; on failure the old cache stays.
+    Returns (cached value or None, when it was fetched, the message when fetch() found the payload invalid)."""
+    error = None
+    if fetch is not None:
+        try:
+            text = json.dumps(fetch(), default=datetime.isoformat)
+        except _NoPayload:  # nothing published yet: the cache stays, quietly
+            pass
+        except Exception as e:  # a failing source never breaks the rest (spec section 2)
+            log.warning("%s: source unavailable, using the cache: %s", name, _why(e))
+            error = str(e) if isinstance(e, ValueError) else None  # invalid, not unreachable
+        else:
+            store.kv_set(name, text)
+            store.kv_set(f"{name}_at", now.isoformat(timespec="seconds"))
+    return json.loads(store.kv_get(name) or "null"), store.kv_get(f"{name}_at"), error
+
+
+def exercise_catalog_cached(og, store, now):
+    """{exercise id: {"name", "bp"}} from openGym's bundle, cached by bundle file name (and cache version 2, which added
+    bp). Any failure serves the cache and waits an hour before the next try."""
+    cached = json.loads(store.kv_get("opengym_exercises") or "null") or {}
+    fresh = cached.get("version") == 2
+    old = cached.get("exercises") if fresh else {k: {"name": v, "bp": ""} for k, v in (cached.get("names") or {}).items()}
+    tried = aware(store.kv_get("opengym_exercises_tried"))
+    if og is None or (tried and now - tried < timedelta(hours=1)):
+        return old
+    try:
+        file = og.exercise_file()
+        if not file:
+            raise ValueError("no exercises bundle in openGym's index page")
+        if file != cached.get("file") or not fresh:
+            if not (catalog := records.exercise_catalog(og.text("/" + file))):
+                raise ValueError("no exercise names in openGym's bundle")  # a changed format must not wipe the cache
+            store.kv_set("opengym_exercises", json.dumps({"file": file, "version": 2, "exercises": catalog}))
+            return catalog
+        return old
+    except Exception as e:  # no og, page down or changed: names fall back to the ids
+        log.warning("exercise names: %s", _why(e))
+        store.kv_set("opengym_exercises_tried", now.isoformat(timespec="seconds"))
+        return old
+
+
+def _gym(og, uids, people):
+    og.renew_token()
+    return opengym.fetch_all(og, uids, people, None)  # no public link
+
+
+def _given(raw):
+    if raw is None:
+        raise _NoPayload  # not invalid: nothing to report, the cache stays
+    return raw
+
+
+def _pauses(pauses, config):
+    # not _given: there is always a pause list (an empty one at least), so a missing one is warned about
+    if not (isinstance(pauses, list) and all(
+            isinstance(e, dict) and isinstance(e.get("start"), str) and isinstance(e.get("end"), str)
+            and isinstance(e.get("summary") or "", str) for e in pauses)):
+        raise ValueError("no valid pause list")
+    tz = ZoneInfo(config["rules"]["timezone"])
+    for e in pauses:  # every event, whatever its title: a bad date must never replace a good cache
+        scoring.event_dates(e, tz)
+    return pauses
+
+
+def _steps(raw, people, cached):
+    """The steps merged into `cached`, the higher count per person and day.
+    HA sends only its last 35 days; fitbridge keeps every day, or old active days would drop out of scoring."""
+    merged = {p: dict(days) for p, days in (cached or {}).items()}
+    for p, days in scoring_config.parse_steps(_given(raw), people).items():
+        kept = merged.setdefault(p, {})
+        for d, n in days.items():
+            kept[d] = max(n, kept.get(d, 0))
+    return merged
+
+
+def score_cycle(store, holder, og, inputs: Inputs, now, live: bool) -> Cycle:
+    """Sources -> score -> what to announce. live=False (shadow mode): nothing to announce and commit() records nothing.
+    The caller announces, then calls commit(): a failed announce is retried next cycle."""
+    config, config_error = holder.get()
+    if config is None:
+        log.error("no valid scoring config, scoring skipped: %s", config_error)
+        return Cycle({"error": "no valid scoring config", "config_error": config_error}, [], [], [], lambda: None)
+    people = tuple(config["people"])
+
+    gym, gym_as_of, _ = _cached(store, "gym_cache", now, None if og is None else lambda: _gym(og, inputs.opengym_uids, people))
+    pauses, pauses_as_of, _ = _cached(store, "pauses_cache", now, lambda: _pauses(inputs.pauses, config))
+    settings, settings_as_of, settings_error = _cached(store, "settings_cache", now, lambda: (
+        scoring_config.parse_settings(_given(inputs.settings), people)))
+    steps, steps_as_of, _ = _cached(store, "steps_cache", now, lambda: (
+        _steps(inputs.steps, people, json.loads(store.kv_get("steps_cache") or "null"))))
+    fill_best_km(store)
+    workouts, excluded = db_workouts(store, people), store.exclusions()
+    for p, ws in (gym or {}).items():
+        if p in workouts:
+            workouts[p] += [{**w, "start": datetime.fromisoformat(w["start"]),
+                             "end": datetime.fromisoformat(w["end"]),
+                             "lifts": w.get("lifts") or {}, "unit": w.get("unit") or "kg",  # cache from before lifts
+                             "excluded": (p, w["key"]) in excluded} for w in ws]
+    result = scoring.score(workouts, pauses or [], config, now, steps, settings,
+                            exercise_catalog_cached(og, store, now))
+    scores = {**result, "config_error": config_error, "gym_data_as_of": gym_as_of,
+              "pauses_as_of": pauses_as_of, "settings_error": settings_error,
+              "settings_as_of": settings_as_of, "steps_as_of": steps_as_of, "scored_at": now.isoformat(timespec="seconds")}
+    if not live:
+        return Cycle(scores, [], [], [], lambda: None)
+
+    unseen = [(p, *store.unseen_badges(p, r["badges"]["unlocked"])) for p, r in result["people"].items()]
+    workouts_unseen = [(p, *store.unseen_workouts(p, r["feed"])) for p, r in result["people"].items()]
+    announce = [(p, b) for p, fresh, loud in unseen if loud for b in fresh]
+    stale = now - timedelta(hours=48)  # older news (home workouts stored before they were scored) is only recorded
+    announce_workouts = [(p, w) for p, _, news, loud in workouts_unseen if loud for w in news
+                         if not w["excluded"] and w["kind"] != "active_day"  # active days never announce, only get recorded
+                         and datetime.fromisoformat(w["start"]) >= stale]
+    recs = []  # (person, record events, record values to save, (record id, workout key) pairs to remember)
+    for p, r in result["people"].items():
+        recent = {k for w in r["feed"] if datetime.fromisoformat(w["start"]) >= stale for k in (w["key"], *w["aliases"])}
+        recs.append((p, *records.record_changes(r["pbs"], *store.records(p), store.record_holders(p), recent)))
+
+    def commit():
+        for p, _, values, held in recs:  # only once announced; in shadow mode nothing is saved, so the first live pass stays silent
+            store.save_records(p, values, held)
+        for p, fresh, _ in unseen:  # only after a successful announce: a failed one is announced next cycle
+            store.record_badges(p, fresh)
+        for p, new, _, _ in workouts_unseen:  # excluded ones too: restoring a workout is not news
+            store.record_workouts(p, [k for w in new for k in (w["key"], *w["aliases"])])
+
+    return Cycle(scores, announce, announce_workouts, [(p, e) for p, es, _, _ in recs for e in es], commit)

@@ -16,10 +16,10 @@ People, the optional two-person group, plans, XP values and badges all live in `
 
 | Path | What |
 |---|---|
-| `custom_components/fitbridge/engine/fitbridge.py` | Service: ingestion, Endurain upload, store, 5-minute scoring cycle, `GET /scores` |
+| `custom_components/fitbridge/engine/{store,ingest,manual,cycle}.py` | SQLite store; GPX and Health Exporter ingestion; manual remove/restore/log; the scoring cycle (sources, caches, what to announce) |
 | `custom_components/fitbridge/engine/scoring.py` | Pure scoring rules (no I/O) |
 | `custom_components/fitbridge/engine/scoring_config.py`, `scoring.toml` | Rule file loader/validator and the default rules |
-| `custom_components/fitbridge/engine/{mqtt,opengym,publish,records}.py` | Minimal MQTT client, openGym client, HA discovery payloads, record maths (best sets, fastest 1 km) |
+| `custom_components/fitbridge/engine/{entities,opengym,records}.py` | Sensor and event data for HA, openGym client, record maths (best sets, fastest 1 km) |
 | `lxc-final` (git tag) | The last commit with the standalone LXC service and its `deploy.sh`, `fitbridge.service`, `env.example`, `opengym-pair.sh`; the setup steps below describe that install |
 | `custom_components/fitbridge/` | Home Assistant integration: the Fitness page in the sidebar, its per-user API and Remove/Restore; `frontend/` is the built page (committed) |
 | `web/` | Source of the Fitness page (Svelte + Vite); builds into `custom_components/fitbridge/frontend/` |
@@ -45,7 +45,7 @@ Edit `web/`, then `cd web && npm run build` and commit the rebuilt `custom_compo
 ## Tests
 
 ```bash
-python -m pytest tests/engine -q            # the moved service (stdlib only; no HA fixtures)
+python -m pytest tests/engine -q            # the engine (plain Python, no HA fixtures; run it in the HA test venv below)
 cd web && npm test                          # the page's pure logic (node:test)
 python -m pytest tests -q                   # the integration: Linux or WSL, with tests/requirements.txt installed
 ```
