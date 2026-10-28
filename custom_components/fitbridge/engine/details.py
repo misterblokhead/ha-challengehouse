@@ -190,7 +190,7 @@ def route_details(gpx, max_hr):
     keep = set(downsample(list(range(len(pts)))))
     firsts = set(starts[1:])  # keep the rows after a pause, or the graph would draw a line across it
     for i in firsts - keep:
-        if free := keep - firsts:
+        if free := keep - firsts - {0, len(pts) - 1}:
             keep.remove(min(free, key=lambda k: abs(k - i)))
             keep.add(i)
     rows = sorted(keep)

@@ -75,6 +75,14 @@ class RouteTests(unittest.TestCase):
         self.assertIsNone(pace[after[0]])
         self.assertLess(max(p for p in pace if p is not None), 1000)
 
+    def test_series_keeps_first_and_last_row(self):
+        pts = [(0, 0.0, 0.0, None, None)] + loop(n=400)  # a stray first fix, a pause, then 400 points
+        d = route_details(gpx(pts, gap_after=0), None)
+        self.assertEqual(d["series"]["t"][0], 0)
+        self.assertEqual(d["series"]["t"][-1], 300 + 399 * 3)
+        self.assertLessEqual(len(d["series"]["t"]), 200)
+        self.assertIsNone(d["series"]["pace"][1])
+
     def test_gain_hysteresis(self):
         noisy = route_details(gpx(loop(ele=lambda i: 50 + (i % 2))), None)
         self.assertEqual(noisy["gain_m"], 0)
