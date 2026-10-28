@@ -4,6 +4,7 @@ import hashlib
 import io
 import json
 import logging
+import re
 import xml.etree.ElementTree as ET
 import zipfile
 from datetime import datetime, timedelta, timezone
@@ -237,6 +238,12 @@ def _route_status(w, gpx_data, path, key):
 MANUAL_NAMES = {"run": "Run", "walk": "Walk", "gym": "Gym session", "home": "Home workout"}
 
 
+def type_name(activity_type) -> str:
+    """An uncounted type as words with a capital: HealthKit's "americanFootball" -> "American football"."""
+    words = re.sub(r"(?<=[a-z])([A-Z])", lambda m: " " + m[1].lower(), str(activity_type or "Unknown"))
+    return words[:1].upper() + words[1:]
+
+
 def classify(source, activity_type, points, types):
     """{"kind", "name", "min_min", "effort"} of a workout from the type table (config["types"]), or None when its
     type does not count. A manual entry names its own kind. min_min None: the kind's rules.min_<kind>_min decides.
@@ -282,7 +289,7 @@ def db_workouts(store, people, types):
         if dur is None or dur <= 0:
             continue
         end = end or start + timedelta(seconds=dur)
-        c = c or {"kind": None, "name": str(r["activity_type"] or "Unknown").title(), "min_min": None, "effort": False, "reason": "type"}
+        c = c or {"kind": None, "name": type_name(r["activity_type"]), "min_min": None, "effort": False, "reason": "type"}
         (out if c["kind"] else uncounted)[r["person"]].append({
             "person": r["person"], "key": r["key"], "source": r["source"], "kind": c["kind"],
             "indoor": bool(r["indoor"]), "start": start, "end": end, "duration_s": float(dur),

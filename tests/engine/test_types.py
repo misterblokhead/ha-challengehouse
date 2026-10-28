@@ -135,6 +135,13 @@ class UncountedTests(unittest.TestCase):
         self.assertEqual(uncounted[PEOPLE[1]], [])
         self.assertEqual((g["reason"], y["reason"]), ("type", None))
 
+    def test_an_unknown_types_name_is_its_words(self):
+        for given, name in (("americanFootball", "American football"), ("AmericanFootball", "American football"),
+                            ("functionalStrengthTraining", "Functional strength training"), ("golf", "Golf"),
+                            ("table tennis", "Table tennis"), ("Disc Golf", "Disc Golf"), (None, "Unknown")):
+            with self.subTest(given):
+                self.assertEqual(ingest.type_name(given), name)
+
     def test_an_opentracks_run_without_gps_is_uncounted_as_no_gps(self):
         self.store.add(P0, "r", "opentracks", "skipped_no_gps", activity_type="running", points=0,
                        start="2026-10-27T18:00:00+01:00", end="2026-10-27T18:30:00+01:00", duration_s=1800)
