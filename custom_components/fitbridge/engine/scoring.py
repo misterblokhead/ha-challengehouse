@@ -76,6 +76,11 @@ def _best_of(a, b):
     return {"lifts": lifts, "best_1k_s": min(km, default=None)}
 
 
+def _alike(a, b):
+    """Same kind and same effort flag: an effort-checked ride never merges or pairs with a yoga session."""
+    return a["kind"] == b["kind"] and bool(a.get("effort")) == bool(b.get("effort"))
+
+
 def _merge(a, b):
     base = min(a, b, key=_rank)
     other = b if base is a else a
@@ -94,7 +99,7 @@ def clean(workouts, cfg):
     live = [w for w in workouts if not w["excluded"] and local_date(w["start"], tz) >= cfg["rules"]["start"]]
     merged = []
     for w in sorted(_dedup(live), key=lambda w: w["start"]):
-        i = next((i for i in range(len(merged) - 1, -1, -1) if merged[i]["kind"] == w["kind"]), None)
+        i = next((i for i in range(len(merged) - 1, -1, -1) if _alike(merged[i], w)), None)
         if i is not None and w["start"] - merged[i]["end"] < gap:
             merged[i] = _merge(merged[i], w)
         else:
@@ -111,7 +116,7 @@ def mark_joint(by_person, cfg):
     window = timedelta(minutes=cfg["joint"]["start_window_min"])
     for a in by_person.get(p, []):
         for b in by_person.get(q, []):
-            if a["excluded"] or b["excluded"] or a["kind"] != b["kind"] or "joint_s" in a or "joint_s" in b:
+            if a["excluded"] or b["excluded"] or not _alike(a, b) or "joint_s" in a or "joint_s" in b:
                 continue
             shared = _overlap_s(a, b)
             if (abs(a["start"] - b["start"]) <= window and shared > 0

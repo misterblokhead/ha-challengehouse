@@ -98,6 +98,20 @@ class ScoringTests(unittest.TestCase):
         r = sp([home, gym], 1)
         self.assertEqual((r["counters"]["gym"], r["counters"]["home"], r["xp"]), (1, 0, 40))
 
+    def test_stop_start_merge_and_joint_need_the_same_effort_flag(self):
+        yoga = wk("person1", "home", 0, 18, 0, 30, min_min=15, effort=False)
+        ride = wk("person1", "home", 0, 18, 40, 40, min_min=20, effort=True, avg_hr=100)  # 10 min after the yoga, easy
+        fit = wk("person1", "run", 0, 7, 0, 30, avg_hr=150, max_hr=180)                   # measured max HR 180
+        self.assertEqual([w["key"] for w in clean([yoga, ride], CFG)], [yoga["key"], ride["key"]])
+        feed = score({"person1": [fit, yoga, ride], "person2": []}, [], CFG, NOW(1))["people"]["person1"]
+        rows = {i["key"]: i for i in feed["feed"]}
+        self.assertEqual((rows[yoga["key"]]["counts"], rows[ride["key"]]["reason"], feed["week"]["workouts"]), (True, "easy", 1))
+        r1, r2 = (wk("person1", "home", 0, 18, 0, 30, effort=True), wk("person1", "home", 0, 18, 40, 30, effort=True))
+        self.assertEqual(len(clean([r1, r2], CFG)), 1)                                 # a ride next to a ride still merges
+        a, b = wk("person1", "home", 1, 19, 0, 40, effort=False), wk("person2", "home", 1, 19, 2, 40, effort=True)
+        mark_joint({"person1": [a], "person2": [b]}, CFG)
+        self.assertNotIn("joint_s", a)
+
     def test_excluded_passes_through_untouched(self):
         a, x = wk("person1", "run", 0, 18, 0, 20), wk("person1", "run", 0, 18, 5, 20, excluded=True)
         self.assertEqual(clean([a, x], CFG), [a, x])
