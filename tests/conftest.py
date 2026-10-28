@@ -35,7 +35,7 @@ async def entry(enable_custom_integrations, hass):
 def send(hass):
     """Hand the page these scores, as a cycle would."""
     async def _send(scores):
-        hass.data[DOMAIN].scores = scores
+        hass.data[DOMAIN].runner.scores = scores
     return _send
 
 

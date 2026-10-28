@@ -30,12 +30,16 @@ ACTIONS = {  # action -> (manual.apply's action, fields as manual.apply reads th
 @dataclass
 class Data:
     entry: ConfigEntry
-    scores: dict | None = None
     settings_history: list = field(default_factory=list)  # weekly goals history, oldest first
     settings_profiles: dict = field(default_factory=dict)  # {person: {"birth_year": int}}, kept next to the history
     settings_store: Store | None = None
     steps: StepsCollector | None = None
     runner: Runner | None = None
+
+    @property
+    def scores(self) -> dict | None:
+        """The runner's last good scores, which the page and the options flow show."""
+        return self.runner.scores if self.runner else None
 
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:

@@ -106,7 +106,7 @@ class Runner:
         """What a workout's pop-up shows, read in the executor from the store and the archived GPX; None when the last
         scores (feed or older) have no such workout."""
         scores, store = self.scores, self.store
-        item = find_workout(scores, person, key) if store and scores and isinstance(scores.get("people"), dict) else None
+        item = find_workout(scores, person, key) if store and scores else None
         if item is None:
             return None
         return await self.hass.async_add_executor_job(workout_details, store, scores["people"][person], person, item, dt_util.utcnow())
@@ -173,10 +173,9 @@ class Runner:
         except Exception as err:  # one bad cycle never stops the timers
             _LOGGER.error("Scoring cycle failed: %s", type(err).__name__)
             return
-        self.scores = cycle.scores
         self._token_issue(og, cycle.gym_error)
         if isinstance(cycle.scores.get("people"), dict):  # no valid scoring config: the page keeps the last
-            data.scores = cycle.scores
+            self.scores = cycle.scores
         if self.stopping:  # stopping: no handler would get it, so nothing is recorded; the next runner announces
             return
         async_dispatcher_send(self.hass, SIGNAL_SCORES, cycle)

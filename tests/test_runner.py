@@ -189,6 +189,15 @@ async def test_a_birth_year_reaches_the_cycle_without_any_weekly_goals(hass, set
     assert cycles.call_args.args[3].settings == {"history": [], "profiles": {"p1": {"birth_year": 1990}}}
 
 
+async def test_a_cycle_without_a_valid_config_keeps_the_last_scores(hass, setup):
+    await setup()
+    runner = _runner(hass)
+    good = runner.scores
+    with patch.object(runner_mod, "score_cycle", return_value=Cycle({"error": "no valid scoring config"}, [], [], [], lambda: None)):
+        await runner.async_score_now()
+    assert runner.scores is good and hass.data[DOMAIN].scores is good  # one source: the page and the details pop-up
+
+
 async def test_manual_change_is_applied_then_scored(hass, setup, cycles):
     await setup()
     runner = _runner(hass)
