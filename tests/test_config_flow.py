@@ -8,7 +8,7 @@ from homeassistant import config_entries
 from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.util import dt as dt_util
-from pytest_homeassistant_custom_component.common import MockUser
+from pytest_homeassistant_custom_component.common import MockConfigEntry, MockUser
 from test_steps import _phone
 
 from custom_components.fitbridge import gym
@@ -483,7 +483,7 @@ async def _gym_form(hass, setup, aioclient_mock, options):
     return e, result, [str(k) for k in result["data_schema"].schema]
 
 
-async def test_gym_people_invite_revokes_old_code(hass, setup, aioclient_mock):
+async def test_gym_people_invite_then_revokes_old_code(hass, setup, aioclient_mock):
     calls = []
 
     async def revoke(hass_, url, token, code):
@@ -500,7 +500,7 @@ async def test_gym_people_invite_revokes_old_code(hass, setup, aioclient_mock):
         result = await _configure(hass, result, {first: "invite", second: "invite"})
         assert result["type"] is FlowResultType.CREATE_ENTRY
         await hass.async_block_till_done(wait_background_tasks=True)
-    assert calls == [("revoke", "OLD1"), ("invite", "Person 1"), ("invite", "Person 2")]  # the old code goes before the new one
+    assert calls == [("invite", "Person 1"), ("invite", "Person 2"), ("revoke", "OLD1")]  # the old code goes once every new one exists
     assert e.options[OPT_INVITES] == {P0: "NEW1", P1: "NEW1"}
 
 
@@ -544,6 +544,21 @@ async def test_gym_people_failed_invite_changes_nothing(hass, setup, aioclient_m
         before = dict(e.options)
         result = await _configure(hass, result, {first: "invite", second: "invite"})
         assert result["type"] is FlowResultType.FORM and result["errors"] == {"base": "invite_failed"}
-        assert [c.args[3] for c in revoke.call_args_list] == ["OLD1", "NEW1"]  # the code made meanwhile is not left live
+        assert [c.args[3] for c in revoke.call_args_list] == ["NEW1"]  # only the code made meanwhile; the old one is still the person's
         assert _field(result, first)[0].description == {"suggested_value": "invite"}  # the picks stay
     assert dict(e.options) == before
+
+
+async def test_people_not_migrated_are_left_alone(hass, enable_custom_integrations):
+    """An entry whose scoring.toml could not be migrated has no people in its options: neither add nor edit may start."""
+    e = MockConfigEntry(domain=DOMAIN, unique_id=DOMAIN, title="Fitness", minor_version=4)
+    e.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(e.entry_id)
+    await hass.async_block_till_done(wait_background_tasks=True)
+    hass.data[DOMAIN].runner.scores = SCORES  # the options flow waits for a first score
+    MockUser(name="Person 3").add_to_hass(hass)
+    before = dict(e.options)
+    result = await _open(hass, e, "people")
+    assert result["type"] is FlowResultType.ABORT and result["reason"] == "people_not_migrated"
+    assert dict(e.options) == before
+    await hass.config_entries.async_unload(e.entry_id)

@@ -242,6 +242,8 @@ class FitbridgeOptionsFlow(config_entries.OptionsFlowWithReload):
 
     async def async_step_people(self, user_input=None):
         """Pick a person to edit, or add one."""
+        if OPT_PEOPLE not in self.config_entry.options:  # the migration could not read scoring.toml: its people are not ours to rewrite
+            return self.async_abort(reason="people_not_migrated")
         if user_input is not None:
             if user_input["person"] == ADD:
                 return await self.async_step_person_add()
@@ -318,21 +320,21 @@ class FitbridgeOptionsFlow(config_entries.OptionsFlowWithReload):
             if len(set(uids.values())) < len(uids):
                 errors["base"] = "duplicate_gym_user"  # before any invite is made or withdrawn
             else:
-                invites, made = dict(open_invites), []
+                made = {}
                 try:
                     for p, pick in picks.items():
-                        if pick == KEEP:
-                            continue
-                        if p in invites:  # renewed, or no longer wanted
-                            await _withdraw(self.hass, url, token, p, invites.pop(p))
                         if pick == INVITE:
-                            invites[p] = await gym.async_invite(self.hass, url, token, names[p])
-                            made.append(p)
+                            made[p] = await gym.async_invite(self.hass, url, token, names[p])
                 except gym.GymError:
                     errors["base"] = "invite_failed"
-                    for p in made:  # the options stay as they were: no live code they do not hold
-                        await _withdraw(self.hass, url, token, p, invites[p])
+                    for p, code in made.items():  # the options stay as they were: nothing old is revoked, no new code is left live
+                        await _withdraw(self.hass, url, token, p, code)
                 else:
+                    invites = {p: c for p, c in open_invites.items() if picks.get(p, KEEP) == KEEP}
+                    for p, code in open_invites.items():  # renewed, or no longer wanted: only now that every new invite exists
+                        if picks.get(p, KEEP) != KEEP:
+                            await _withdraw(self.hass, url, token, p, code)
+                    invites |= made
                     data = {**options, OPT_OPENGYM_UIDS: uids}
                     data.pop(OPT_INVITES, None)
                     return self.async_create_entry(data={**data, **({OPT_INVITES: invites} if invites else {})})

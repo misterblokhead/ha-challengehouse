@@ -125,6 +125,7 @@
       "waiting_for_fitbridge": "Waiting for fitbridge: it has not scored yet. Try again in a minute; check the log if scoring.toml is invalid.",
       "not_paired": "Pair with openGym first.",
       "cannot_connect": "openGym could not be reached, or it rejected the token. Pair with openGym again if this persists.",
+      "people_not_migrated": "The people are still read from scoring.toml because it could not be moved into these options. Check the log, fix the file and restart Home Assistant.",
       "no_free_users": "Every Home Assistant user is already a viewer of a person. Free one in Who is who first."
     },
     "error": {
