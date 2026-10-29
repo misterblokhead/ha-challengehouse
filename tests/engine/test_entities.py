@@ -38,7 +38,7 @@ class FixtureTests(unittest.TestCase):
             r.pop("max_hr")
             r.pop("older")
             for w in r["recent"] + r["feed"]:
-                del w["counts"], w["reason"], w["check"], w["review"], w["caught_up"]
+                del w["counts"], w["reason"], w["check"], w["review"], w["needs_review"], w["caught_up"]
             for k in ("cooldown_s", "steps", "times", "review_pending"):  # plan check, likewise newer
                 r["plan"].pop(k)
         self.assertEqual(result, RESULT)
@@ -84,10 +84,9 @@ class EntityTests(unittest.TestCase):
         scored = EVENTS["workout_scored"]
         item = {"key": "k", **dict.fromkeys(WORKOUT_FIELDS)}
         check = {"state": "review", "label": "W2D1"}
-        for extra, review, label in (({}, False, None), ({"check": None, "review": None}, False, None),
-                                     ({"check": check, "review": None}, True, "W2D1"),
-                                     ({"check": check, "review": {"decision": "run", "type_match": None}}, False, "W2D1"),
-                                     ({"check": {**check, "state": "match"}, "review": None}, False, "W2D1")):
+        for extra, review, label in (({"check": None, "needs_review": False}, False, None),
+                                     ({"check": check, "needs_review": True}, True, "W2D1"),
+                                     ({"check": check, "needs_review": False}, False, "W2D1")):
             with self.subTest(extra=extra):
                 event = scored(P1, {**item, **extra})
                 self.assertEqual((event["review"], event["plan_label"]), (review, label))

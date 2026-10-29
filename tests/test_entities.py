@@ -31,8 +31,10 @@ def no_url(value):
 
 
 def _announced(event_type):
-    """The cycle's (person, item) pairs behind the recorded payloads of one event type."""
-    return [(e["person"], {k: v for k, v in e.items() if k not in ("event_type", "person")})
+    """The cycle's (person, item) pairs behind the recorded payloads of one event type (a feed item also carries the
+    plan-check fields, newer than the capture)."""
+    news = {"check": None, "needs_review": False} if event_type == "workout_scored" else {}
+    return [(e["person"], {k: v for k, v in e.items() if k not in ("event_type", "person")} | news)
             for e in FIRED if e["event_type"] == event_type]
 
 

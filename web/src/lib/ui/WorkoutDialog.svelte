@@ -63,7 +63,7 @@
   const gym = $derived(d && gymRows(d.gym));
   const speed = $derived(d && speedShown(d));
   const check = $derived(item?.check ?? null); // the plan check of a run (null: not a plan run, or an older row)
-  const review = $derived(item?.review ?? null);
+  const review = $derived(item?.review ?? null); // the owner's decision; a "Not a run…" one leaves the row without a check
   const types = $derived(reviewTypes[item?.source] ?? []);
   const kmh = $derived(item?.km && item.minutes ? item.km / (item.minutes / 60) : null); // an indoor run's only speed
   const why = (e) => (e.status === 404 ? "Workout not found" : e.status === 503 ? "Waiting for fitbridge" : "Couldn't reach Home Assistant");
@@ -111,12 +111,16 @@
     {/if}
     {#if noteText(d.note)}<p class="caption note">{noteText(d.note)}</p>{/if}
 
-    {#if check}
+    {#if check || review}
       <h3>Programme</h3>
-      <p class="check" class:warn={check.state === "review" && !review}>{checkLine(check, kmh)}</p>
-      {#if acts.remove !== null && (check.state === "review" || review)}
+      {#if check}
+        <p class="check" class:warn={item.needs_review}>{checkLine(check, kmh)}</p>
+      {:else if review.decision === "type"}
+        <p class="check">Changed to {types.find((t) => t.match === review.type_match)?.name ?? review.type_match}</p>
+      {/if}
+      {#if acts.remove !== null && (item.needs_review || review)}
         <div class="acts review">
-          <button type="button" class="btn" class:on={review?.decision === "plan"} aria-pressed={review?.decision === "plan"} onclick={() => decide("plan", null, check.label)}>Counts for the plan day</button>
+          <button type="button" class="btn" class:on={review?.decision === "plan"} aria-pressed={review?.decision === "plan"} onclick={() => decide("plan", null, check?.label ?? "the plan day")}>Counts for the plan day</button>
           <button type="button" class="btn" class:on={review?.decision === "run"} aria-pressed={review?.decision === "run"} onclick={() => decide("run")}>A run, not the programme</button>
           {#if types.length}
             <button type="button" class="btn" class:on={review?.decision === "type"} aria-pressed={review?.decision === "type"} onclick={() => (choosing = !choosing)}>Not a run…</button>

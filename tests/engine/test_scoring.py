@@ -526,6 +526,7 @@ class PlanCheckTests(unittest.TestCase):
         self.assertEqual((p["xp"], p["week"]["runs"]), (25, 1))       # a run as usual, no plan XP
         r = row(p, w)
         self.assertEqual((r["plan"], r["check"]["state"], r["check"]["found"], r["review"]), (None, "review", 0, None))
+        self.assertTrue(r["needs_review"])
 
     def test_review_plan_completes(self):
         w = run("person1", 0, blocks=BIKE, review={"decision": "plan", "type_match": None})
@@ -537,7 +538,7 @@ class PlanCheckTests(unittest.TestCase):
         w = run("person1", 0, blocks=BIKE, review={"decision": "run", "type_match": None})
         p = people([w], 1)["person1"]
         self.assertEqual((p["plan"]["state"], p["xp"], p["plan"]["review_pending"], row(p, w)["plan"]), ("W1D1", 26, 0, None))
-        self.assertEqual(row(p, w)["check"]["state"], "review")
+        self.assertEqual((row(p, w)["check"]["state"], row(p, w)["needs_review"]), ("review", False))  # decided
 
     def test_review_type_not_a_run(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -549,6 +550,8 @@ class PlanCheckTests(unittest.TestCase):
         p = score(counted, [], CFG, NOW(2), uncounted=uncounted)["people"]["person1"]
         self.assertEqual((p["feed"][0]["kind"], p["week"]["runs"], p["week"]["workouts"], p["plan"]["state"]), ("home", 0, 1, "W1D1"))
         self.assertIsNone(p["feed"][0]["check"])
+        self.assertEqual((p["feed"][0]["review"], p["feed"][0]["needs_review"]),  # the page still shows the decision
+                         ({"decision": "type", "type_match": "cycling"}, False))
 
     def test_review_change_resettles(self):
         w = run("person1", 0, blocks=BIKE, review={"decision": "plan", "type_match": None})
@@ -566,6 +569,26 @@ class PlanCheckTests(unittest.TestCase):
         self.assertEqual((r["plan"], r["caught_up"], r["check"]["label"], r["check"]["state"]), ("W1D3", True, "W1D3", "match"))
         self.assertEqual(p2["xp"], 26 + 13 + 20)                     # plan XP once: the skipped days earn none
         self.assertIn("plan_week_1", [u["id"] for u in p2["badges"]["unlocked"]])
+
+    def test_catch_up_needs_a_readable_track(self):
+        ws = [run("person1", 0), run("person1", 2), run("person1", 4), run("person2", 4, blocks={"error": True})]
+        p2 = people(ws, 5)["person2"]
+        r = row(p2, ws[3])
+        self.assertEqual((r["plan"], r["caught_up"], r["check"]["state"], p2["plan"]["completed"]), ("W1D1", False, "none", 1))
+
+    def test_merged_halves_join_their_blocks(self):
+        first = blocks(synth([(300, 5.5)] + 4 * [(60, 8.3), (90, 5.5)]))
+        second = blocks(synth(4 * [(60, 8.3), (90, 5.5)] + [(300, 5)]))
+        ws = [run("person1", 0, minutes=15, blocks=first), run("person1", 0, mm=16, minutes=15, blocks=second,
+                                                              review={"decision": "run", "type_match": None})]
+        c = clean(ws, CFG)
+        self.assertEqual((len(c), len(c[0]["blocks"]["blocks"]), c[0]["blocks"]["blocks"][4][0], c[0]["review"]["decision"]),
+                         (1, 8, 16 * 60, "run"))  # the second half's blocks shifted by 16 min
+        del ws[1]["review"]
+        r = row(people(ws, 1)["person1"], ws[0])
+        self.assertEqual((r["plan"], r["check"]["state"], r["check"]["found"], r["check"]["planned"]), ("W1D1", "match", 8, 8))
+        ws[0]["blocks"] = None                                        # one half without a list: the other's stays
+        self.assertEqual(clean(ws, CFG)[0]["blocks"], second)
 
     def test_catch_up_needs_match(self):
         ws = [run("person1", d) for d in (0, 2, 4)] + [run("person1", 6), run("person2", 6, mm=3, blocks=SHORT)]
@@ -602,7 +625,7 @@ class PlanCheckTests(unittest.TestCase):
         self.assertEqual((r["plan"], r["caught_up"]), ("W1D1", False))
 
     def test_no_catch_up_ahead(self):
-        ws = [run("person2", d, blocks=MATCH) for d in (0, 2)] + [run("person1", 4), run("person2", 4, mm=3, blocks=MATCH)]
+        ws = [run("person2", d, blocks=MATCH) for d in (0, 2)] + [run("person1", 4, blocks=MATCH), run("person2", 4, mm=3, blocks=MATCH)]
         ps = people(ws, 5)
         self.assertEqual((row(ps["person2"], ws[3])["plan"], row(ps["person2"], ws[3])["caught_up"]), ("W1D3", False))
         self.assertEqual((ps["person2"]["plan"]["completed"], ps["person1"]["plan"]["completed"]), (3, 3))

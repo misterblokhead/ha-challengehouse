@@ -1,4 +1,4 @@
-import { $ as e, $t as t, A as n, At as r, B as i, Bt as a, C as o, Ct as s, D as c, Dt as l, E as u, Et as d, F as f, Ft as p, G as m, Gt as h, H as g, Ht as _, I as v, It as y, J as b, Jt as x, K as S, Kt as C, L as w, Lt as T, M as E, Mt as D, N as O, Nt as k, O as A, Ot as j, P as M, Pt as N, Q as P, Qt as F, R as I, Rt as L, S as ee, St as R, T as te, Tt as z, U as ne, Ut as B, V as re, Vt as V, W as H, Wt as U, X as W, Xt as G, Y as ie, Yt as K, Z as ae, Zt as oe, _ as se, _t as q, a as ce, an as le, at as J, b as ue, bt as de, c as fe, ct as Y, d as pe, dt as me, en as X, et as he, f as ge, ft as _e, g as ve, gt as ye, h as be, ht as xe, i as Se, in as Ce, it as we, j as Te, jt as Ee, k as De, kt as Oe, l as ke, lt as Ae, m as je, mt as Me, n as Ne, nn as Pe, nt as Fe, o as Ie, on as Le, ot as Re, p as ze, pt as Z, q as Be, qt as Q, rt as Ve, s as He, st as Ue, t as We, tn as Ge, tt as Ke, u as qe, ut as Je, v as Ye, vt as $, w as Xe, wt as Ze, x as Qe, xt as $e, y as et, yt as tt, z as nt, zt as rt } from "./shared-DUfhNRW_.js";
+import { $ as e, $t as t, A as n, At as r, B as i, Bt as a, C as o, Ct as s, D as c, Dt as l, E as u, Et as d, F as f, Ft as p, G as m, Gt as h, H as g, Ht as _, I as v, It as y, J as b, Jt as x, K as S, Kt as C, L as w, Lt as T, M as E, Mt as D, N as O, Nt as k, O as A, Ot as j, P as M, Pt as N, Q as P, Qt as F, R as I, Rt as L, S as ee, St as R, T as te, Tt as z, U as ne, Ut as B, V as re, Vt as V, W as H, Wt as U, X as W, Xt as G, Y as ie, Yt as K, Z as ae, Zt as oe, _ as se, _t as q, a as ce, an as le, at as J, b as ue, bt as de, c as fe, ct as Y, d as pe, dt as me, en as X, et as he, f as ge, ft as _e, g as ve, gt as ye, h as be, ht as xe, i as Se, in as Ce, it as we, j as Te, jt as Ee, k as De, kt as Oe, l as ke, lt as Ae, m as je, mt as Me, n as Ne, nn as Pe, nt as Fe, o as Ie, on as Le, ot as Re, p as ze, pt as Z, q as Be, qt as Q, rt as Ve, s as He, st as Ue, t as We, tn as Ge, tt as Ke, u as qe, ut as Je, v as Ye, vt as $, w as Xe, wt as Ze, x as Qe, xt as $e, y as et, yt as tt, z as nt, zt as rt } from "./shared-BUd3tpul.js";
 // src/lib/actions.svelte.js
 var it = 5e3, at = h({}), ot = h({}), st = h({
 	on: !1,
@@ -771,11 +771,11 @@ function qn(e, n) {
 }
 k(["change", "click"]);
 // src/lib/ui/WorkoutDialog.svelte
-var Jn = r("<p class=\"msg\" role=\"status\"> </p>"), Yn = r("<p class=\"msg\" role=\"status\">Loading…</p>"), Xn = r("<span class=\"mini svelte-1uaoa1p\"> </span>"), Zn = r("<span class=\"mini off svelte-1uaoa1p\"> </span>"), Qn = r("<div><dt class=\"svelte-1uaoa1p\"> </dt><dd class=\"svelte-1uaoa1p\"> </dd></div>"), $n = r("<option disabled=\"\"> </option>"), er = r("<option> </option>"), tr = r("<div class=\"shoe svelte-1uaoa1p\"><dt class=\"svelte-1uaoa1p\"><label>Shoe</label></dt><dd class=\"svelte-1uaoa1p\"><select class=\"svelte-1uaoa1p\"><!><!></select></dd></div>"), nr = r("<dl class=\"svelte-1uaoa1p\"><!> <!></dl>"), rr = r("<p class=\"caption note svelte-1uaoa1p\"> </p>"), ir = r("<button type=\"button\">Not a run…</button>"), ar = r("<select aria-label=\"Change the type to\" class=\"svelte-1uaoa1p\"><option disabled=\"\">Choose a type</option><!><!></select>"), or = r("<button type=\"button\" class=\"link svelte-1uaoa1p\">Clear decision</button>"), sr = r("<div class=\"acts review svelte-1uaoa1p\"><button type=\"button\">Counts for the plan day</button> <button type=\"button\">A run, not the programme</button> <!> <!> <!></div>"), cr = r("<h3 class=\"svelte-1uaoa1p\">Programme</h3> <p> </p> <!>", 1), lr = r("<p class=\"caption note svelte-1uaoa1p\">Map unavailable</p>"), ur = r("<div class=\"ph svelte-1uaoa1p\" aria-hidden=\"true\"></div>"), dr = r("<h3 class=\"svelte-1uaoa1p\"> </h3> <!>", 1), fr = r("<!> <!>", 1), pr = r("<li class=\"svelte-1uaoa1p\"><span class=\"zn svelte-1uaoa1p\"> <small class=\"svelte-1uaoa1p\"> </small></span> <span class=\"bar svelte-1uaoa1p\"><span class=\"svelte-1uaoa1p\"></span></span> <span class=\"num svelte-1uaoa1p\"> </span></li>"), mr = r("<h3 class=\"svelte-1uaoa1p\">Heart-rate zones</h3> <ul class=\"zones svelte-1uaoa1p\"></ul>", 1), hr = r("<tr><td class=\"svelte-1uaoa1p\"> </td><td class=\"svelte-1uaoa1p\"> </td><td class=\"svelte-1uaoa1p\"> </td><td class=\"svelte-1uaoa1p\"> </td><td class=\"svelte-1uaoa1p\"> </td></tr>"), gr = r("<h3 class=\"svelte-1uaoa1p\">Splits</h3> <table class=\"svelte-1uaoa1p\"><thead><tr><th class=\"svelte-1uaoa1p\">Km</th><th class=\"svelte-1uaoa1p\">Time</th><th class=\"svelte-1uaoa1p\"> </th><th class=\"svelte-1uaoa1p\">HR</th><th class=\"svelte-1uaoa1p\">Climb</th></tr></thead><tbody></tbody></table>", 1), _r = r("<span role=\"img\" aria-label=\"Record\">🏆</span>"), vr = r("<li class=\"svelte-1uaoa1p\"> <b class=\"svelte-1uaoa1p\"> </b><!></li>"), yr = r("<h3 class=\"svelte-1uaoa1p\">Exercises</h3> <ul class=\"gym svelte-1uaoa1p\"><!> <li class=\"vol svelte-1uaoa1p\">Total volume · <b class=\"svelte-1uaoa1p\"> </b></li></ul>", 1), br = r("<span class=\"ask svelte-1uaoa1p\">Delete manual entry?</span> <button type=\"button\" class=\"btn\">Cancel</button> <button type=\"button\" class=\"btn danger svelte-1uaoa1p\">Delete</button>", 1), xr = r("<button type=\"button\"> </button>"), Sr = r("<div class=\"acts svelte-1uaoa1p\"><!></div>"), Cr = r("<p class=\"sub svelte-1uaoa1p\"> <!> <!></p> <!> <!> <!> <!> <!> <!> <!> <!>", 1);
-function wr(e, n) {
+var Jn = r("<p class=\"msg\" role=\"status\"> </p>"), Yn = r("<p class=\"msg\" role=\"status\">Loading…</p>"), Xn = r("<span class=\"mini svelte-1uaoa1p\"> </span>"), Zn = r("<span class=\"mini off svelte-1uaoa1p\"> </span>"), Qn = r("<div><dt class=\"svelte-1uaoa1p\"> </dt><dd class=\"svelte-1uaoa1p\"> </dd></div>"), $n = r("<option disabled=\"\"> </option>"), er = r("<option> </option>"), tr = r("<div class=\"shoe svelte-1uaoa1p\"><dt class=\"svelte-1uaoa1p\"><label>Shoe</label></dt><dd class=\"svelte-1uaoa1p\"><select class=\"svelte-1uaoa1p\"><!><!></select></dd></div>"), nr = r("<dl class=\"svelte-1uaoa1p\"><!> <!></dl>"), rr = r("<p class=\"caption note svelte-1uaoa1p\"> </p>"), ir = r("<p> </p>"), ar = r("<p class=\"check svelte-1uaoa1p\"> </p>"), or = r("<button type=\"button\">Not a run…</button>"), sr = r("<select aria-label=\"Change the type to\" class=\"svelte-1uaoa1p\"><option disabled=\"\">Choose a type</option><!><!></select>"), cr = r("<button type=\"button\" class=\"link svelte-1uaoa1p\">Clear decision</button>"), lr = r("<div class=\"acts review svelte-1uaoa1p\"><button type=\"button\">Counts for the plan day</button> <button type=\"button\">A run, not the programme</button> <!> <!> <!></div>"), ur = r("<h3 class=\"svelte-1uaoa1p\">Programme</h3> <!> <!>", 1), dr = r("<p class=\"caption note svelte-1uaoa1p\">Map unavailable</p>"), fr = r("<div class=\"ph svelte-1uaoa1p\" aria-hidden=\"true\"></div>"), pr = r("<h3 class=\"svelte-1uaoa1p\"> </h3> <!>", 1), mr = r("<!> <!>", 1), hr = r("<li class=\"svelte-1uaoa1p\"><span class=\"zn svelte-1uaoa1p\"> <small class=\"svelte-1uaoa1p\"> </small></span> <span class=\"bar svelte-1uaoa1p\"><span class=\"svelte-1uaoa1p\"></span></span> <span class=\"num svelte-1uaoa1p\"> </span></li>"), gr = r("<h3 class=\"svelte-1uaoa1p\">Heart-rate zones</h3> <ul class=\"zones svelte-1uaoa1p\"></ul>", 1), _r = r("<tr><td class=\"svelte-1uaoa1p\"> </td><td class=\"svelte-1uaoa1p\"> </td><td class=\"svelte-1uaoa1p\"> </td><td class=\"svelte-1uaoa1p\"> </td><td class=\"svelte-1uaoa1p\"> </td></tr>"), vr = r("<h3 class=\"svelte-1uaoa1p\">Splits</h3> <table class=\"svelte-1uaoa1p\"><thead><tr><th class=\"svelte-1uaoa1p\">Km</th><th class=\"svelte-1uaoa1p\">Time</th><th class=\"svelte-1uaoa1p\"> </th><th class=\"svelte-1uaoa1p\">HR</th><th class=\"svelte-1uaoa1p\">Climb</th></tr></thead><tbody></tbody></table>", 1), yr = r("<span role=\"img\" aria-label=\"Record\">🏆</span>"), br = r("<li class=\"svelte-1uaoa1p\"> <b class=\"svelte-1uaoa1p\"> </b><!></li>"), xr = r("<h3 class=\"svelte-1uaoa1p\">Exercises</h3> <ul class=\"gym svelte-1uaoa1p\"><!> <li class=\"vol svelte-1uaoa1p\">Total volume · <b class=\"svelte-1uaoa1p\"> </b></li></ul>", 1), Sr = r("<span class=\"ask svelte-1uaoa1p\">Delete manual entry?</span> <button type=\"button\" class=\"btn\">Cancel</button> <button type=\"button\" class=\"btn danger svelte-1uaoa1p\">Delete</button>", 1), Cr = r("<button type=\"button\"> </button>"), wr = r("<div class=\"acts svelte-1uaoa1p\"><!></div>"), Tr = r("<p class=\"sub svelte-1uaoa1p\"> <!> <!></p> <!> <!> <!> <!> <!> <!> <!> <!>", 1);
+function Er(e, n) {
 	let r = D();
 	G(n, !0);
-	let i = J(n, "shoes", 3, null), a = J(n, "reviewTypes", 19, () => ({})), c = () => import("./viz-4bkzuIKO.js"), u, d = Q(null), f = Q(null), p = Q(null), m = Q(null), h = Q(null), g = Q(!1), v = Q(!1), b = 0;
+	let i = J(n, "shoes", 3, null), a = J(n, "reviewTypes", 19, () => ({})), c = () => import("./viz-BQUAc_tO.js"), u, d = Q(null), f = Q(null), p = Q(null), m = Q(null), h = Q(null), g = Q(!1), v = Q(!1), b = 0;
 	async function S(e) {
 		let t = u.show();
 		if (!t) return;
@@ -842,7 +842,7 @@ function wr(e, n) {
 					var t = Yn();
 					j(e, t);
 				}, w = (e) => {
-					var i = Cr(), a = _(i), c = V(a), p = U(c), b = (e) => {
+					var i = Tr(), a = _(i), c = V(a), p = U(c), b = (e) => {
 						var t = Xn(), n = B(t, !0);
 						L(() => l(n, y(M).plan)), j(e, t);
 					};
@@ -901,15 +901,27 @@ function wr(e, n) {
 						y(ce) && e(ae);
 					});
 					var J = U(K, 2), Y = (e) => {
-						var t = cr(), n = U(_(t), 2);
-						let r;
-						var i = B(n, !0), a = U(n, 2), o = (e) => {
-							var t = sr(), n = V(t);
+						var t = ur(), n = U(_(t), 2), r = (e) => {
+							var t = ir();
+							let n;
+							var r = B(t, !0);
+							L((e) => {
+								n = $(t, 1, "check svelte-1uaoa1p", null, n, { warn: y(O).needs_review }), l(r, e);
+							}, [() => ve(y(re), y(ie))]), j(e, t);
+						}, i = (e) => {
+							var t = ar(), n = B(t);
+							L((e) => l(n, `Changed to ${e ?? ""}`), [() => y(W).find((e) => e.match === y(H).type_match)?.name ?? y(H).type_match]), j(e, t);
+						};
+						z(n, (e) => {
+							y(re) ? e(r) : y(H).decision === "type" && e(i, 1);
+						});
+						var a = U(n, 2), o = (e) => {
+							var t = lr(), n = V(t);
 							let r;
 							var i = U(n, 2);
 							let a;
 							var o = U(i, 2), s = (e) => {
-								var t = ir();
+								var t = or();
 								let n;
 								L(() => {
 									n = $(t, 1, "btn svelte-1uaoa1p", null, n, { on: y(H)?.decision === "type" }), Z(t, "aria-pressed", y(H)?.decision === "type");
@@ -919,7 +931,7 @@ function wr(e, n) {
 								y(W).length && e(s);
 							});
 							var c = U(o, 2), u = (e) => {
-								var t = ar(), n = V(t);
+								var t = sr(), n = V(t);
 								n.value = n.__value = "";
 								var r = U(n), i = (e) => {
 									var t = er(), n = B(t, !0), r = {};
@@ -946,34 +958,32 @@ function wr(e, n) {
 								(y(v) || y(H)?.decision === "type") && e(u);
 							});
 							var d = U(c, 2), f = (e) => {
-								var t = or();
+								var t = cr();
 								N("click", t, () => se(null)), j(e, t);
 							};
 							z(d, (e) => {
 								y(H) && e(f);
 							}), X(t), L(() => {
 								r = $(n, 1, "btn svelte-1uaoa1p", null, r, { on: y(H)?.decision === "plan" }), Z(n, "aria-pressed", y(H)?.decision === "plan"), a = $(i, 1, "btn svelte-1uaoa1p", null, a, { on: y(H)?.decision === "run" }), Z(i, "aria-pressed", y(H)?.decision === "run");
-							}), N("click", n, () => se("plan", null, y(re).label)), N("click", i, () => se("run")), j(e, t);
+							}), N("click", n, () => se("plan", null, y(re)?.label ?? "the plan day")), N("click", i, () => se("run")), j(e, t);
 						};
 						z(a, (e) => {
-							y(k).remove !== null && (y(re).state === "review" || y(H)) && e(o);
-						}), L((e) => {
-							r = $(n, 1, "check svelte-1uaoa1p", null, r, { warn: y(re).state === "review" && !y(H) }), l(i, e);
-						}, [() => ve(y(re), y(ie))]), j(e, t);
+							y(k).remove !== null && (y(O).needs_review || y(H)) && e(o);
+						}), j(e, t);
 					};
 					z(J, (e) => {
-						y(re) && e(Y);
+						(y(re) || y(H)) && e(Y);
 					});
 					var pe = U(J, 2), he = (e) => {
 						var t = Oe(), n = _(t), r = (e) => {
-							var t = lr();
+							var t = dr();
 							j(e, t);
 						}, i = (e) => {
-							var t = ur();
+							var t = fr();
 							let n;
 							L(() => n = q(t, "", n, { height: `${y(f).route?.length ? 220 : 0}px` })), j(e, t);
 						}, a = (e) => {
-							var t = fr(), n = _(t), r = (e) => {
+							var t = mr(), n = _(t), r = (e) => {
 								var t = Oe(), n = _(t);
 								{
 									let e = x(() => ke(y(f)) ? "run" : "gym");
@@ -995,7 +1005,7 @@ function wr(e, n) {
 							});
 							var i = U(n, 2);
 							R(i, 17, () => y(F)?.list ?? [], (e) => e.label, (e, t) => {
-								var n = dr(), r = _(n), i = B(r, !0), a = U(r, 2);
+								var n = pr(), r = _(n), i = B(r, !0), a = U(r, 2);
 								de(a, () => y(m).Chart, (e, n) => {
 									n(e, {
 										get x() {
@@ -1025,9 +1035,9 @@ function wr(e, n) {
 						(y(f).route?.length || y(F)?.list.length) && e(he);
 					});
 					var ge = U(pe, 2), _e = (e) => {
-						var t = mr(), n = U(_(t), 2);
+						var t = gr(), n = U(_(t), 2);
 						R(n, 21, () => y(I), (e) => e.zone, (e, t) => {
-							var n = pr(), r = V(n), i = V(r), a = U(i), o = B(a, !0);
+							var n = hr(), r = V(n), i = V(r), a = U(i), o = B(a, !0);
 							X(r);
 							var s = U(r, 2), c = V(s);
 							let u;
@@ -1042,11 +1052,11 @@ function wr(e, n) {
 						y(I) && e(_e);
 					});
 					var be = U(ge, 2), Se = (e) => {
-						var n = gr(), r = U(_(n), 2), i = V(r), a = V(i), o = U(V(a), 2), c = B(o, !0);
+						var n = vr(), r = U(_(n), 2), i = V(r), a = V(i), o = U(V(a), 2), c = B(o, !0);
 						t(2), X(a), X(i);
 						var u = U(i);
 						R(u, 21, () => y(ee), s, (e, t) => {
-							var n = hr(), r = V(n), i = B(r, !0), a = U(r), o = B(a, !0), s = U(a), c = B(s, !0), u = U(s), d = B(u, !0), f = U(u), p = B(f, !0);
+							var n = _r(), r = V(n), i = B(r, !0), a = U(r), o = B(a, !0), s = U(a), c = B(s, !0), u = U(s), d = B(u, !0), f = U(u), p = B(f, !0);
 							X(n), L(() => {
 								l(i, y(t).km), l(o, y(t).time), l(c, y(t).pace), l(d, y(t).hr), l(p, y(t).climb);
 							}), j(e, n);
@@ -1056,10 +1066,10 @@ function wr(e, n) {
 						y(ee).length && e(Se);
 					});
 					var Ce = U(be, 2), we = (e) => {
-						var t = yr(), n = U(_(t), 2), r = V(n);
+						var t = xr(), n = U(_(t), 2), r = V(n);
 						R(r, 17, () => y(te).exercises, s, (e, t) => {
-							var n = vr(), r = V(n), i = U(r), a = B(i, !0), o = U(i), s = (e) => {
-								var t = _r();
+							var n = br(), r = V(n), i = U(r), a = B(i, !0), o = U(i), s = (e) => {
+								var t = yr();
 								j(e, t);
 							};
 							z(o, (e) => {
@@ -1075,11 +1085,11 @@ function wr(e, n) {
 						y(te) && e(we);
 					});
 					var Te = U(Ce, 2), Ee = (e) => {
-						var t = Sr(), r = V(t), i = (e) => {
-							var t = br(), r = U(_(t), 2), i = U(r, 2);
+						var t = wr(), r = V(t), i = (e) => {
+							var t = Sr(), r = U(_(t), 2), i = U(r, 2);
 							N("click", r, () => C(g, !1)), N("click", i, () => (gt(n.person, y(d).key, "remove"), u.close())), j(e, t);
 						}, a = (e) => {
-							var t = xr();
+							var t = Cr();
 							let n;
 							var r = B(t, !0);
 							L(() => {
@@ -1105,13 +1115,13 @@ function wr(e, n) {
 }
 k(["change", "click"]);
 // src/lib/ui/Details.svelte
-var Tr = r("<section><h2 class=\"svelte-1341oik\">Plan</h2> <!></section>"), Er = r("<button type=\"button\" class=\"manage press svelte-1341oik\">Manage</button>"), Dr = r("<p class=\"caption none svelte-1341oik\">No shoes yet.</p>"), Or = r("<section><h2 class=\"svelte-1341oik\">Shoes <!></h2> <!></section> <!>", 1), kr = r("<!> <section><h2 class=\"svelte-1341oik\">Activity</h2> <!></section> <section><h2 class=\"svelte-1341oik\">Badges <small class=\"svelte-1341oik\"> </small></h2> <!></section> <section><h2 class=\"svelte-1341oik\">Progress</h2> <!></section> <!> <!> <!>", 1);
-function Ar(e, t) {
+var Dr = r("<section><h2 class=\"svelte-1341oik\">Plan</h2> <!></section>"), Or = r("<button type=\"button\" class=\"manage press svelte-1341oik\">Manage</button>"), kr = r("<p class=\"caption none svelte-1341oik\">No shoes yet.</p>"), Ar = r("<section><h2 class=\"svelte-1341oik\">Shoes <!></h2> <!></section> <!>", 1), jr = r("<!> <section><h2 class=\"svelte-1341oik\">Activity</h2> <!></section> <section><h2 class=\"svelte-1341oik\">Badges <small class=\"svelte-1341oik\"> </small></h2> <!></section> <section><h2 class=\"svelte-1341oik\">Progress</h2> <!></section> <!> <!> <!>", 1);
+function Mr(e, t) {
 	let n = D();
 	G(t, !0);
 	let r = J(t, "connect", 3, null), i = J(t, "reviewTypes", 19, () => ({})), a = x(() => g(t.person.pbs)), o = x(() => ie(t.person, t.canEdit)), s = Q(void 0), c = Q(void 0), u = (e) => y(c).open(e);
-	var d = kr(), f = _(d), p = (e) => {
-		var r = Tr(), i = V(r);
+	var d = jr(), f = _(d), p = (e) => {
+		var r = Dr(), i = V(r);
 		on(U(i, 2), { get plan() {
 			return t.person.plan;
 		} }), X(r), L(() => {
@@ -1150,7 +1160,7 @@ function Ar(e, t) {
 	var k = U(E, 2);
 	{
 		let e = x(() => y(o) ? t.person.shoes : null);
-		Y(wr(k, {
+		Y(Er(k, {
 			get person() {
 				return t.id;
 			},
@@ -1172,8 +1182,8 @@ function Ar(e, t) {
 		}), (e) => C(c, e, !0), () => y(c));
 	}
 	var A = U(k, 2), M = (e) => {
-		var r = Or(), i = _(r), a = V(i), c = U(V(a)), l = (e) => {
-			var t = Er();
+		var r = Ar(), i = _(r), a = V(i), c = U(V(a)), l = (e) => {
+			var t = Or();
 			N("click", t, () => y(s).open()), j(e, t);
 		};
 		z(c, (e) => {
@@ -1184,7 +1194,7 @@ function Ar(e, t) {
 				return t.person.shoes;
 			} });
 		}, f = (e) => {
-			var t = Dr();
+			var t = kr();
 			j(e, t);
 		};
 		z(u, (e) => {
@@ -1231,8 +1241,8 @@ function Ar(e, t) {
 }
 k(["click"]);
 // src/lib/ui/Goals.svelte
-var jr = r("<div class=\"stepper svelte-7wncvy\" role=\"group\"><span class=\"name svelte-7wncvy\" aria-hidden=\"true\"> </span> <button type=\"button\" class=\"pm press svelte-7wncvy\">−</button> <output aria-live=\"polite\" class=\"svelte-7wncvy\"> </output> <button type=\"button\" class=\"pm press svelte-7wncvy\">+</button></div>"), Mr = r("<p class=\"msg\" role=\"status\"> </p>"), Nr = r("<section class=\"group glass svelte-7wncvy\"><h3 class=\"svelte-7wncvy\"> </h3> <!> <label class=\"year svelte-7wncvy\"><span class=\"name svelte-7wncvy\">Birth year</span> <input type=\"number\" inputmode=\"numeric\" min=\"1900\" placeholder=\"1990\" class=\"svelte-7wncvy\"/></label> <p class=\"caption maxhr svelte-7wncvy\"> </p></section>"), Pr = r("<label><input class=\"sr svelte-7wncvy\" type=\"radio\"/> </label>"), Fr = r("<button type=\"button\" class=\"btn save svelte-7wncvy\">Save</button>"), Ir = r("<p class=\"caption svelte-7wncvy\"> </p> <!> <section class=\"group glass svelte-7wncvy\"><h3 class=\"svelte-7wncvy\">Together</h3> <div class=\"seg svelte-7wncvy\" role=\"radiogroup\"></div> <p class=\"caption hint svelte-7wncvy\"> </p> <!> <label class=\"reward svelte-7wncvy\"><span class=\"name svelte-7wncvy\">Reward</span> <input type=\"text\" maxlength=\"60\" placeholder=\"Pizza night\" class=\"svelte-7wncvy\"/></label></section> <!>", 1), Lr = r("<h2 class=\"title svelte-7wncvy\">Goals</h2> <!>", 1);
-function Rr(e, t) {
+var Nr = r("<div class=\"stepper svelte-7wncvy\" role=\"group\"><span class=\"name svelte-7wncvy\" aria-hidden=\"true\"> </span> <button type=\"button\" class=\"pm press svelte-7wncvy\">−</button> <output aria-live=\"polite\" class=\"svelte-7wncvy\"> </output> <button type=\"button\" class=\"pm press svelte-7wncvy\">+</button></div>"), Pr = r("<p class=\"msg\" role=\"status\"> </p>"), Fr = r("<section class=\"group glass svelte-7wncvy\"><h3 class=\"svelte-7wncvy\"> </h3> <!> <label class=\"year svelte-7wncvy\"><span class=\"name svelte-7wncvy\">Birth year</span> <input type=\"number\" inputmode=\"numeric\" min=\"1900\" placeholder=\"1990\" class=\"svelte-7wncvy\"/></label> <p class=\"caption maxhr svelte-7wncvy\"> </p></section>"), Ir = r("<label><input class=\"sr svelte-7wncvy\" type=\"radio\"/> </label>"), Lr = r("<button type=\"button\" class=\"btn save svelte-7wncvy\">Save</button>"), Rr = r("<p class=\"caption svelte-7wncvy\"> </p> <!> <section class=\"group glass svelte-7wncvy\"><h3 class=\"svelte-7wncvy\">Together</h3> <div class=\"seg svelte-7wncvy\" role=\"radiogroup\"></div> <p class=\"caption hint svelte-7wncvy\"> </p> <!> <label class=\"reward svelte-7wncvy\"><span class=\"name svelte-7wncvy\">Reward</span> <input type=\"text\" maxlength=\"60\" placeholder=\"Pizza night\" class=\"svelte-7wncvy\"/></label></section> <!>", 1), zr = r("<h2 class=\"title svelte-7wncvy\">Goals</h2> <!>", 1);
+function Br(e, t) {
 	let n = D();
 	G(t, !0);
 	let r = [], i = (e, n = Ge, r = Ge, i = Ge) => {
@@ -1244,7 +1254,7 @@ function Rr(e, t) {
 				step: n
 			};
 		});
-		var o = jr(), s = V(o), c = B(s, !0), u = U(s, 2), d = U(u, 2), f = B(d, !0), p = U(d, 2);
+		var o = Nr(), s = V(o), c = B(s, !0), u = U(s, 2), d = U(u, 2), f = B(d, !0), p = U(d, 2);
 		X(o), L((e, s, d, m) => {
 			Z(o, "aria-label", i()), l(c, e), Z(u, "aria-label", `Fewer ${s ?? ""}`), u.disabled = t.readOnly || n()[r()] <= y(a).lo, l(f, d), Z(p, "aria-label", `More ${m ?? ""}`), p.disabled = t.readOnly || n()[r()] >= y(a).hi;
 		}, [
@@ -1289,14 +1299,14 @@ function Rr(e, t) {
 		let e = await ht(oe(y(s)), t.people);
 		C(c, !1), e && t.onsaved();
 	}
-	var v = Lr(), b = U(_(v), 2), S = (e) => {
-		var t = Mr(), n = B(t, !0);
+	var v = zr(), b = U(_(v), 2), S = (e) => {
+		var t = Pr(), n = B(t, !0);
 		L(() => l(n, y(o) ? y(o).status === 503 ? "Waiting for fitbridge" : "Couldn't reach Home Assistant" : "Loading…")), j(e, t);
 	}, w = (e) => {
-		var o = Ir(), u = _(o), m = B(u), h = U(u, 2);
+		var o = Rr(), u = _(o), m = B(u), h = U(u, 2);
 		R(h, 16, () => Object.keys(y(s).people), (e) => e, (e, r) => {
 			let a = x(() => t.people[r]?.name ?? r);
-			var o = Nr(), c = V(o), u = B(c, !0), f = U(c, 2);
+			var o = Fr(), c = V(o), u = B(c, !0), f = U(c, 2);
 			R(f, 16, () => je, (e) => e, (e, t) => {
 				i(e, () => y(s).people[r], () => t, () => `${d[t]}, ${y(a)}`);
 			});
@@ -1309,7 +1319,7 @@ function Rr(e, t) {
 		});
 		var v = U(h, 2), b = V(v), S = U(b, 2);
 		R(S, 21, () => f, (e) => e.mode, (e, i) => {
-			var a = Pr();
+			var a = Ir();
 			let o;
 			var c = V(a);
 			_e(c);
@@ -1327,7 +1337,7 @@ function Rr(e, t) {
 		var D = U(T, 2), O = U(V(D), 2);
 		_e(O), X(D), X(v);
 		var k = U(v, 2), A = (e) => {
-			var t = Fr();
+			var t = Lr();
 			L(() => t.disabled = y(c)), N("click", t, g), j(e, t);
 		};
 		z(k, (e) => {
@@ -1342,13 +1352,13 @@ function Rr(e, t) {
 }
 k(["click"]);
 // src/lib/ui/Header.svelte
-var zr = r("<button type=\"button\" class=\"back press svelte-16l0jix\"><span aria-hidden=\"true\" class=\"svelte-16l0jix\">‹</span> Back</button>"), Br = Ee("<svg class=\"brand svelte-16l0jix\" viewBox=\"0 0 100 100\" aria-hidden=\"true\"><defs><linearGradient id=\"hdr-brand\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#FFB340\"></stop><stop offset=\"1\" stop-color=\"#FF453A\"></stop></linearGradient></defs><rect width=\"100\" height=\"100\" rx=\"22.4\" fill=\"url(#hdr-brand)\"></rect><path d=\"M50 20 L80 45 V80 H20 V45 Z\" fill=\"#FFF\" stroke=\"#FFF\" stroke-width=\"6\" stroke-linejoin=\"round\"></path><path d=\"M50 42 C55 49 63 55 63 65.5 a13 13 0 0 1 -26 0 C37 58 42 53 45.5 49 C46 53.5 48 56.5 51 57.5 C49.5 52 49 47 50 42 Z\" fill=\"#FF6B2C\"></path></svg>"), Vr = r("<button type=\"button\" class=\"action press svelte-16l0jix\"> </button>"), Hr = r("<header><div class=\"in svelte-16l0jix\"><!> <div class=\"row svelte-16l0jix\"><h1 class=\"svelte-16l0jix\"><!> </h1> <!></div> <p class=\"svelte-16l0jix\"> </p></div></header>");
-function Ur(e, t) {
+var Vr = r("<button type=\"button\" class=\"back press svelte-16l0jix\"><span aria-hidden=\"true\" class=\"svelte-16l0jix\">‹</span> Back</button>"), Hr = Ee("<svg class=\"brand svelte-16l0jix\" viewBox=\"0 0 100 100\" aria-hidden=\"true\"><defs><linearGradient id=\"hdr-brand\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#FFB340\"></stop><stop offset=\"1\" stop-color=\"#FF453A\"></stop></linearGradient></defs><rect width=\"100\" height=\"100\" rx=\"22.4\" fill=\"url(#hdr-brand)\"></rect><path d=\"M50 20 L80 45 V80 H20 V45 Z\" fill=\"#FFF\" stroke=\"#FFF\" stroke-width=\"6\" stroke-linejoin=\"round\"></path><path d=\"M50 42 C55 49 63 55 63 65.5 a13 13 0 0 1 -26 0 C37 58 42 53 45.5 49 C46 53.5 48 56.5 51 57.5 C49.5 52 49 47 50 42 Z\" fill=\"#FF6B2C\"></path></svg>"), Ur = r("<button type=\"button\" class=\"action press svelte-16l0jix\"> </button>"), Wr = r("<header><div class=\"in svelte-16l0jix\"><!> <div class=\"row svelte-16l0jix\"><h1 class=\"svelte-16l0jix\"><!> </h1> <!></div> <p class=\"svelte-16l0jix\"> </p></div></header>");
+function Gr(e, t) {
 	let n = J(t, "subtitle", 3, ""), r = J(t, "actionLabel", 3, ""), i = J(t, "brand", 3, !1), a = Q(0);
-	var o = Hr();
+	var o = Wr();
 	let s;
 	var c = V(o), u = V(c), d = (e) => {
-		var n = zr();
+		var n = Vr();
 		N("click", n, function(...e) {
 			t.onback?.apply(this, e);
 		}), j(e, n);
@@ -1357,7 +1367,7 @@ function Ur(e, t) {
 		t.onback && e(d);
 	});
 	var f = U(u, 2), p = V(f), m = V(p), h = (e) => {
-		var t = Br();
+		var t = Hr();
 		j(e, t);
 	};
 	z(m, (e) => {
@@ -1366,7 +1376,7 @@ function Ur(e, t) {
 	var g = U(m);
 	X(p);
 	var _ = U(p, 2), v = (e) => {
-		var n = Vr(), i = B(n, !0);
+		var n = Ur(), i = B(n, !0);
 		L(() => l(i, r())), N("click", n, function(...e) {
 			t.onaction?.apply(this, e);
 		}), j(e, n);
@@ -1381,7 +1391,7 @@ function Ur(e, t) {
 }
 k(["click"]);
 // src/lib/motion.js
-function Wr(e, { onFrame: t, onSettle: n, snap: r = {
+function Kr(e, { onFrame: t, onSettle: n, snap: r = {
 	distance: .5,
 	speed: .5
 }, frame: i = requestAnimationFrame, cancel: a = cancelAnimationFrame, now: o = performance.now.bind(performance) }) {
@@ -1407,9 +1417,9 @@ function Wr(e, { onFrame: t, onSettle: n, snap: r = {
 		}
 	};
 }
-var Gr = (e) => parseFloat(e) * (e.trim().endsWith("ms") ? 1 : 1e3), Kr = (e) => Gr(getComputedStyle(document.documentElement).getPropertyValue(e));
+var qr = (e) => parseFloat(e) * (e.trim().endsWith("ms") ? 1 : 1e3), Jr = (e) => qr(getComputedStyle(document.documentElement).getPropertyValue(e));
 // src/lib/spring.js
-function qr({ value: e = 0, response: t = .35, damping: n = 1 } = {}) {
+function Yr({ value: e = 0, response: t = .35, damping: n = 1 } = {}) {
 	let r = (2 * Math.PI / t) ** 2, i = 4 * Math.PI * n / t, a = {
 		value: e,
 		velocity: 0,
@@ -1428,8 +1438,8 @@ function qr({ value: e = 0, response: t = .35, damping: n = 1 } = {}) {
 	return a;
 }
 // src/lib/ui/Rings.svelte
-var Jr = Ee("<circle class=\"track svelte-1a5ed6t\"></circle><circle class=\"svelte-1a5ed6t\"></circle>", 1), Yr = Ee("<svg aria-hidden=\"true\" class=\"svelte-1a5ed6t\"></svg>");
-function Xr(e, t) {
+var Xr = Ee("<circle class=\"track svelte-1a5ed6t\"></circle><circle class=\"svelte-1a5ed6t\"></circle>", 1), Zr = Ee("<svg aria-hidden=\"true\" class=\"svelte-1a5ed6t\"></svg>");
+function Qr(e, t) {
 	G(t, !0);
 	let n = J(t, "size", 3, 88), r = [
 		"run",
@@ -1446,17 +1456,17 @@ function Xr(e, t) {
 	}));
 	we(() => {
 		if (y(a) === i) return;
-		let e = Wr(qr({
+		let e = Kr(Yr({
 			value: 0,
 			response: .35,
 			damping: 1
 		}), { onFrame: (e) => C(a, e, !0) });
 		return e.to(i), e.stop;
 	});
-	var c = Yr();
+	var c = Zr();
 	let l;
 	R(c, 21, () => y(s), (e) => e.kind, (e, t) => {
-		var r = Jr(), i = _(r);
+		var r = Xr(), i = _(r);
 		let a;
 		var s = U(i);
 		let c;
@@ -1468,8 +1478,8 @@ function Xr(e, t) {
 	}), j(e, c), K();
 }
 // src/lib/ui/PersonTile.svelte
-var Zr = r("<span class=\"star small svelte-1handop\" aria-hidden=\"true\">⭐</span>"), Qr = r("<span class=\"rings svelte-1handop\"><!> <!></span> <span class=\"sr\"> </span>", 1), $r = r("<span class=\"streak svelte-1handop\"> </span>"), ei = r("<span class=\"chev svelte-1handop\" aria-hidden=\"true\">›</span>"), ti = r("<span class=\"star svelte-1handop\" aria-hidden=\"true\">⭐</span>"), ni = r("<span class=\"stat svelte-1handop\"><span class=\"k svelte-1handop\"><i class=\"svelte-1handop\"></i> </span> <span class=\"v svelte-1handop\"> <small class=\"svelte-1handop\"> </small></span></span>"), ri = r("<span class=\"steps svelte-1handop\"> </span>"), ii = r("<span class=\"body svelte-1handop\"><span class=\"rings svelte-1handop\"><!> <!></span> <span class=\"stats svelte-1handop\"></span></span> <!> <span class=\"xp svelte-1handop\"><span class=\"bar svelte-1handop\"><i class=\"svelte-1handop\"></i></span> <span class=\"caption svelte-1handop\"> </span></span>", 1), ai = r("<button type=\"button\" class=\"hit svelte-1handop\"></button>"), oi = r("<article><div><span class=\"head svelte-1handop\"><span class=\"avatar svelte-1handop\" aria-hidden=\"true\"> </span> <span class=\"who svelte-1handop\"><span class=\"name svelte-1handop\"> </span> <span class=\"lvl svelte-1handop\"> </span></span> <!> <!></span> <!></div> <!></article>");
-function si(e, t) {
+var $r = r("<span class=\"star small svelte-1handop\" aria-hidden=\"true\">⭐</span>"), ei = r("<span class=\"rings svelte-1handop\"><!> <!></span> <span class=\"sr\"> </span>", 1), ti = r("<span class=\"streak svelte-1handop\"> </span>"), ni = r("<span class=\"chev svelte-1handop\" aria-hidden=\"true\">›</span>"), ri = r("<span class=\"star svelte-1handop\" aria-hidden=\"true\">⭐</span>"), ii = r("<span class=\"stat svelte-1handop\"><span class=\"k svelte-1handop\"><i class=\"svelte-1handop\"></i> </span> <span class=\"v svelte-1handop\"> <small class=\"svelte-1handop\"> </small></span></span>"), ai = r("<span class=\"steps svelte-1handop\"> </span>"), oi = r("<span class=\"body svelte-1handop\"><span class=\"rings svelte-1handop\"><!> <!></span> <span class=\"stats svelte-1handop\"></span></span> <!> <span class=\"xp svelte-1handop\"><span class=\"bar svelte-1handop\"><i class=\"svelte-1handop\"></i></span> <span class=\"caption svelte-1handop\"> </span></span>", 1), si = r("<button type=\"button\" class=\"hit svelte-1handop\"></button>"), ci = r("<article><div><span class=\"head svelte-1handop\"><span class=\"avatar svelte-1handop\" aria-hidden=\"true\"> </span> <span class=\"who svelte-1handop\"><span class=\"name svelte-1handop\"> </span> <span class=\"lvl svelte-1handop\"> </span></span> <!> <!></span> <!></div> <!></article>");
+function li(e, t) {
 	G(t, !0);
 	let n = J(t, "index", 3, 0), r = J(t, "compact", 3, !1), i = [
 		["#30D158", "#0A84FF"],
@@ -1499,17 +1509,17 @@ function si(e, t) {
 		y(d).paused && "Week paused",
 		y(d).goal_pending && "New goals pending"
 	].filter(Boolean).join(" · ")), g = x(() => `${t.person.name}, level ${y(u).level}. This week ${y(p).map((e) => `${e.label.toLowerCase()} ${e.n} of ${e.of}`).join(", ")}. ${y(d).goal_pending ? "New goals pending. " : ""}${y(d).bonus ? "Weekly bonus earned. " : ""}${y(m) ? y(m).replace("👟 ", "") + ". " : ""}Streak ${t.person.streak} weeks.`);
-	var v = oi();
+	var v = ci();
 	let b;
 	var S = V(v), C = V(S), w = V(C);
 	let T;
 	var E = B(w, !0), D = U(w, 2), O = V(D), k = B(O, !0), A = U(O, 2), M = B(A, !0);
 	X(D);
 	var F = U(D, 2), I = (e) => {
-		var t = Qr(), n = _(t), r = V(n);
+		var t = ei(), n = _(t), r = V(n);
 		{
 			let e = x(() => H(y(d)));
-			Xr(r, {
+			Qr(r, {
 				get fractions() {
 					return y(e);
 				},
@@ -1517,7 +1527,7 @@ function si(e, t) {
 			});
 		}
 		var i = U(r, 2), a = (e) => {
-			var t = Zr();
+			var t = $r();
 			j(e, t);
 		};
 		z(i, (e) => {
@@ -1526,24 +1536,24 @@ function si(e, t) {
 		var o = U(n, 2), s = B(o, !0);
 		L(() => l(s, y(g))), j(e, t);
 	}, te = (e) => {
-		var n = $r(), r = B(n);
+		var n = ti(), r = B(n);
 		L(() => l(r, `🔥 ${t.person.streak ?? ""} wk`)), j(e, n);
 	};
 	z(F, (e) => {
 		r() ? e(I) : e(te, -1);
 	});
 	var ne = U(F, 2), re = (e) => {
-		var t = ei();
+		var t = ni();
 		j(e, t);
 	};
 	z(ne, (e) => {
 		t.onopen && e(re);
 	}), X(C);
 	var W = U(C, 2), ie = (e) => {
-		var t = ii(), n = _(t), r = V(n), i = V(r);
+		var t = oi(), n = _(t), r = V(n), i = V(r);
 		{
 			let e = x(() => H(y(d))), t = x(() => We.wide ? 112 : 88);
-			Xr(i, {
+			Qr(i, {
 				get fractions() {
 					return y(e);
 				},
@@ -1553,7 +1563,7 @@ function si(e, t) {
 			});
 		}
 		var a = U(i, 2), o = (e) => {
-			var t = ti();
+			var t = ri();
 			j(e, t);
 		};
 		z(a, (e) => {
@@ -1561,7 +1571,7 @@ function si(e, t) {
 		}), X(r);
 		var s = U(r, 2);
 		R(s, 21, () => y(p), (e) => e.kind, (e, t) => {
-			var n = ni(), r = V(n), i = V(r);
+			var n = ii(), r = V(n), i = V(r);
 			let a;
 			var o = U(i, 1, !0);
 			X(r);
@@ -1571,7 +1581,7 @@ function si(e, t) {
 			}), j(e, n);
 		}), X(s), X(n);
 		var c = U(n, 2), f = (e) => {
-			var t = ri(), n = B(t, !0);
+			var t = ai(), n = B(t, !0);
 			L(() => l(n, y(m))), j(e, t);
 		};
 		z(c, (e) => {
@@ -1589,7 +1599,7 @@ function si(e, t) {
 		r() || e(ie);
 	}), X(S);
 	var ae = U(S, 2), oe = (e) => {
-		var n = ai();
+		var n = si();
 		L(() => Z(n, "aria-label", y(g))), N("click", n, function(...e) {
 			t.onopen?.apply(this, e);
 		}), j(e, n);
@@ -1608,8 +1618,8 @@ function si(e, t) {
 }
 k(["click"]);
 // src/lib/ui/Sheet.svelte
-var ci = r("<button type=\"button\" class=\"back press svelte-185xwm9\"><span aria-hidden=\"true\" class=\"svelte-185xwm9\">‹</span> Back</button>"), li = r("<div aria-hidden=\"true\"></div> <div role=\"dialog\" aria-modal=\"true\"><div class=\"grab svelte-185xwm9\"><span class=\"handle svelte-185xwm9\" aria-hidden=\"true\"></span> <div class=\"bar svelte-185xwm9\"><!> <button type=\"button\" class=\"close press svelte-185xwm9\" aria-label=\"Close\">✕</button></div></div> <div class=\"body svelte-185xwm9\"><!></div></div>", 1);
-function ui(e, t) {
+var ui = r("<button type=\"button\" class=\"back press svelte-185xwm9\"><span aria-hidden=\"true\" class=\"svelte-185xwm9\">‹</span> Back</button>"), di = r("<div aria-hidden=\"true\"></div> <div role=\"dialog\" aria-modal=\"true\"><div class=\"grab svelte-185xwm9\"><span class=\"handle svelte-185xwm9\" aria-hidden=\"true\"></span> <div class=\"bar svelte-185xwm9\"><!> <button type=\"button\" class=\"close press svelte-185xwm9\" aria-label=\"Close\">✕</button></div></div> <div class=\"body svelte-185xwm9\"><!></div></div>", 1);
+function fi(e, t) {
 	G(t, !0);
 	let n = J(t, "from", 3, null), r = 1e3, i = We.reducedMotion, o = Q(h(i ? r : 0)), s = Q(0), c = Q(1), l = Q(!1), u = Q("50% 100%"), d, f, m = !1, g = null, v = x(() => i ? +y(l) : Math.min(1, y(o) / 500)), b = x(() => i ? 1 : .5 + .5 * y(o) / r), S = () => {
 		m && (y(o) === 0 || y(s) >= y(c)) && (m = !1, t.onclose());
@@ -1619,11 +1629,11 @@ function ui(e, t) {
 		return {
 			stop: () => n?.stop(),
 			to(r, i, { velocity: a = n?.running ? t.velocity : 0, damping: o = 1, response: s = .35 } = {}) {
-				n?.stop(), t = qr({
+				n?.stop(), t = Yr({
 					value: r,
 					damping: o,
 					response: s
-				}), n = Wr(t, {
+				}), n = Kr(t, {
 					onFrame: e,
 					onSettle: S
 				}), n.to(i, a);
@@ -1632,7 +1642,7 @@ function ui(e, t) {
 	}
 	let T = w((e) => C(o, e, !0)), E = w((e) => C(s, e, !0));
 	function D() {
-		m || g || (m = !0, i ? (C(l, !1), setTimeout(t.onclose, Kr("--fade"))) : T.to(y(o), 0, { response: .3 }));
+		m || g || (m = !0, i ? (C(l, !1), setTimeout(t.onclose, Jr("--fade"))) : T.to(y(o), 0, { response: .3 }));
 	}
 	function O(e) {
 		e.button > 0 || e.target.closest("button") || (e.currentTarget.setPointerCapture(e.pointerId), T.stop(), E.stop(), m = !1, g = {
@@ -1678,14 +1688,14 @@ function ui(e, t) {
 			T.stop(), E.stop(), e.style.overflow = "";
 		};
 	});
-	var M = { close: D }, P = li();
+	var M = { close: D }, P = di();
 	p("keydown", a, (e) => e.key === "Escape" && !document.querySelector("dialog[open]") && D());
 	var F = _(P);
 	let I, ee;
 	var R = U(F, 2);
 	let te, ne;
 	var B = V(R), re = U(V(B), 2), H = V(re), W = (e) => {
-		var n = ci();
+		var n = ui();
 		N("click", n, function(...e) {
 			t.onback?.apply(this, e);
 		}), j(e, n);
@@ -1711,26 +1721,26 @@ k([
 	"pointerup"
 ]);
 // src/lib/ui/Status.svelte
-var di = r("<p class=\"warn card svelte-9nj5u4\" role=\"alert\"><b>Scoring config has an error.</b> </p>"), fi = r("<p class=\"warn card svelte-9nj5u4\" role=\"alert\"><b>Goal settings have an error.</b> </p>"), pi = r("<p class=\"caption stale svelte-9nj5u4\"> </p>"), mi = r("<!> <!> <!>", 1);
-function hi(e, t) {
+var pi = r("<p class=\"warn card svelte-9nj5u4\" role=\"alert\"><b>Scoring config has an error.</b> </p>"), mi = r("<p class=\"warn card svelte-9nj5u4\" role=\"alert\"><b>Goal settings have an error.</b> </p>"), hi = r("<p class=\"caption stale svelte-9nj5u4\"> </p>"), gi = r("<!> <!> <!>", 1);
+function _i(e, t) {
 	G(t, !0);
 	let n = x(() => t.scoredAt ? ae(t.scoredAt, t.now) : null);
-	var r = mi(), i = _(r), a = (e) => {
-		var n = di(), r = U(V(n));
+	var r = gi(), i = _(r), a = (e) => {
+		var n = pi(), r = U(V(n));
 		X(n), L(() => l(r, ` fitbridge keeps the last valid one. ${t.configError ?? ""}`)), j(e, n);
 	};
 	z(i, (e) => {
 		t.configError && e(a);
 	});
 	var o = U(i, 2), s = (e) => {
-		var n = fi(), r = U(V(n));
+		var n = mi(), r = U(V(n));
 		X(n), L(() => l(r, ` fitbridge keeps the last valid ones. ${t.settingsError ?? ""}`)), j(e, n);
 	};
 	z(o, (e) => {
 		t.settingsError && e(s);
 	});
 	var c = U(o, 2), u = (e) => {
-		var t = pi(), r = B(t, !0);
+		var t = hi(), r = B(t, !0);
 		L(() => l(r, y(n))), j(e, t);
 	};
 	z(c, (e) => {
@@ -1740,8 +1750,8 @@ function hi(e, t) {
 // node_modules/svelte/src/internal/flags/legacy.js
 F();
 // src/lib/ui/Toast.svelte
-var gi = r("<button type=\"button\" class=\"press svelte-1fk2ial\">Undo</button>"), _i = r("<span> </span> <!>", 1), vi = r("<div role=\"status\" aria-live=\"polite\"><!></div>");
-function yi(e, t) {
+var vi = r("<button type=\"button\" class=\"press svelte-1fk2ial\">Undo</button>"), yi = r("<span> </span> <!>", 1), bi = r("<div role=\"status\" aria-live=\"polite\"><!></div>");
+function xi(e, t) {
 	G(t, !1);
 	function n() {
 		let e = st.undo;
@@ -1751,11 +1761,11 @@ function yi(e, t) {
 		}), e();
 	}
 	Re();
-	var r = vi();
+	var r = bi();
 	let i;
 	var a = V(r), o = (e) => {
-		var t = _i(), r = _(t), i = B(r, !0), a = U(r, 2), o = (e) => {
-			var t = gi();
+		var t = yi(), r = _(t), i = B(r, !0), a = U(r, 2), o = (e) => {
+			var t = vi();
 			N("click", t, n), j(e, t);
 		};
 		z(a, (e) => {
@@ -1768,8 +1778,8 @@ function yi(e, t) {
 }
 k(["click"]);
 // src/lib/ui/Together.svelte
-var bi = r("<p class=\"progress svelte-1tya3no\"> </p>"), xi = r("<p> </p>"), Si = r("<div><dt class=\"svelte-1tya3no\"> </dt><dd class=\"svelte-1tya3no\"> <small class=\"svelte-1tya3no\"> </small></dd></div>"), Ci = r("<section class=\"together glass svelte-1tya3no\" aria-labelledby=\"together-title\"><h2 id=\"together-title\" class=\"svelte-1tya3no\">Together</h2> <!> <!> <dl class=\"svelte-1tya3no\"></dl></section>");
-function wi(e, t) {
+var Si = r("<p class=\"progress svelte-1tya3no\"> </p>"), Ci = r("<p> </p>"), wi = r("<div><dt class=\"svelte-1tya3no\"> </dt><dd class=\"svelte-1tya3no\"> <small class=\"svelte-1tya3no\"> </small></dd></div>"), Ti = r("<section class=\"together glass svelte-1tya3no\" aria-labelledby=\"together-title\"><h2 id=\"together-title\" class=\"svelte-1tya3no\">Together</h2> <!> <!> <dl class=\"svelte-1tya3no\"></dl></section>");
+function Ei(e, t) {
 	G(t, !0);
 	let n = x(() => t.group.week ? he(t.group.week, t.people) : ""), r = x(() => t.group.week ? ne(t.group.week) : null), i = x(() => [
 		{
@@ -1788,15 +1798,15 @@ function wi(e, t) {
 			k: "Distance"
 		}
 	]);
-	var a = Ci(), o = U(V(a), 2), s = (e) => {
-		var t = bi(), r = B(t, !0);
+	var a = Ti(), o = U(V(a), 2), s = (e) => {
+		var t = Si(), r = B(t, !0);
 		L(() => l(r, y(n))), j(e, t);
 	};
 	z(o, (e) => {
 		y(n) && e(s);
 	});
 	var c = U(o, 2), u = (e) => {
-		var n = xi();
+		var n = Ci();
 		let i;
 		var a = B(n, !0);
 		L(() => {
@@ -1808,15 +1818,15 @@ function wi(e, t) {
 	});
 	var d = U(c, 2);
 	R(d, 21, () => y(i), (e) => e.k, (e, t) => {
-		var n = Si(), r = V(n), i = B(r, !0), a = U(r), o = V(a, !0), s = U(o), c = B(s, !0);
+		var n = wi(), r = V(n), i = B(r, !0), a = U(r), o = V(a, !0), s = U(o), c = B(s, !0);
 		X(a), X(n), L(() => {
 			l(i, y(t).k), l(o, y(t).v), l(c, y(t).unit);
 		}), j(e, n);
 	}), X(d), X(a), j(e, a), K();
 }
 // src/App.svelte
-var Ti = r("<p class=\"msg svelte-1n46o8q\" role=\"status\"> </p>"), Ei = r("<div class=\"tiles svelte-1n46o8q\" aria-hidden=\"true\"><div class=\"tile skeleton glass svelte-1n46o8q\"></div> <div class=\"tile skeleton glass svelte-1n46o8q\"></div></div> <!>", 1), Di = r("<div class=\"tiles compact svelte-1n46o8q\"></div>"), Oi = r("<!> <!>", 1), ki = r("<div class=\"tiles svelte-1n46o8q\"></div>"), Ai = r("<!> <!> <!> <!> <!>", 1), ji = r("<div><!> <main class=\"svelte-1n46o8q\"><!></main></div> <!> <!>", 1);
-function Mi(e, t) {
+var Di = r("<p class=\"msg svelte-1n46o8q\" role=\"status\"> </p>"), Oi = r("<div class=\"tiles svelte-1n46o8q\" aria-hidden=\"true\"><div class=\"tile skeleton glass svelte-1n46o8q\"></div> <div class=\"tile skeleton glass svelte-1n46o8q\"></div></div> <!>", 1), ki = r("<div class=\"tiles compact svelte-1n46o8q\"></div>"), Ai = r("<!> <!>", 1), ji = r("<div class=\"tiles svelte-1n46o8q\"></div>"), Mi = r("<!> <!> <!> <!> <!>", 1), Ni = r("<div><!> <main class=\"svelte-1n46o8q\"><!></main></div> <!> <!>", 1);
+function Pi(e, t) {
 	G(t, !0);
 	let r = (() => {
 		try {
@@ -1863,10 +1873,10 @@ function Mi(e, t) {
 		lt.n && w();
 	});
 	let D = x(() => Ve(y(m)?.people ?? {}, ct.entry)), O = x(() => Object.keys(y(D))), k = x(() => n(y(m)?.viewer ?? {}, y(D))), A = x(() => y(D)[y(k).self ?? y(O)[0]]?.week), M = (e) => !!y(m)?.viewer?.can_edit?.includes(e), N = x(() => !!y(k).self && et(y(D)[y(k).self], b[y(k).self])), P = x(() => !!y(c) && Object.hasOwn(y(D), y(c).id) || !!y(d) && !!y(m));
-	var F = ji(), I = _(F), ee = V(I);
+	var F = Ni(), I = _(F), ee = V(I);
 	{
 		let e = x(() => y(A) ? Fe(y(A)) : ""), t = x(() => y(m) ? (e) => C(d, { from: e.currentTarget }, !0) : void 0);
-		Ur(ee, {
+		Gr(ee, {
 			title: "Training",
 			brand: !0,
 			get subtitle() {
@@ -1882,16 +1892,16 @@ function Mi(e, t) {
 		});
 	}
 	var te = U(ee, 2), ne = V(te), re = (e) => {
-		var t = Ei(), n = U(_(t), 2), r = (e) => {
-			var t = Ti(), n = B(t, !0);
+		var t = Oi(), n = U(_(t), 2), r = (e) => {
+			var t = Di(), n = B(t, !0);
 			L(() => l(n, y(g).status === 503 ? "Waiting for fitbridge" : "Couldn't reach Home Assistant")), j(e, t);
 		};
 		z(n, (e) => {
 			y(g) && e(r);
 		}), j(e, t);
 	}, H = (e) => {
-		var t = Ai(), n = _(t);
-		hi(n, {
+		var t = Mi(), n = _(t);
+		_i(n, {
 			get scoredAt() {
 				return y(m).scored_at;
 			},
@@ -1922,12 +1932,12 @@ function Mi(e, t) {
 			y(N) && e(i);
 		});
 		var a = U(r, 2), o = (e) => {
-			var t = Oi(), n = _(t), r = (e) => {
-				var t = Di();
+			var t = Ai(), n = _(t), r = (e) => {
+				var t = ki();
 				R(t, 20, () => y(k).others, (e) => e, (e, t) => {
 					{
 						let n = x(() => y(O).indexOf(t)), r = x(() => u(t));
-						si(e, {
+						li(e, {
 							get person() {
 								return y(D)[t];
 							},
@@ -1948,7 +1958,7 @@ function Mi(e, t) {
 			var i = U(n, 2);
 			{
 				let e = x(() => y(O).indexOf(y(k).self));
-				si(i, {
+				li(i, {
 					get person() {
 						return y(D)[y(k).self];
 					},
@@ -1959,11 +1969,11 @@ function Mi(e, t) {
 			}
 			j(e, t);
 		}, s = (e) => {
-			var t = ki();
+			var t = ji();
 			R(t, 20, () => y(k).others, (e) => e, (e, t) => {
 				{
 					let n = x(() => y(O).indexOf(t)), r = x(() => u(t));
-					si(e, {
+					li(e, {
 						get person() {
 							return y(D)[t];
 						},
@@ -1981,7 +1991,7 @@ function Mi(e, t) {
 			y(k).self ? e(o) : e(s, -1);
 		});
 		var c = U(a, 2), l = (e) => {
-			wi(e, {
+			Ei(e, {
 				get group() {
 					return y(m).group;
 				},
@@ -1996,7 +2006,7 @@ function Mi(e, t) {
 		var d = U(c, 2), f = (e) => {
 			{
 				let t = x(() => M(y(k).self)), n = x(() => y(N) ? null : b[y(k).self]);
-				Ar(e, {
+				Mr(e, {
 					get id() {
 						return y(k).self;
 					},
@@ -2029,7 +2039,7 @@ function Mi(e, t) {
 		y(m) ? e(H, -1) : e(re);
 	}), X(te), X(I);
 	var W = U(I, 2), ie = (e) => {
-		Y(ui(e, {
+		Y(fi(e, {
 			label: "Goals",
 			get from() {
 				return y(d).from;
@@ -2041,7 +2051,7 @@ function Mi(e, t) {
 			children: (e, t) => {
 				{
 					let t = x(() => !y(k).self);
-					Rr(e, {
+					Br(e, {
 						get people() {
 							return y(m).people;
 						},
@@ -2055,7 +2065,7 @@ function Mi(e, t) {
 			$$slots: { default: !0 }
 		}), (e) => C(f, e, !0), () => y(f));
 	}, ae = (e) => {
-		ui(e, {
+		fi(e, {
 			get label() {
 				return `${y(D)[y(c).id].name ?? ""}'s details`;
 			},
@@ -2067,10 +2077,10 @@ function Mi(e, t) {
 				return s;
 			},
 			children: (e, t) => {
-				var n = Oi(), r = _(n);
+				var n = Ai(), r = _(n);
 				{
 					let e = x(() => y(O).indexOf(y(c).id));
-					si(r, {
+					li(r, {
 						get person() {
 							return y(D)[y(c).id];
 						},
@@ -2082,7 +2092,7 @@ function Mi(e, t) {
 				var i = U(r, 2);
 				{
 					let e = x(() => M(y(c).id));
-					Ar(i, {
+					Mr(i, {
 						get id() {
 							return y(c).id;
 						},
@@ -2113,10 +2123,10 @@ function Mi(e, t) {
 	};
 	z(W, (e) => {
 		y(d) && y(m) ? e(ie) : y(P) && e(ae, 1);
-	}), yi(U(W, 2), {}), L(() => I.inert = y(P)), j(e, F), K();
+	}), xi(U(W, 2), {}), L(() => I.inert = y(P)), j(e, F), K();
 }
 // src/main.js
-var Ni = (e) => d(Mi, { target: e }), Pi = () => new Promise((e) => {
+var Fi = (e) => d(Pi, { target: e }), Ii = () => new Promise((e) => {
 	let t = new URL(
 		/* @vite-ignore */
 		"panel.css",
@@ -2134,9 +2144,9 @@ customElements.define("fitbridge-panel", class extends HTMLElement {
 	set hass(e) {
 		Le(e);
 		let t = e.themes?.darkMode ?? matchMedia("(prefers-color-scheme: dark)").matches;
-		document.documentElement.dataset.theme = t ? "dark" : "light", !this.#e && (this.#e = !0, this.style.display = "block", this.style.height = "100%", Pi().then(() => {
+		document.documentElement.dataset.theme = t ? "dark" : "light", !this.#e && (this.#e = !0, this.style.display = "block", this.style.height = "100%", Ii().then(() => {
 			let e = this.appendChild(document.createElement("div"));
-			e.id = "app", Ni(e);
+			e.id = "app", Fi(e);
 		}));
 	}
 });

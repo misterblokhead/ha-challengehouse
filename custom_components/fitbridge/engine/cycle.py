@@ -50,12 +50,13 @@ def fill_best_km(store, types):
 
 def fill_plan_blocks(store, types):
     """Run blocks of every run not checked yet. A file that cannot be read or parsed stores {"error": True}, so it is
-    logged once and never re-read; an indoor run, or one without a file, stores its average speed."""
+    logged once and never re-read; an indoor run, or one without a usable track, stores its average speed. A run still
+    awaiting its route waits for it (attach_route clears the row when the route comes)."""
     done = store.plan_blocks()
     for r in store.all_rows():
-        if (r["person"], r["key"]) in done or not is_run(r, types):
+        if (r["person"], r["key"]) in done or r["status"] == "awaiting_route" or not is_run(r, types):
             continue
-        if r["indoor"] or not r["file"]:
+        if r["indoor"] or not r["file"] or not r["points"]:
             data = plancheck.indoor(_number(r["distance_m"]), _number(r["duration_s"]) or 0)
         else:
             try:

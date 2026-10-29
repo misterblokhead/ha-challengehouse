@@ -178,8 +178,8 @@ test("programmeText: no warm-up or cool-down leaves those parts out; graduated o
 test("feedRow: chips for a match, a review, an indoor run, and none", () => {
   const check = { state: "match", found: 8, planned: 8, run_s: 570, planned_run_s: 480, label: "W1D2" };
   assert.deepEqual(feedRow({ ...run, check }).chip, { text: "8/8 blocks", tone: "plain" });
-  assert.deepEqual(feedRow({ ...run, check: { ...check, state: "review", found: 5 }, review: null }).chip, { text: "Review", tone: "warn" });
-  assert.equal(feedRow({ ...run, check: { ...check, state: "review" }, review: { decision: "plan", type_match: null } }).chip, null); // decided
+  assert.deepEqual(feedRow({ ...run, check: { ...check, state: "review", found: 5 }, needs_review: true }).chip, { text: "Review", tone: "warn" });
+  assert.equal(feedRow({ ...run, check: { ...check, state: "review" }, needs_review: false }).chip, null); // decided
   assert.deepEqual(feedRow({ ...run, check: { ...check, state: "indoor" } }).chip, { text: "indoor", tone: "plain" });
   assert.equal(feedRow({ ...run, check: { ...check, state: "none" } }).chip, null);
   assert.equal(feedRow({ ...run, check: null }).chip, null);

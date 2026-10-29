@@ -68,12 +68,15 @@ class Store:
             return self.db.execute("SELECT 1 FROM workouts WHERE person=? AND key=?", (person, key)).fetchone() is not None
 
     def attach_route(self, person, key, status, **fields):
-        """A route that arrived after its workout; only a row still awaiting one changes."""
+        """A route that arrived after its workout; only a row still awaiting one changes, and its plan blocks are
+        dropped so the track gets checked."""
         fields.update(status=status, updated=now_iso())
         with self.lock, self.db:
             cur = self.db.execute(f"UPDATE workouts SET {','.join(f'{k}=?' for k in fields)} "
                                   "WHERE person=? AND key=? AND status='awaiting_route'",
                                   [*fields.values(), person, key])
+            if cur.rowcount == 1:
+                self.db.execute("DELETE FROM plan_blocks WHERE person=? AND key=?", (person, key))
             return cur.rowcount == 1
 
     def file_seen(self, path: Path):

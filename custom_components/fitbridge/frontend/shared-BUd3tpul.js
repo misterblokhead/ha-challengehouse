@@ -2556,7 +2556,7 @@ var fa = (e) => e < 60 ? `${e} min` : e % 60 ? `${Math.floor(e / 60)} h ${Xi(e %
 	no_gps: "No GPS"
 }, ma = (e) => {
 	let t = e.check;
-	return t?.state === "review" && !e.review ? {
+	return e.needs_review ? {
 		text: "Review",
 		tone: "warn"
 	} : t?.state === "match" ? {

@@ -15,7 +15,7 @@ from . import LEGACY_PEOPLE, TWO, overlay
 from .test_config import DEFAULT
 from .test_ingest import gpx_with_points, hex_workout, hex_zip
 from .test_opengym import fake
-from .test_plancheck import synth
+from .test_plancheck import W1, synth
 from .test_records import seg, track
 
 PEOPLE = tuple(load_config(DEFAULT, TWO)["people"])
@@ -404,8 +404,25 @@ class ScoringCycleTests(unittest.TestCase):
         self.store.add(P0, "H", "health_exporter", "no_route", activity_type="running", indoor=1,
                        start="2026-10-27T18:00:00+01:00", end="2026-10-27T18:30:00+01:00",
                        duration_s=1800, distance_m=4000)
+        self.store.add(P0, "S", "health_exporter", "skipped_no_gps", activity_type="running", indoor=0, file="s.gpx",
+                       points=0, start="2026-10-27T18:00:00+01:00", end="2026-10-27T18:30:00+01:00",
+                       duration_s=1800, distance_m=4000)
         self.scores()
-        self.assertEqual(self.store.plan_blocks(), {(P0, "H"): {"indoor": True, "avg_kmh": 8.0}})
+        self.assertEqual(self.store.plan_blocks(), {(P0, "H"): {"indoor": True, "avg_kmh": 8.0},
+                                                    (P0, "S"): {"indoor": True, "avg_kmh": 8.0}})  # a file without points
+
+    def test_fill_plan_blocks_waits_for_a_late_route(self):
+        self.store.add(P0, "R", "health_exporter", "awaiting_route", activity_type="running", indoor=0,
+                       start="2026-10-27T18:00:00+01:00", end="2026-10-27T18:30:00+01:00",
+                       duration_s=1800, distance_m=4000)
+        self.scores()
+        self.assertEqual(self.store.plan_blocks(), {})
+        self.store.set_plan_blocks(P0, "R", {"indoor": True, "avg_kmh": 8.0})  # cached before runs waited for their route
+        path = Path(self.tmp.name) / "r.gpx"
+        path.write_bytes(synth(W1))
+        self.assertTrue(self.store.attach_route(P0, "R", "stored", file=str(path), points=100))
+        self.scores()
+        self.assertEqual(len(self.store.plan_blocks()[(P0, "R")]["blocks"]), 8)
 
     def test_fill_best_km_reads_a_run_file_once(self):
         path = self.add_gpx_run("t1", track([seg(1500, pace=300)]))

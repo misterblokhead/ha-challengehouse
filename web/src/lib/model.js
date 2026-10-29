@@ -79,7 +79,7 @@ const UNCOUNTED = { short: "Too short", easy: "Too easy", type: "Type not counte
 // The plan-check chip after the plan day: a match "8/8 blocks", a run waiting for its owner's call "Review", an indoor run; else none.
 const chip = (item) => {
   const c = item.check;
-  if (c?.state === "review" && !item.review) return { text: "Review", tone: "warn" };
+  if (item.needs_review) return { text: "Review", tone: "warn" };
   if (c?.state === "match") return { text: `${c.found}/${c.planned} blocks`, tone: "plain" };
   if (c?.state === "indoor") return { text: "indoor", tone: "plain" };
   return null;

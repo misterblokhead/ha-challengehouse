@@ -82,15 +82,29 @@ def _alike(a, b):
     return a["kind"] == b["kind"] and bool(a.get("effort")) == bool(b.get("effort"))
 
 
+def _merged_blocks(a, b):
+    """The plan blocks of a stop-start pair (a starts first): both block lists, b's shifted to a's start; else the
+    one that has a list; else a's."""
+    x, y = a.get("blocks"), b.get("blocks")
+    if not (y and "blocks" in y):
+        return x
+    if not (x and "blocks" in x):
+        return y
+    shift = (b["start"] - a["start"]).total_seconds()
+    return dict(x, blocks=x["blocks"] + [[round(s + shift), n, kmh] for s, n, kmh in y["blocks"]])
+
+
 def _merge(a, b):
     base = min(a, b, key=_rank)
     other = b if base is a else a
+    first, second = sorted((a, b), key=lambda w: w["start"])
     dist = [x["distance_m"] for x in (a, b) if x["distance_m"] is not None]
     start, end = min(a["start"], b["start"]), max(a["end"], b["end"])
     return dict(base, start=start, end=end, duration_s=(end - start).total_seconds(),
                 distance_m=sum(dist) if dist else None, vol_kg=a["vol_kg"] + b["vol_kg"],
                 prs=a["prs"] + [p for p in b["prs"] if p not in a["prs"]],
-                aliases=base.get("aliases", []) + [other["key"]] + other.get("aliases", []), **_best_of(a, b))
+                aliases=base.get("aliases", []) + [other["key"]] + other.get("aliases", []), **_best_of(a, b),
+                blocks=_merged_blocks(first, second), review=base.get("review") or other.get("review"))
 
 
 def clean(workouts, cfg, early=False):
@@ -186,6 +200,7 @@ def _meets(w, session):
 
 
 PASS = ("match", "indoor", "none")                 # "none": no readable track, counted by duration
+CHECKED = ("match", "indoor")                      # a catch-up needs a real check: "none" never skips days
 
 
 def _passes(w, c):
@@ -194,19 +209,19 @@ def _passes(w, c):
     return r["decision"] == "plan" if r else c["state"] in PASS
 
 
-def plan_progress(cleaned, cfg, now=None):
+def plan_progress(cleaned, cfg, now):
     """Plan progress of every person in one pass over all runs in start order (plan-check spec 1.2-1.4), so a joint run
     sees both people's progress at that moment: {person: {"done", "by_key", "checks", "pending"}}.
     `cleaned`: clean() output, joint-marked; `now`: runs after its week are left out, as score_person leaves them."""
     tz = ZoneInfo(cfg["rules"]["timezone"])
-    today = now and local_date(now, tz)
-    last = today and today + timedelta(days=6 - today.weekday())  # keep in step with score_person's `while monday <= this_monday`
+    today = local_date(now, tz)
+    last = today + timedelta(days=6 - today.weekday())  # keep in step with score_person's `while monday <= this_monday`
     hist = {p: cfg["people"][p]["plan_history"] for p in cleaned}
     sessions = {p: [plan_sessions(cfg, h["plan"]) if h["plan"] else [] for h in hist[p]] for p in cleaned}
     out = {p: {"done": [0] * len(hist[p]), "by_key": {}, "checks": {}, "pending": 0} for p in cleaned}
     plan_days = defaultdict(int)                   # (person, local day) -> sessions completed
     runs = {(p, w["key"]): (p, w) for p in cleaned for w in cleaned[p]
-            if not w["excluded"] and w["kind"] == "run" and (not last or local_date(w["start"], tz) <= last)}
+            if not w["excluded"] and w["kind"] == "run" and local_date(w["start"], tz) <= last}
 
     def active(p, w):
         """(plan_history index, plan id) on the run's day; plan id None without a plan."""
@@ -232,7 +247,7 @@ def plan_progress(cleaned, cfg, now=None):
             if not _meets(w, ss[j]):
                 continue
             c = pp["checks"][w["key"]] = dict(check(w.get("blocks"), ss[j]), label=f"W{ss[j]['week']}D{ss[j]['day']}")
-            if (j == done[i] or c["state"] in PASS) and _passes(w, c):  # a decision is about the own day: never a catch-up on it alone
+            if (j == done[i] or c["state"] in CHECKED) and _passes(w, c):  # a decision is about the own day: never a catch-up on it alone
                 break
         else:
             if w["key"] in pp["checks"] and not w.get("review"):
@@ -479,6 +494,7 @@ def _feed(workouts, plan, workout_xp, not_counted, cfg, since, limit):
              "km": None if w["distance_m"] is None else round(w["distance_m"] / 1000, 2), "avg_hr": w["avg_hr"],
              "xp": round(workout_xp.get(w["key"], 0)), "plan": plan["by_key"].get(w["key"], {}).get("label"),
              "check": plan["checks"].get(w["key"]), "review": w.get("review"),
+             "needs_review": (plan["checks"].get(w["key"]) or {}).get("state") == "review" and not w.get("review"),
              "caught_up": plan["by_key"].get(w["key"], {}).get("caught_up", False), "joint": bool(w.get("joint_s")), "excluded": w["excluded"],
              "counts": w["key"] not in not_counted, "reason": not_counted.get(w["key"]),
              "url": w["url"]} | ({"steps": w["steps"]} if "steps" in w else {}) for w in ws]
