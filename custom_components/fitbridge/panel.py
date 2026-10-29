@@ -42,8 +42,8 @@ async def async_register_panel(hass: HomeAssistant) -> None:
     """After async_register_http."""
     await panel_custom.async_register_panel(
         hass, frontend_url_path=PANEL, webcomponent_name="fitbridge-panel",
-        module_url=f"{STATIC_URL}/panel.js?v={hass.data[_HTTP]}", sidebar_title="Fitness",
-        sidebar_icon="mdi:run", embed_iframe=True, require_admin=False)
+        module_url=f"{STATIC_URL}/panel.js?v={hass.data[_HTTP]}", sidebar_title="ChallengeHouse",
+        sidebar_icon="mdi:home-heart", embed_iframe=True, require_admin=False)
 
 
 def remove_panel(hass: HomeAssistant) -> None:

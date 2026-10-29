@@ -2,18 +2,18 @@
   "config": {
     "step": {
       "user": {
-        "title": "Fitness (fitbridge)",
-        "description": "Adds the Fitness page to the sidebar and scores the household's workouts."
+        "title": "ChallengeHouse",
+        "description": "Adds the ChallengeHouse page to the sidebar and scores the household's workouts."
       }
     },
     "abort": {
-      "single_instance_allowed": "Fitness is already set up."
+      "single_instance_allowed": "ChallengeHouse is already set up."
     }
   },
   "options": {
     "step": {
       "init": {
-        "title": "Fitness",
+        "title": "ChallengeHouse",
         "menu_options": {
           "viewers": "Who is who and step sensors",
           "opengym": "Pair with openGym",
@@ -31,7 +31,7 @@
       },
       "opengym": {
         "title": "Pair with openGym",
-        "description": "Enter openGym's address and a pairing code made in openGym's admin settings. Fitness exchanges the code for a token and keeps renewing it.",
+        "description": "Enter openGym's address and a pairing code made in openGym's admin settings. ChallengeHouse exchanges the code for a token and keeps renewing it.",
         "data": {
           "opengym_url": "openGym address",
           "code": "Pairing code"
@@ -67,7 +67,7 @@
     },
     "folder_missing": {
       "title": "Watch folder for {person} is missing",
-      "description": "Fitness cannot find {folder}, the watch folder for {person}, so it is not scanned. Other inputs go on. Restore the folder, or change or clear it in the Fitness options (Webhooks and watch folders)."
+      "description": "ChallengeHouse cannot find {folder}, the watch folder for {person}, so it is not scanned. Other inputs go on. Restore the folder, or change or clear it in the ChallengeHouse options (Webhooks and watch folders)."
     }
   },
   "services": {

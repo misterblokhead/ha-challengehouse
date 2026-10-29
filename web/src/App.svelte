@@ -87,7 +87,7 @@
 
 <div inert={sheetShown}>
 <Header
-  title="Training" subtitle={week ? weekLabel(week) : ""} onback={goBack}
+  title="Training" brand subtitle={week ? weekLabel(week) : ""} onback={goBack}
   actionLabel="Goals" onaction={data ? (e) => (goals = { from: e.currentTarget }) : undefined}
 />
 

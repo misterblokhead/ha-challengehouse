@@ -51,7 +51,7 @@ class FitbridgeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is None:
             return self.async_show_form(step_id="user")
         await self.async_set_unique_id(DOMAIN)
-        return self.async_create_entry(title="Fitness", data={})
+        return self.async_create_entry(title="ChallengeHouse", data={})
 
     @staticmethod
     @callback
