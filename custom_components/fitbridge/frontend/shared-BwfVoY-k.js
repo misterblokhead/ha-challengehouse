@@ -2831,7 +2831,7 @@ function ro(e) {
 	return e?.invite ? {
 		before: `${e.in_ha ? `Open openGym from the Home Assistant sidebar in Chrome, not in the Home Assistant app (${e.url}). Choose` : `Open openGym at ${e.url}, choose`} Create new profile, enter code `,
 		code: e.invite,
-		after: ", then Add to Home Screen."
+		after: ", then Add to Home Screen. Does openGym show someone else? Sign out there first."
 	} : null;
 }
 function io(e, t, n = null) {

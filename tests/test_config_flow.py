@@ -712,7 +712,8 @@ async def test_setup_install_prefills_and_takes_the_edited_address(hass, enable_
 
 
 @pytest.mark.parametrize("address", ["http://homeassistant.local:8123", "https://", f"{HA}/lovelace/0", f"{HA}/?tab=1",
-                                     f"{HA}/#top", "https://@ha.example.test", "https://ha.example.test:port"])
+                                     f"{HA}/#top", "https://@ha.example.test", "https://ha.example.test:port",
+                                     "https://192.0.2.20", "192.0.2.20:8443", "https://[2001:db8::1]", "https://3221225985"])
 async def test_setup_install_takes_only_an_https_origin(hass, enable_custom_integrations, address):
     patcher, app = _app()
     with patcher:

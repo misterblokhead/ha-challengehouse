@@ -159,7 +159,7 @@ def _given(raw):
 
 
 def _pauses(pauses, config):
-    # not _given: there is always a pause list (an empty one at least), so a missing one is warned about
+    pauses = _given(pauses)  # None: no pause calendar (the runner warns when one exists but fails)
     if not (isinstance(pauses, list) and all(
             isinstance(e, dict) and isinstance(e.get("start"), str) and isinstance(e.get("end"), str)
             and isinstance(e.get("summary") or "", str) for e in pauses)):

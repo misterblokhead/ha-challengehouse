@@ -170,6 +170,7 @@ async def test_pauses_are_the_calendars_events_unchanged(hass, setup, cycles):
     async def get_events(call):
         calls.append(call.data)
         return {"calendar.training_pause": {"events": [ALL_DAY, TIMED]}}
+    hass.states.async_set("calendar.training_pause", "off")
     hass.services.async_register("calendar", "get_events", get_events, supports_response=SupportsResponse.ONLY)
     await setup()
     assert cycles.call_args.args[3].pauses == [ALL_DAY, TIMED]  # what fitbridge/pauses carried
@@ -177,6 +178,13 @@ async def test_pauses_are_the_calendars_events_unchanged(hass, setup, cycles):
     assert asked["entity_id"] == "calendar.training_pause"
     assert asked["start_date_time"] < dt_util.now() - timedelta(days=399)
     assert asked["end_date_time"] - asked["start_date_time"] == timedelta(days=414)
+
+
+async def test_a_failing_pause_calendar_warns(hass, setup, cycles, caplog):
+    hass.states.async_set("calendar.training_pause", "off")  # it exists, but no calendar service answers
+    await setup()
+    assert cycles.call_args.args[3].pauses is None
+    assert "calendar.training_pause unavailable" in caplog.text
 
 
 async def test_steps_and_settings_are_read_in_process(hass, setup, cycles, hass_storage):

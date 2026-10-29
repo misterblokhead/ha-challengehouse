@@ -140,7 +140,7 @@ class ScoringCycleTests(unittest.TestCase):
     def test_pauses_cached_when_missing(self):
         name = load_config(DEFAULT, TWO)["people"][P0]["name"]
         self.run_cycle(pauses=[{"summary": name, "start": "2026-10-26", "end": "2026-11-02"}])
-        with self.assertLogs("custom_components.fitbridge", "WARNING"):
+        with self.assertNoLogs("custom_components.fitbridge", "WARNING"):  # no calendar is no error
             res = self.scores(pauses=None)
         self.assertTrue(res["people"][P0]["week"]["paused"])
         self.assertIsNotNone(res["pauses_as_of"])

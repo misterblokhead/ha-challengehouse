@@ -50,16 +50,21 @@ def detected_address(hass: HomeAssistant) -> str:
 
 def origin(text: str) -> str | None:
     """https://host[:port] of an address as typed (https:// added when it has no scheme); None for anything else: another
-    scheme, no host, a path, query, fragment, user or a port that is no number."""
+    scheme, no host, an IP address (passkeys never work on one), a path, query, fragment, user or a port that is no number."""
     text = text.strip()
     u = urlsplit(text if "://" in text else f"https://{text}")
     try:
         u.port  # a port that is no number raises
     except ValueError:
         return None
-    if u.scheme != "https" or not u.hostname or u.path not in ("", "/") or u.query or u.fragment or u.username is not None:
+    if u.scheme != "https" or not u.hostname or _is_ip(u.hostname) or u.path not in ("", "/") or u.query or u.fragment or u.username is not None:
         return None
     return f"https://{u.netloc.lower()}"
+
+
+def _is_ip(host: str) -> bool:
+    """IPv6, or IPv4 in any form a browser reads as one (a numeric last label)."""
+    return ":" in host or host.rsplit(".", 1)[-1].isdigit()
 
 
 def _same(url: str | None) -> str:

@@ -206,6 +206,8 @@ class Runner:
 
     async def _pauses(self) -> list | None:
         """The pause calendar's events from 400 days back to 14 ahead, as the old automation published them."""
+        if self.hass.states.get(PAUSE_CALENDAR) is None:
+            return None  # no pause calendar: nothing to pause, nothing to warn about
         now = dt_util.now()
         try:
             response = await self.hass.services.async_call(
@@ -214,7 +216,8 @@ class Runner:
                  "end_date_time": now + timedelta(days=14)},
                 blocking=True, return_response=True)
             return response[PAUSE_CALENDAR]["events"]
-        except Exception:  # no calendar or a failing one: the engine keeps its cached pauses (and warns)
+        except Exception as err:  # a failing calendar: the engine keeps its cached pauses
+            _LOGGER.warning("%s unavailable, using the cached pauses: %s", PAUSE_CALENDAR, type(err).__name__)
             return None
 
     def _opengym(self) -> OpenGym | None:

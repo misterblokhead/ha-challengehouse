@@ -349,7 +349,8 @@ export function gymCaption(gym) {
   const open = gym.in_ha
     ? `Open openGym from the Home Assistant sidebar in Chrome, not in the Home Assistant app (${gym.url}). Choose`
     : `Open openGym at ${gym.url}, choose`;
-  return { before: `${open} Create new profile, enter code `, code: gym.invite, after: ", then Add to Home Screen." };
+  // openGym's sign-in belongs to the browser, not the Home Assistant user: a shared tablet shows whoever signed in last
+  return { before: `${open} Create new profile, enter code `, code: gym.invite, after: ", then Add to Home Screen. Does openGym show someone else? Sign out there first." };
 }
 
 // "Connected · last workout received today, 07:05" (local time; the date instead of "today" on another day). Nothing received yet:

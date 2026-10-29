@@ -82,13 +82,20 @@ If Home Assistant has the Supervisor, ChallengeHouse can install openGym for you
 [ha-opengym](https://github.com/misterblokhead/ha-opengym).
 
 1. In setup (or Configure -> Pair with openGym), choose **Install openGym in Home Assistant**.
-2. Confirm the https address people open Home Assistant at. It is filled in for you. **It can never change once people
-   have signed up**, because passkeys are bound to it.
+2. Confirm the https address people open Home Assistant at. It is filled in for you. It must be a host name, not an IP
+   address: passkeys never work on one. **It can never change once people have signed up**, because passkeys are bound to
+   it.
 3. ChallengeHouse adds the app source, installs and starts the app and puts it in the sidebar. Home Assistant builds it,
    which takes a minute or two.
 4. Open **openGym** from the sidebar in Chrome and tap **Create new profile**. The first profile is the admin.
 5. Go to Settings -> Account -> Pair the mobile app, and paste the code in ChallengeHouse. ChallengeHouse then switches
    invite-only on for you, so nobody else can sign up without an invite.
+
+**HTTPS over Tailscale instead of Nabu Casa:** the Tailscale app can serve Home Assistant at
+`https://<machine>.<tailnet>.ts.net` (its `share_homeassistant` option set to `serve`); use that address in step 2, and
+every phone needs Tailscale. Home Assistant must then trust the Tailscale app as a reverse proxy: Settings -> System ->
+Network -> HTTP server, turn on **Trust X-Forwarded-For** and add `127.0.0.1` to **Trusted proxies**. Since Home Assistant
+2026.8 this is set there, not in `configuration.yaml`: an `http:` block there is imported once and then ignored.
 
 People open openGym from the Home Assistant sidebar in Chrome (or another browser), not in the Home Assistant app: the
 Home Assistant phone app cannot do passkeys. openGym's own phone app does not work this way either, because every

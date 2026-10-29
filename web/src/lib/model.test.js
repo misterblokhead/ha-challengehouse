@@ -582,9 +582,9 @@ test("connectIds: whoever the integration says the viewer may connect, own perso
 
 test("gymCaption: the invite sentence in parts (the code is rendered bold); from the Home Assistant sidebar when in_ha", () => {
   const own = gymCaption({ url: "https://gym.example.test", invite: "AB-12", in_ha: false });
-  assert.deepEqual(own, { before: "Open openGym at https://gym.example.test, choose Create new profile, enter code ", code: "AB-12", after: ", then Add to Home Screen." });
+  assert.deepEqual(own, { before: "Open openGym at https://gym.example.test, choose Create new profile, enter code ", code: "AB-12", after: ", then Add to Home Screen. Does openGym show someone else? Sign out there first." });
   const app = gymCaption({ url: "https://ha.example.test/opengym", invite: "AB-12", in_ha: true });
-  assert.deepEqual(app, { before: "Open openGym from the Home Assistant sidebar in Chrome, not in the Home Assistant app (https://ha.example.test/opengym). Choose Create new profile, enter code ", code: "AB-12", after: ", then Add to Home Screen." });
+  assert.deepEqual(app, { before: "Open openGym from the Home Assistant sidebar in Chrome, not in the Home Assistant app (https://ha.example.test/opengym). Choose Create new profile, enter code ", code: "AB-12", after: ", then Add to Home Screen. Does openGym show someone else? Sign out there first." });
   assert.equal(gymCaption({ url: "u", invite: "c" }).before.startsWith("Open openGym at u"), true); // an older payload without in_ha
   assert.equal(gymCaption(null), null); // no openGym, or no invite yet
   assert.equal(gymCaption({ url: "u", invite: null, in_ha: true }), null);
