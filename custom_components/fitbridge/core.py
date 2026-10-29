@@ -36,7 +36,8 @@ def shape(scores: dict, viewer_person: str | None, is_admin: bool, steps_by_pers
                            "steps_week": steps_week_by_person.get(p)}
                        for p, r in scores["people"].items()},
             "viewer": {"person": viewer_person,
-                       "can_edit": [p for p in scores["people"] if can_edit(viewer_person, is_admin, p)]}}
+                       "can_edit": [p for p in scores["people"] if can_edit(viewer_person, is_admin, p)],
+                       "admin": is_admin}}
 
 
 def older_feed(scores: dict, person: str, before: date) -> dict:

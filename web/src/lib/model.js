@@ -284,8 +284,10 @@ export const recordKeys = (pbs) => new Set([...(pbs?.lifts ?? []).map((l) => l.k
 // On top of the page only for a fresh person: nothing received yet and no workouts on the page (migrated people keep it in Details).
 export const connectOnTop = (person, info) => !!info && info.last_received == null && !person.feed.length;
 
-// The people to ask `connect` about: the viewer's own and everyone they may edit (an admin's can_edit is everyone); the integration says 403 to the rest.
-export const connectIds = (viewer, people) => [...new Set([viewer.person, ...viewer.can_edit])].filter((id) => Object.hasOwn(people, id));
+// The people to ask `connect` about: for an admin everyone (mapped to a person or not), else the viewer's own and whoever they may edit;
+// the integration says 403 to the rest.
+export const connectIds = (viewer, people) =>
+  [...new Set([viewer.person, ...(viewer.admin ? Object.keys(people) : viewer.can_edit ?? [])])].filter((id) => Object.hasOwn(people, id));
 
 const STEPS = {
   iphone: {

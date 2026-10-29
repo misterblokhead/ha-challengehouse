@@ -814,7 +814,8 @@
     "can_edit": [
       "alex",
       "jo"
-    ]
+    ],
+    "admin": true
   },
   "settings_error": null
 }

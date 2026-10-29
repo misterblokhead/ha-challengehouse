@@ -516,4 +516,7 @@ test("connectIds: the viewer's own person and everyone they can edit (admins: al
   assert.deepEqual(connectIds({ person: "a", can_edit: ["a", "b", "c"] }, people), ["a", "b", "c"]);
   assert.deepEqual(connectIds({ person: null, can_edit: ["b", "gone"] }, people), ["b"]);
   assert.deepEqual(connectIds({ person: null, can_edit: [] }, people), []);
+  assert.deepEqual(connectIds({ person: null }, people), []); // an older payload without can_edit
+  assert.deepEqual(connectIds({ person: null, can_edit: [], admin: true }, people), ["a", "b", "c"]); // an admin who is no person
+  assert.deepEqual(connectIds({ person: "b", can_edit: ["a", "b", "c"], admin: true }, people), ["b", "a", "c"]); // own person first
 });
