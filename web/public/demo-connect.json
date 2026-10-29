@@ -5,6 +5,7 @@
   "last_received": null,
   "opengym": {
     "url": "https://opengym.example.test",
-    "invite": "DEMO-1234"
+    "invite": "DEMO-1234",
+    "in_ha": false
   }
 }

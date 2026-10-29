@@ -1,6 +1,6 @@
 <script>
   import { say } from "../actions.svelte.js";
-  import { connectSteps, connectStatus } from "../model.js";
+  import { connectSteps, connectStatus, gymCaption } from "../model.js";
 
   // How a person's phone reaches fitbridge: their webhook address (a secret: the integration only answers the person and admins),
   // the steps for their phone and whether a workout has arrived. `collapsed`: a row that opens (Details); else a card (top of the page).
@@ -9,6 +9,7 @@
   const phone = $derived(info.phone ?? picked);
   const guide = $derived(connectSteps(phone));
   const status = $derived(connectStatus(info, now, person));
+  const gym = $derived(gymCaption(info.opengym));
   let field = $state();
 
   // Selected first, so it is ready to copy by hand when neither copy works (no Clipboard API on plain http; iOS wants a selection).
@@ -44,8 +45,8 @@
   {:else}
     <ol>{#each guide.steps as s (s)}<li>{s}</li>{/each}</ol>
   {/if}
-  {#if info.opengym?.invite}
-    <p class="caption">Open openGym at {info.opengym.url}, choose Create new profile, enter code <b>{info.opengym.invite}</b>, then Add to Home Screen.</p>
+  {#if gym}
+    <p class="caption">{gym.before}<b>{gym.code}</b>{gym.after}</p>
   {/if}
 {/snippet}
 

@@ -14,6 +14,7 @@ from custom_components.fitbridge import webhooks
 from custom_components.fitbridge.const import (
     DOMAIN,
     OPT_INVITES,
+    OPT_OPENGYM_LINK,
     OPT_OPENGYM_URL,
     OPT_PHONES,
     OPT_STEPS,
@@ -633,7 +634,23 @@ async def test_connect_for_self(hass, entry, client, send):
     assert resp.status == 200
     assert await resp.json() == {
         "url": "https://ha.example.test/api/webhook/hook1", "external": True, "phone": "iphone",
-        "last_received": "2026-10-28T12:00:00+00:00", "opengym": {"url": "https://gym.example.test", "invite": "code1"}}
+        "last_received": "2026-10-28T12:00:00+00:00", "opengym": {"url": "https://gym.example.test", "invite": "code1", "in_ha": False}}
+
+
+async def test_connect_shows_the_link_for_an_app_opengym(hass, entry, client, send):
+    await send(SCORES)
+    hass.config_entries.async_update_entry(entry, data={WEBHOOKS: {"p1": "hook1"}}, options={
+        **entry.options, OPT_OPENGYM_URL: "http://app-host:8099", OPT_OPENGYM_LINK: "https://ha.example.test/opengym", OPT_INVITES: {"p1": "code1"}})
+    resp = await (await client("alex")).get(f"{UI}/connect", params={"person": "p1"})
+    assert (await resp.json())["opengym"] == {"url": "https://ha.example.test/opengym", "invite": "code1", "in_ha": True}
+
+
+async def test_connect_keeps_the_address_for_an_own_opengym(hass, entry, client, send):
+    await send(SCORES)
+    hass.config_entries.async_update_entry(entry, data={WEBHOOKS: {"p1": "hook1"}}, options={
+        **entry.options, OPT_OPENGYM_URL: "https://gym.example.test", OPT_INVITES: {"p1": "code1"}})
+    resp = await (await client("alex")).get(f"{UI}/connect", params={"person": "p1"})
+    assert (await resp.json())["opengym"] == {"url": "https://gym.example.test", "invite": "code1", "in_ha": False}
 
 
 async def test_connect_admin_without_person(hass, entry, client, send):

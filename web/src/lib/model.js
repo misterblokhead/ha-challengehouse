@@ -342,6 +342,16 @@ const STEPS = {
 };
 export const connectSteps = (phone) => STEPS[phone] ?? { title: "Which phone do you have?", steps: [] };
 
+// The openGym invite sentence as parts, so the page can set the code in bold without HTML. An app inside Home Assistant is opened
+// from its sidebar in a browser (the Home Assistant app can't make a home-screen shortcut); otherwise from its own address.
+export function gymCaption(gym) {
+  if (!gym?.invite) return null;
+  const open = gym.in_ha
+    ? `Open openGym from the Home Assistant sidebar in Chrome, not in the Home Assistant app (${gym.url}). Choose`
+    : `Open openGym at ${gym.url}, choose`;
+  return { before: `${open} Create new profile, enter code `, code: gym.invite, after: ", then Add to Home Screen." };
+}
+
 // "Connected · last workout received today, 07:05" (local time; the date instead of "today" on another day). Nothing received yet:
 // a person with workouts already (migrated from before the update) is not waiting for a first one.
 export function connectStatus(info, now, person = null) {

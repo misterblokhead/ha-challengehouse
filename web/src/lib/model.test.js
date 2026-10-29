@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { counts, goals, ringFractions, stepsLine, togetherLine, rewardLine, levelProgress, weekLabel, staleSince, feedRow, planBar, layout, shortDate, pendingDone, PENDING_MS, serial, shoeRow, goalsDraft, maxHrText, clampGoal, isoWeek, goalsDone, withPendingGoals, weekBars, localDay, stepsSummary, liftSet, liftLine, GROUPS, groupRows, groupedLifts, paceText, recordKeys, SHOE_LIMITS, SHOE_DEFAULT_KM, shoesManageable, shoeForm, shoePicker, mergeOlder, minusDays, olderState, connectOnTop, connectSteps, connectStatus, connectIds, programmeText, checkLine } from "./model.js";
+import { counts, goals, ringFractions, stepsLine, togetherLine, rewardLine, levelProgress, weekLabel, staleSince, feedRow, planBar, layout, shortDate, pendingDone, PENDING_MS, serial, shoeRow, goalsDraft, maxHrText, clampGoal, isoWeek, goalsDone, withPendingGoals, weekBars, localDay, stepsSummary, liftSet, liftLine, GROUPS, groupRows, groupedLifts, paceText, recordKeys, SHOE_LIMITS, SHOE_DEFAULT_KM, shoesManageable, shoeForm, shoePicker, mergeOlder, minusDays, olderState, connectOnTop, connectSteps, connectStatus, connectIds, gymCaption, programmeText, checkLine } from "./model.js";
 
 const week = { runs: 1, workouts: 2, active_days: 3, bonus: 1, goal: { runs: 2, workouts: 2, active_days: 4, steps: 10000 }, days_left: 3, week: "2026-W44" };
 
@@ -578,4 +578,14 @@ test("connectIds: whoever the integration says the viewer may connect, own perso
   assert.deepEqual(connectIds({ person: null, can_connect: [] }, people), []);
   assert.deepEqual(connectIds({ person: null }, people), []); // an older payload without can_connect
   assert.deepEqual(connectIds({ person: "a", can_edit: ["a", "b"] }, people), ["a"]); // can_edit is not the connect rule
+});
+
+test("gymCaption: the invite sentence in parts (the code is rendered bold); from the Home Assistant sidebar when in_ha", () => {
+  const own = gymCaption({ url: "https://gym.example.test", invite: "AB-12", in_ha: false });
+  assert.deepEqual(own, { before: "Open openGym at https://gym.example.test, choose Create new profile, enter code ", code: "AB-12", after: ", then Add to Home Screen." });
+  const app = gymCaption({ url: "https://ha.example.test/opengym", invite: "AB-12", in_ha: true });
+  assert.deepEqual(app, { before: "Open openGym from the Home Assistant sidebar in Chrome, not in the Home Assistant app (https://ha.example.test/opengym). Choose Create new profile, enter code ", code: "AB-12", after: ", then Add to Home Screen." });
+  assert.equal(gymCaption({ url: "u", invite: "c" }).before.startsWith("Open openGym at u"), true); // an older payload without in_ha
+  assert.equal(gymCaption(null), null); // no openGym, or no invite yet
+  assert.equal(gymCaption({ url: "u", invite: null, in_ha: true }), null);
 });
