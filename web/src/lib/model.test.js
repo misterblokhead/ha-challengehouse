@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { counts, goals, ringFractions, stepsLine, togetherLine, rewardLine, levelProgress, weekLabel, staleSince, feedRow, planBar, layout, shortDate, pendingDone, PENDING_MS, serial, shoeRow, goalsDraft, maxHrText, clampGoal, isoWeek, goalsDone, withPendingGoals, weekBars, localDay, stepsSummary, liftSet, liftLine, GROUPS, groupRows, groupedLifts, paceText, recordKeys, SHOE_LIMITS, SHOE_DEFAULT_KM, shoesManageable, shoeForm, shoePicker, mergeOlder, minusDays, olderState } from "./model.js";
+import { counts, goals, ringFractions, stepsLine, togetherLine, rewardLine, levelProgress, weekLabel, staleSince, feedRow, planBar, layout, shortDate, pendingDone, PENDING_MS, serial, shoeRow, goalsDraft, maxHrText, clampGoal, isoWeek, goalsDone, withPendingGoals, weekBars, localDay, stepsSummary, liftSet, liftLine, GROUPS, groupRows, groupedLifts, paceText, recordKeys, SHOE_LIMITS, SHOE_DEFAULT_KM, shoesManageable, shoeForm, shoePicker, mergeOlder, minusDays, olderState, connectOnTop, connectSteps, connectStatus, connectIds } from "./model.js";
 
 const week = { runs: 1, workouts: 2, active_days: 3, bonus: 1, goal: { runs: 2, workouts: 2, active_days: 4, steps: 10000 }, days_left: 3, week: "2026-W44" };
 
@@ -476,4 +476,44 @@ test("olderState: a Remove/Restore/Delete the integration took shows on the load
   const done = { "p1/a": true, "p1/b": false, "p1/manual:c": null, "p2/d": true };
   assert.deepEqual(olderState(older, "p1", done), [{ key: "a", excluded: true }, { key: "b", excluded: false }, { key: "d", excluded: false }]);
   assert.deepEqual(olderState(older, "p1", {}), older);
+});
+
+test("planBar: no plan (a fresh person) gives no bar; the layout copes with a person without a plan", () => {
+  assert.deepEqual(planBar(null), []);
+  assert.deepEqual(layout({ person: "sam", can_edit: [] }, { sam: { plan: null, feed: [] } }), { self: "sam", others: [] });
+});
+
+test("connectOnTop: only a fresh person with no workout received and no feed", () => {
+  const info = { url: "https://example.test/hook", last_received: null };
+  assert.equal(connectOnTop({ feed: [] }, info), true);
+  assert.equal(connectOnTop({ feed: [{ key: "a" }] }, info), false); // migrated, has history
+  assert.equal(connectOnTop({ feed: [] }, { ...info, last_received: "2026-10-29T10:00:00+00:00" }), false);
+  assert.equal(connectOnTop({ feed: [] }, undefined), false); // not allowed or not loaded
+  assert.equal(connectOnTop({ feed: [] }, null), false);
+});
+
+test("connectSteps: per phone; none yet asks for a choice", () => {
+  const ios = connectSteps("iphone"), droid = connectSteps("android");
+  assert.match(ios.steps.join(" "), /Health Exporter/);
+  assert.match(ios.steps.join(" "), /social app/);
+  assert.match(ios.steps.join(" "), /Apple Watch workout/);
+  assert.match(droid.steps.join(" "), /OpenTracks/);
+  assert.match(droid.steps.join(" "), /Automate/);
+  assert.match(droid.steps.join(" "), /phone\//);
+  assert.deepEqual(connectSteps(null), { title: "Which phone do you have?", steps: [] });
+});
+
+test("connectStatus: waiting, or connected with the local time of the last workout (the day when not today)", () => {
+  const at = new Date(2026, 9, 29, 7, 5), now = new Date(2026, 9, 29, 20, 0);
+  assert.deepEqual(connectStatus({ last_received: null }, now), { state: "waiting", text: "Waiting for the first workout" });
+  assert.deepEqual(connectStatus({ last_received: at.toISOString() }, now), { state: "connected", text: "Connected · last workout received today, 07:05" });
+  assert.equal(connectStatus({ last_received: at.toISOString() }, new Date(2026, 10, 2)).text, "Connected · last workout received 29 Oct, 07:05");
+});
+
+test("connectIds: the viewer's own person and everyone they can edit (admins: all), once, only people on the page", () => {
+  const people = { a: {}, b: {}, c: {} };
+  assert.deepEqual(connectIds({ person: "a", can_edit: ["a"] }, people), ["a"]);
+  assert.deepEqual(connectIds({ person: "a", can_edit: ["a", "b", "c"] }, people), ["a", "b", "c"]);
+  assert.deepEqual(connectIds({ person: null, can_edit: ["b", "gone"] }, people), ["b"]);
+  assert.deepEqual(connectIds({ person: null, can_edit: [] }, people), []);
 });

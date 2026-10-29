@@ -720,6 +720,60 @@
       "run_shoes": {
         "endurain:201": 4
       }
+    },
+    "jo": {
+      "name": "Jo",
+      "xp": 0,
+      "level": 1,
+      "level_floor": 0,
+      "next_level_xp": 100,
+      "week": {
+        "week": "2026-W44",
+        "runs": 0,
+        "workouts": 0,
+        "active_days": 0,
+        "bonus": 0,
+        "goal_met": false,
+        "paused": false,
+        "days_left": 3,
+        "progress": 0,
+        "goal": {
+          "runs": 2,
+          "workouts": 2,
+          "active_days": 3,
+          "steps": 8000
+        },
+        "last_week": {
+          "week": "2026-W43",
+          "runs": 1,
+          "workouts": 2,
+          "active_days": 2,
+          "goal_met": false,
+          "paused": false
+        }
+      },
+      "streak": 0,
+      "best_streak": 0,
+      "plan": null,
+      "badges": {
+        "count": 0,
+        "recent": [],
+        "next": [],
+        "unlocked": []
+      },
+      "pbs": {
+        "longest_session_km": 0,
+        "prs": 0,
+        "gym_tonnes": 0,
+        "lifts": [],
+        "fastest_1k": null
+      },
+      "recent": [],
+      "feed": [],
+      "shoes": [],
+      "steps_today": null,
+      "steps_week": null,
+      "run_shoes": {}
     }
   },
   "group": {
@@ -758,7 +812,8 @@
   "viewer": {
     "person": "alex",
     "can_edit": [
-      "alex"
+      "alex",
+      "jo"
     ]
   },
   "settings_error": null

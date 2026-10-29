@@ -1,0 +1,10 @@
+{
+  "url": "https://example.test/api/webhook/demo-hook",
+  "external": false,
+  "phone": null,
+  "last_received": null,
+  "opengym": {
+    "url": "https://opengym.example.test",
+    "invite": "DEMO-1234"
+  }
+}

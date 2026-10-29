@@ -33,14 +33,14 @@ function y() {
 		reject: t
 	};
 }
-function b(e, t) {
+function ee(e, t) {
 	if (Array.isArray(e)) return e;
 	if (t === void 0 || !(Symbol.iterator in e)) return Array.from(e);
 	let n = [];
 	for (let r of e) if (n.push(r), n.length === t) break;
 	return n;
 }
-var x = 1024, S = 2048, C = 4096, ee = 8192, te = 16384, ne = 32768, re = 1 << 25, ie = 65536, ae = 1 << 19, oe = 1 << 20, se = 1 << 25, ce = 1 << 21, le = 1 << 22, ue = 1 << 23, w = Symbol("$state"), de = Symbol("component"), fe = Symbol("legacy props"), pe = Symbol(""), me = Symbol("attributes"), he = Symbol("class"), ge = Symbol("style"), _e = Symbol("text"), ve = Symbol("form reset"), ye = new class extends Error {
+var b = 1024, x = 2048, S = 4096, C = 8192, te = 16384, ne = 32768, re = 1 << 25, ie = 65536, ae = 1 << 19, oe = 1 << 20, se = 1 << 25, ce = 1 << 21, le = 1 << 22, ue = 1 << 23, w = Symbol("$state"), de = Symbol("component"), fe = Symbol("legacy props"), pe = Symbol(""), me = Symbol("attributes"), he = Symbol("class"), ge = Symbol("style"), _e = Symbol("text"), ve = Symbol("form reset"), ye = new class extends Error {
 	name = "StaleReactionError";
 	message = "The reaction that called `getAbortSignal()` was re-run or destroyed";
 }(), be = !!globalThis.document?.contentType && /* @__PURE__ */ globalThis.document.contentType.includes("xml"), xe = {}, T = Symbol("uninitialized"), Se = "http://www.w3.org/1999/xhtml";
@@ -239,16 +239,16 @@ function ot() {
 	for (; it.length > 0;) at();
 }
 // node_modules/svelte/src/internal/client/reactivity/status.js
-var st = ~(S | C | x);
+var st = ~(x | S | b);
 function j(e, t) {
 	e.f = e.f & st | t;
 }
 function ct(e) {
-	e.f & 512 || e.deps === null ? j(e, x) : j(e, C);
+	e.f & 512 || e.deps === null ? j(e, b) : j(e, S);
 }
 // node_modules/svelte/src/internal/client/reactivity/utils.js
 function lt(e, t, n) {
-	e.f & 2048 ? t.add(e) : e.f & 4096 && n.add(e), j(e, x);
+	e.f & 2048 ? t.add(e) : e.f & 4096 && n.add(e), j(e, b);
 }
 // node_modules/svelte/src/internal/client/dom/elements/misc.js
 var ut = !1;
@@ -325,7 +325,7 @@ function _t() {
 }
 /*#__NO_SIDE_EFFECTS__*/
 function vt(e) {
-	var t = 2 | S;
+	var t = 2 | x;
 	return q !== null && (q.f |= ae), {
 		ctx: k,
 		deps: null,
@@ -410,7 +410,7 @@ function wt(e) {
 }
 function Tt(e) {
 	var t = wt(e);
-	!e.equals(t) && (e.wv = Zn(), (!M?.is_fork || e.deps === null) && (M === null ? e.v = t : (M.capture(e, t, !0), kt?.capture(e, t, !0)), e.deps === null)) ? j(e, x) : Un || (N === null ? ct(e) : (xn() || M?.is_fork) && N.set(e, t));
+	!e.equals(t) && (e.wv = Zn(), (!M?.is_fork || e.deps === null) && (M === null ? e.v = t : (M.capture(e, t, !0), kt?.capture(e, t, !0)), e.deps === null)) ? j(e, b) : Un || (N === null ? ct(e) : (xn() || M?.is_fork) && N.set(e, t));
 }
 function Et(e) {
 	if (e.effects !== null) for (let t of e.effects) (t.teardown || t.ac) && (t.teardown?.(), t.ac !== null && ft(() => {
@@ -470,8 +470,8 @@ var Ot = null, M = null, kt = null, N = null, At = null, jt = !1, Mt = !1, Nt = 
 		var n = this.#f.get(e);
 		if (n) {
 			this.#f.delete(e);
-			for (var r of n.d) j(r, S), t(r);
-			for (r of n.m) j(r, C), t(r);
+			for (var r of n.d) j(r, x), t(r);
+			for (r of n.m) j(r, S), t(r);
 		}
 		this.#p.add(e);
 	}
@@ -486,7 +486,7 @@ var Ot = null, M = null, kt = null, N = null, At = null, jt = !1, Mt = !1, Nt = 
 						n = !0;
 						break;
 					}
-					t.f ^= x;
+					t.f ^= b;
 				}
 			}
 			n || e.push(t);
@@ -495,8 +495,8 @@ var Ot = null, M = null, kt = null, N = null, At = null, jt = !1, Mt = !1, Nt = 
 	}
 	#_() {
 		this.#e = !0;
-		for (let e of this.#u) this.#d.delete(e), j(e, S), this.schedule(e);
-		for (let e of this.#d) j(e, C), this.schedule(e);
+		for (let e of this.#u) this.#d.delete(e), j(e, x), this.schedule(e);
+		for (let e of this.#d) j(e, S), this.schedule(e);
 		this.apply();
 		for (var t = Nt = [], n = [], r = Pt = []; this.#c.length > 0;) {
 			Ft++ > 1e3 && (this.#S(), zt());
@@ -533,11 +533,11 @@ var Ot = null, M = null, kt = null, N = null, At = null, jt = !1, Mt = !1, Nt = 
 		}
 	}
 	#v(e, t, n) {
-		e.f ^= x;
+		e.f ^= b;
 		for (var r = e.first; r !== null;) {
 			var i = r.f, a = !!(i & 96);
 			if (!(a && i & 1024 || i & 8192 || this.#f.has(r)) && r.fn !== null) {
-				a ? r.f ^= x : i & 4 ? t.push(r) : Qn(r) && (i & 16 && this.#d.add(r), ir(r));
+				a ? r.f ^= b : i & 4 ? t.push(r) : Qn(r) && (i & 16 && this.#d.add(r), ir(r));
 				var o = r.first;
 				if (o !== null) {
 					r = o;
@@ -577,7 +577,7 @@ var Ot = null, M = null, kt = null, N = null, At = null, jt = !1, Mt = !1, Nt = 
 				if (r & 2) t(e);
 				else {
 					var i = e;
-					r & 4194320 && !this.async_deriveds.has(i) && (this.#d.delete(i), j(i, S), this.schedule(i));
+					r & 4194320 && !this.async_deriveds.has(i) && (this.#d.delete(i), j(i, x), this.schedule(i));
 				}
 			}
 		};
@@ -711,12 +711,12 @@ function Vt(e) {
 }
 function Ht(e, t) {
 	if (!(e.f & 32 && e.f & 1024)) {
-		e.f & 2048 ? t.d.push(e) : e.f & 4096 && t.m.push(e), j(e, x);
+		e.f & 2048 ? t.d.push(e) : e.f & 4096 && t.m.push(e), j(e, b);
 		for (var n = e.first; n !== null;) Ht(n, t), n = n.next;
 	}
 }
 function Ut(e) {
-	j(e, x);
+	j(e, b);
 	for (var t = e.first; t !== null;) Ut(t), t = t.next;
 }
 // node_modules/svelte/src/internal/client/reactivity/sources.js
@@ -753,14 +753,14 @@ function Xt(e, t, n = null) {
 			let t = e;
 			e.f & 2048 && wt(t), N === null && ct(t);
 		}
-		e.wv = Zn(), Jt = null, Yt = 0, $t(e, S, n), Jt = null, rt() && q !== null && q.f & 1024 && !(q.f & 96) && (Q === null ? Kn([e]) : Q.push(e)), !r.is_fork && Wt.size > 0 && !Gt && Zt();
+		e.wv = Zn(), Jt = null, Yt = 0, $t(e, x, n), Jt = null, rt() && q !== null && q.f & 1024 && !(q.f & 96) && (Q === null ? Kn([e]) : Q.push(e)), !r.is_fork && Wt.size > 0 && !Gt && Zt();
 	}
 	return t;
 }
 function Zt() {
 	Gt = !1;
 	for (let e of Wt) {
-		e.f & 1024 && j(e, C);
+		e.f & 1024 && j(e, S);
 		let t;
 		try {
 			t = Qn(e);
@@ -785,11 +785,11 @@ function $t(e, t, n) {
 		for (var o = 0; o < a; o++) {
 			var s = r[o], c = s.f;
 			if (i || s !== q) {
-				var l = (c & S) === 0;
+				var l = (c & x) === 0;
 				if (l && j(s, t), c & 131072) Wt.add(s);
 				else if (c & 2) {
 					var u = s;
-					N?.delete(u), $t(u, C, n);
+					N?.delete(u), $t(u, S, n);
 				} else if (l) {
 					var d = s;
 					c & 16 && P !== null && P.add(d), n === null ? Vt(d) : n.push(d);
@@ -1012,12 +1012,12 @@ function bn(e, t) {
 }
 function V(e, t) {
 	var n = q;
-	n !== null && n.f & 8192 && (e |= ee);
+	n !== null && n.f & 8192 && (e |= C);
 	var r = {
 		ctx: k,
 		deps: null,
 		nodes: null,
-		f: e | S | 512,
+		f: e | x | 512,
 		first: null,
 		fn: t,
 		last: null,
@@ -1051,7 +1051,7 @@ function xn() {
 }
 function Sn(e) {
 	let t = V(8, null);
-	return j(t, x), t.teardown = e, t;
+	return j(t, b), t.teardown = e, t;
 }
 function Cn(e) {
 	yn("$effect");
@@ -1161,7 +1161,7 @@ function Ln(e, t, n = !0) {
 }
 function Rn(e, t, n) {
 	if (!(e.f & 8192)) {
-		e.f ^= ee;
+		e.f ^= C;
 		var r = e.nodes && e.nodes.t;
 		if (r !== null) for (let e of r) (e.is_global || n) && t.push(e);
 		for (var i = e.first; i !== null;) {
@@ -1179,7 +1179,7 @@ function zn(e) {
 }
 function Bn(e, t) {
 	if (!(e.f & 256) && e.f & 8192) {
-		e.f ^= ee, e.f & 1024 || (j(e, S), Lt.ensure().schedule(e));
+		e.f ^= C, e.f & 1024 || (j(e, x), Lt.ensure().schedule(e));
 		for (var n = e.first; n !== null;) {
 			var r = n.next, i = !!(n.f & 65536) || !!(n.f & 32);
 			Bn(n, i ? t : !1), n = r;
@@ -1230,7 +1230,7 @@ function Qn(e) {
 			var a = n[i];
 			if (Qn(a) && Tt(a), a.wv > e.wv) return !0;
 		}
-		t & 512 && N === null && j(e, x);
+		t & 512 && N === null && j(e, b);
 	}
 	return !1;
 }
@@ -1238,7 +1238,7 @@ function $n(e, t, n = !0) {
 	var r = e.reactions;
 	if (r !== null && !(Y !== null && Y.has(e))) for (var i = 0; i < r.length; i++) {
 		var a = r[i];
-		a.f & 2 ? $n(a, t, !1) : t === a && (n ? j(a, S) : a.f & 1024 && j(a, C), Vt(a));
+		a.f & 2 ? $n(a, t, !1) : t === a && (n ? j(a, x) : a.f & 1024 && j(a, S), Vt(a));
 	}
 }
 function er(e) {
@@ -1286,7 +1286,7 @@ function nr(e, t) {
 	if (n === null && t.f & 2 && (X === null || !s.call(X, t))) {
 		var a = t;
 		a.f & 512 && (a.f ^= 512), a.v !== T && ct(a), a.ac !== null && ft(() => {
-			a.ac.abort(ye), a.ac = null, j(a, S);
+			a.ac.abort(ye), a.ac = null, j(a, x);
 		}), Et(a), rr(a, 0);
 	}
 }
@@ -1297,7 +1297,7 @@ function rr(e, t) {
 function ir(e) {
 	var t = e.f;
 	if (!(t & 16384)) {
-		j(e, x);
+		j(e, b);
 		var n = q;
 		q = e;
 		try {
@@ -1940,8 +1940,8 @@ function Xr(e, t, n, r, i, o = null) {
 			E && Me(s) === "[!" != (a === 0) && (s = je(), O(s), De(!1), c = !0);
 			for (var u = /* @__PURE__ */ new Set(), _ = M, v = hn(), y = 0; y < a; y += 1) {
 				E && D.nodeType === 8 && D.data === "]" && (s = D, c = !0, De(!1));
-				var b = e[y], x = r(b, y), S = m ? null : l.get(x);
-				S ? (S.v && Xt(S.v, b), S.i && Xt(S.i, y), v && _.unskip_effect(S.e)) : (S = $r(l, m ? s : Yr ??= R(), b, x, y, i, t, n), m || (S.e.f |= se), l.set(x, S)), u.add(x);
+				var ee = e[y], b = r(ee, y), x = m ? null : l.get(b);
+				x ? (x.v && Xt(x.v, ee), x.i && Xt(x.i, y), v && _.unskip_effect(x.e)) : (x = $r(l, m ? s : Yr ??= R(), ee, b, y, i, t, n), m || (x.e.f |= se), l.set(b, x)), u.add(b);
 			}
 			if (a === 0 && o && !d && (m ? d = H(() => o(s)) : (d = H(() => o(Yr ??= R())), d.f |= se)), a > u.size && Re("", "", ""), E && a > 0 && O(je()), !m) {
 				if (p.set(_, u), v) {
@@ -1979,12 +1979,12 @@ function Qr(e, t, n, r, i) {
 		if (_ !== l) {
 			if (u !== void 0 && u.has(_)) {
 				if (p.length < m.length) {
-					var b = m[0], x;
-					d = b.prev;
-					var S = p[0], C = p[p.length - 1];
-					for (x = 0; x < p.length; x += 1) ei(p[x], b, n);
-					for (x = 0; x < m.length; x += 1) u.delete(m[x]);
-					ti(e, S.prev, C.next), ti(e, d, S), ti(e, C, b), l = b, d = C, --v, p = [], m = [];
+					var ee = m[0], b;
+					d = ee.prev;
+					var x = p[0], S = p[p.length - 1];
+					for (b = 0; b < p.length; b += 1) ei(p[b], ee, n);
+					for (b = 0; b < m.length; b += 1) u.delete(m[b]);
+					ti(e, x.prev, S.next), ti(e, d, x), ti(e, S, ee), l = ee, d = S, --v, p = [], m = [];
 				} else u.delete(_), ei(_, l, n), ti(e, _.prev, _.next), ti(e, _, d === null ? e.effect.first : d.next), ti(e, d, _), d = _;
 				continue;
 			}
@@ -1998,17 +1998,17 @@ function Qr(e, t, n, r, i) {
 		e.outrogroups.size === 0 && (e.outrogroups = null);
 	}
 	if (l !== null || u !== void 0) {
-		var ee = [];
-		if (u !== void 0) for (_ of u) _.f & 8192 || ee.push(_);
-		for (; l !== null;) !(l.f & 8192) && l !== e.fallback && ee.push(l), l = Zr(l.next);
-		var te = ee.length;
+		var C = [];
+		if (u !== void 0) for (_ of u) _.f & 8192 || C.push(_);
+		for (; l !== null;) !(l.f & 8192) && l !== e.fallback && C.push(l), l = Zr(l.next);
+		var te = C.length;
 		if (te > 0) {
 			var ne = r & 4 && o === 0 ? n : null;
 			if (a) {
-				for (v = 0; v < te; v += 1) ee[v].nodes?.a?.measure();
-				for (v = 0; v < te; v += 1) ee[v].nodes?.a?.fix();
+				for (v = 0; v < te; v += 1) C[v].nodes?.a?.measure();
+				for (v = 0; v < te; v += 1) C[v].nodes?.a?.fix();
 			}
-			qr(e, ee, ne);
+			qr(e, C, ne);
 		}
 	}
 	a && A(() => {
@@ -2446,13 +2446,13 @@ function Ki(e, t, n, r) {
 	}
 	var v = !1, y = (n & 1 ? vt : St)(() => (v = !1, g()));
 	a && $(y);
-	var b = q;
+	var ee = q;
 	return (function(e, t) {
 		if (arguments.length > 0) {
 			let n = t ? $(y) : i && a ? en(e) : e;
 			return L(y, n), v = !0, s !== void 0 && (s = n), e;
 		}
-		return Un && v || b.f & 16384 ? y.v : $(y);
+		return Un && v || ee.f & 16384 ? y.v : $(y);
 	});
 }
 function qi(e) {
@@ -2574,6 +2574,7 @@ var ga = (e, t, n) => e.flatMap((e) => {
 	}];
 }), _a = (e, t) => (/* @__PURE__ */ new Date(Date.parse(`${e}T00:00:00Z`) - t * 864e5)).toISOString().slice(0, 10);
 function va(e) {
+	if (!e) return [];
 	let t = [["walk", e.warmup_s ?? 0], ...e.intervals].filter(([, e]) => e > 0), n = t.reduce((e, [, t]) => e + t, 0);
 	return t.map(([e, t]) => ({
 		kind: e,
@@ -2771,24 +2772,58 @@ var Va = (e) => `${e.w} ${e.unit} × ${e.r}`, Ha = [
 })), Ga = (e) => Ua(e).map(({ group: e, lifts: t }) => ({
 	group: e,
 	lifts: [...t].sort((e, t) => e.name.localeCompare(t.name))
-})), Ka = (e) => `${Math.floor(e / 60)}:${Xi(e % 60)}`, qa = (e) => new Set([...(e?.lifts ?? []).map((e) => e.key), e?.fastest_1k?.key].filter(Boolean)), Ja = (e) => String(e).padStart(2, "0"), Ya = (e) => /T(\d+:\d+)/.exec(e ?? "")?.[1] ?? "";
-function Xa(e) {
-	let t = Math.round(e), n = Math.floor(t / 3600), r = Math.floor(t % 3600 / 60);
-	return n ? `${n}:${Ja(r)}:${Ja(t % 60)}` : `${r}:${Ja(t % 60)}`;
+})), Ka = (e) => `${Math.floor(e / 60)}:${Xi(e % 60)}`, qa = (e) => new Set([...(e?.lifts ?? []).map((e) => e.key), e?.fastest_1k?.key].filter(Boolean)), Ja = (e, t) => !!t && t.last_received == null && !e.feed.length, Ya = (e, t) => [.../* @__PURE__ */ new Set([e.person, ...e.can_edit])].filter((e) => Object.hasOwn(t, e)), Xa = {
+	iphone: {
+		title: "iPhone",
+		steps: [
+			"Install Health Exporter & Shortcuts (a paid one-time app) and turn on routes in it.",
+			"In Shortcuts make a shortcut called \"Sync workouts\": Export Workouts (last 7 days, all types), then Repeat with each, then Get Contents of URL (method POST, request body File, your address).",
+			"Add a personal automation that runs it when a social app is opened.",
+			"Add a second one that runs it when an Apple Watch workout ends."
+		]
+	},
+	android: {
+		title: "Android",
+		steps: [
+			"Install OpenTracks from F-Droid and turn on instant GPX export.",
+			"Install Automate and import the flow file from the repo's phone/ folder.",
+			"Paste your address when it asks."
+		]
+	}
+}, Za = (e) => Xa[e] ?? {
+	title: "Which phone do you have?",
+	steps: []
+};
+function Qa(e, t) {
+	if (e.last_received == null) return {
+		state: "waiting",
+		text: "Waiting for the first workout"
+	};
+	let n = new Date(e.last_received);
+	return {
+		state: "connected",
+		text: `Connected · last workout received ${n.toDateString() === t.toDateString() ? "today" : `${n.getDate()} ${ua[n.getMonth()]}`}, ${Xi(n.getHours())}:${Xi(n.getMinutes())}`
+	};
 }
-var Za = (e) => e.summary.kind === "run" || e.summary.kind === "walk", Qa = (e) => !!e.route?.length && !Za(e), $a = (e) => e ? 3600 / e : null, eo = (e) => ({
+// src/lib/details.js
+var $a = (e) => String(e).padStart(2, "0"), eo = (e) => /T(\d+:\d+)/.exec(e ?? "")?.[1] ?? "";
+function to(e) {
+	let t = Math.round(e), n = Math.floor(t / 3600), r = Math.floor(t % 3600 / 60);
+	return n ? `${n}:${$a(r)}:${$a(t % 60)}` : `${r}:${$a(t % 60)}`;
+}
+var no = (e) => e.summary.kind === "run" || e.summary.kind === "walk", ro = (e) => !!e.route?.length && !no(e), io = (e) => e ? 3600 / e : null, ao = (e) => ({
 	title: e.name,
 	date: da(e.start, !1),
-	time: e.end ? `${Ya(e.start)}–${Ya(e.end)}` : Ya(e.start),
+	time: e.end ? `${eo(e.start)}–${eo(e.end)}` : eo(e.start),
 	duration: fa(e.minutes),
 	plan: e.plan ?? null
 });
-function to(e) {
-	let t = e.summary, n = t.km > 0 ? t.km : null, r = n && Za(e) ? Math.round(t.minutes * 60 / n) : null;
+function oo(e) {
+	let t = e.summary, n = t.km > 0 ? t.km : null, r = n && no(e) ? Math.round(t.minutes * 60 / n) : null;
 	return [
 		["Distance", n && `${n.toFixed(1)} km`],
-		["Pace", r && `${Xa(r)} /km`],
-		["Speed", n && Qa(e) && `${(n / (t.minutes / 60)).toFixed(1)} km/h`],
+		["Pace", r && `${to(r)} /km`],
+		["Speed", n && ro(e) && `${(n / (t.minutes / 60)).toFixed(1)} km/h`],
 		["Elevation gain", e.gain_m != null && `${Math.round(e.gain_m)} m`],
 		["Avg heart rate", t.avg_hr != null && `${Math.round(t.avg_hr)} bpm`],
 		["Max heart rate", t.max_hr != null && `${Math.round(t.max_hr)} bpm`],
@@ -2796,27 +2831,27 @@ function to(e) {
 		["Shoe", t.kind === "run" && t.shoe?.name]
 	].filter(([, e]) => e);
 }
-function no(e) {
-	let t = Qa(e);
+function so(e) {
+	let t = ro(e);
 	return e.splits.map((e, n) => ({
 		km: e.km === 1 ? String(n + 1) : `${e.km} km`,
-		time: Xa(e.s),
-		pace: e.pace ? t ? $a(e.pace).toFixed(1) : Xa(e.pace) : "—",
+		time: to(e.s),
+		pace: e.pace ? t ? io(e.pace).toFixed(1) : to(e.pace) : "—",
 		hr: e.hr == null ? "—" : String(e.hr),
 		climb: e.climb == null ? "—" : `${Math.round(e.climb)} m`
 	}));
 }
-function ro(e, t) {
+function co(e, t) {
 	if (!e) return null;
 	let n = e.reduce((e, t) => e + t, 0), r = (e) => Math.round(e * t);
 	return e.map((e, t) => ({
 		zone: `Z${t + 1}`,
 		bpm: t === 4 ? `${r(.9)}+` : `${r(.5 + t / 10)}–${r(.6 + t / 10)}`,
-		time: Xa(e),
+		time: to(e),
 		pct: n ? Math.round(e / n * 100) : 0
 	}));
 }
-var io = (e) => e && {
+var lo = (e) => e && {
 	exercises: e.exercises.map((e) => ({
 		name: e.name,
 		set: Va(e),
@@ -2824,21 +2859,21 @@ var io = (e) => e && {
 	})),
 	volume: `${Math.round(e.vol_kg).toLocaleString("en-US")} kg`
 };
-function ao(e) {
+function uo(e) {
 	if (!e.series) return null;
 	let { t, pace: n, hr: r, ele: i } = e.series;
 	return {
 		x: t,
 		list: [
-			Qa(e) ? {
+			ro(e) ? {
 				label: "Speed km/h",
-				values: n.map($a),
+				values: n.map(io),
 				color: "--gym"
 			} : {
 				label: "Pace /km",
 				values: n,
 				color: "--run",
-				fmt: Xa
+				fmt: to
 			},
 			{
 				label: "Heart rate",
@@ -2853,7 +2888,7 @@ function ao(e) {
 		].filter((e) => e.values.some((e) => e != null))
 	};
 }
-function oo(e, t, n) {
+function fo(e, t, n) {
 	return e?.can_edit?.includes(t) ? {
 		remove: ma(n).removable,
 		shoe: n.kind === "run"
@@ -2862,14 +2897,14 @@ function oo(e, t, n) {
 		shoe: !1
 	};
 }
-var so = (e) => ({
+var po = (e) => ({
 	file_missing: "Route file not found",
 	file_unreadable: "Route file unreadable"
-})[e] ?? null, co = en({
+})[e] ?? null, mo = en({
 	wide: !1,
 	reducedMotion: !1
-}), lo = matchMedia("(min-width: 768px)"), uo = matchMedia("(prefers-reduced-motion: reduce)"), fo = () => {
-	co.wide = lo.matches, co.reducedMotion = uo.matches;
+}), ho = matchMedia("(min-width: 768px)"), go = matchMedia("(prefers-reduced-motion: reduce)"), _o = () => {
+	mo.wide = ho.matches, mo.reducedMotion = go.matches;
 };
-lo.addEventListener("change", fo), uo.addEventListener("change", fo), fo();
-export { Ki as $, r as $t, ha as A, $ as At, Ea as B, L as Bt, Ga as C, Ar as Ct, Va as D, yr as Dt, oa as E, Mr as Et, va as F, un as Ft, ca as G, Ze as Gt, Ca as H, xt as Ht, qa as I, dn as It, ia as J, ke as Jt, ra as K, Ye as Kt, aa as L, fn as Lt, ga as M, An as Mt, Ka as N, Cn as Nt, Ra as O, vr as Ot, xa as P, rn as Pt, qi as Q, i as Qt, ta as R, pn as Rt, Wa as S, jr as St, ya as T, kr as Tt, Ta as U, tt as Ut, Da as V, I as Vt, ba as W, et as Wt, sa as X, b as Xt, za as Y, g as Yt, La as Z, n as Zt, ea as _, Kr as _t, to as a, ji as at, Ia as b, Rr as bt, so as c, Ei as ct, no as d, mi as dt, t as en, Hi as et, ro as f, fi as ft, ja as g, Xr as gt, wa as h, ni as ht, oo as i, Ni as it, _a as j, ar as jt, Na as k, _r as kt, Za as l, vi as lt, ka as m, ri as mt, ao as n, Bi as nt, io as o, Ti as ot, Oa as p, oi as pt, Ba as q, Ae as qt, Xa as r, Ri as rt, eo as s, Di as st, co as t, Vi as tt, Qa as u, _i as ut, ma as v, Gr as vt, Pa as w, Dr as wt, Ma as x, Lr as xt, $i as y, Ur as yt, Sa as z, en as zt };
+ho.addEventListener("change", _o), go.addEventListener("change", _o), _o();
+export { za as $, g as $t, oa as A, Mr as At, qa as B, dn as Bt, $i as C, Ur as Ct, Ga as D, Ar as Dt, Wa as E, jr as Et, _a as F, ar as Ft, Da as G, I as Gt, ta as H, pn as Ht, ga as I, An as It, ba as J, et as Jt, Ca as K, xt as Kt, Ka as L, Cn as Lt, Ra as M, vr as Mt, Na as N, _r as Nt, Pa as O, Dr as Ot, ha as P, $ as Pt, ia as Q, ke as Qt, xa as R, rn as Rt, ma as S, Gr as St, Ma as T, Lr as Tt, Sa as U, en as Ut, aa as V, fn as Vt, Ea as W, L as Wt, ra as X, Ye as Xt, ca as Y, Ze as Yt, Ba as Z, Ae as Zt, Ya as _, oi as _t, oo as a, Vi as at, Za as b, Xr as bt, po as c, Ni as ct, so as d, Di as dt, ee as en, sa as et, co as f, Ei as ft, ja as g, fi as gt, wa as h, mi as ht, fo as i, t as in, Hi as it, Va as j, yr as jt, ya as k, kr as kt, no as l, ji as lt, ka as m, _i as mt, uo as n, i as nn, qi as nt, lo as o, Bi as ot, Oa as p, vi as pt, Ta as q, tt as qt, to as r, r as rn, Ki as rt, ao as s, Ri as st, mo as t, n as tn, La as tt, ro as u, Ti as ut, Ja as v, ri as vt, Ia as w, Rr as wt, ea as x, Kr as xt, Qa as y, ni as yt, va as z, un as zt };

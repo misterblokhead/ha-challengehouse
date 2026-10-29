@@ -100,6 +100,7 @@ export const olderState = (items, person, done) =>
 export const minusDays = (day, n) => new Date(Date.parse(`${day}T00:00:00Z`) - n * 864e5).toISOString().slice(0, 10);
 
 export function planBar(plan) {
+  if (!plan) return []; // a person without a plan has no bar
   const segs = [["walk", plan.warmup_s ?? 0], ...plan.intervals].filter(([, s]) => s > 0);
   const total = segs.reduce((t, [, s]) => t + s, 0);
   return segs.map(([kind, s]) => ({ kind, frac: s / total }));
@@ -278,3 +279,39 @@ export const paceText = (seconds) => `${Math.floor(seconds / 60)}:${pad(seconds 
 
 // The feed keys of the workouts that hold a record (a lift's best set, the fastest 1 km), for the 🏆.
 export const recordKeys = (pbs) => new Set([...(pbs?.lifts ?? []).map((l) => l.key), pbs?.fastest_1k?.key].filter(Boolean));
+
+// The Connect card (webhook URL and phone steps; `info` is the integration's `connect` answer, undefined when not allowed or not loaded).
+// On top of the page only for a fresh person: nothing received yet and no workouts on the page (migrated people keep it in Details).
+export const connectOnTop = (person, info) => !!info && info.last_received == null && !person.feed.length;
+
+// The people to ask `connect` about: the viewer's own and everyone they may edit (an admin's can_edit is everyone); the integration says 403 to the rest.
+export const connectIds = (viewer, people) => [...new Set([viewer.person, ...viewer.can_edit])].filter((id) => Object.hasOwn(people, id));
+
+const STEPS = {
+  iphone: {
+    title: "iPhone",
+    steps: [
+      "Install Health Exporter & Shortcuts (a paid one-time app) and turn on routes in it.",
+      "In Shortcuts make a shortcut called \"Sync workouts\": Export Workouts (last 7 days, all types), then Repeat with each, then Get Contents of URL (method POST, request body File, your address).",
+      "Add a personal automation that runs it when a social app is opened.",
+      "Add a second one that runs it when an Apple Watch workout ends.",
+    ],
+  },
+  android: {
+    title: "Android",
+    steps: [
+      "Install OpenTracks from F-Droid and turn on instant GPX export.",
+      "Install Automate and import the flow file from the repo's phone/ folder.",
+      "Paste your address when it asks.",
+    ],
+  },
+};
+export const connectSteps = (phone) => STEPS[phone] ?? { title: "Which phone do you have?", steps: [] };
+
+// "Connected · last workout received today, 07:05" (local time; the date instead of "today" on another day)
+export function connectStatus(info, now) {
+  if (info.last_received == null) return { state: "waiting", text: "Waiting for the first workout" };
+  const at = new Date(info.last_received);
+  const day = at.toDateString() === now.toDateString() ? "today" : `${at.getDate()} ${MONTHS[at.getMonth()]}`;
+  return { state: "connected", text: `Connected · last workout received ${day}, ${pad(at.getHours())}:${pad(at.getMinutes())}` };
+}

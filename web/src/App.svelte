@@ -2,7 +2,8 @@
   import { tick } from "svelte";
   import { pendingGoals, refresh, settle } from "./lib/actions.svelte.js";
   import { get } from "./lib/api.js";
-  import { layout, weekLabel, withPendingGoals } from "./lib/model.js";
+  import { connectIds, connectOnTop, layout, weekLabel, withPendingGoals } from "./lib/model.js";
+  import Connect from "./lib/ui/Connect.svelte";
   import Details from "./lib/ui/Details.svelte";
   import Goals from "./lib/ui/Goals.svelte";
   import Header from "./lib/ui/Header.svelte";
@@ -42,6 +43,7 @@
   let data = $state(null);
   let failure = $state(null);
   let now = $state(new Date());
+  let connects = $state({}); // person -> the integration's `connect` answer; a person the viewer may not connect (403) never gets one
 
   // Every 60 s, and when the page comes back into view; before the first scores (503 "waiting", or no answer) every 30 s.
   // A failed reload keeps the scores already shown.
@@ -59,9 +61,15 @@
       failure = e;
     }
     now = new Date();
+    if (data) loadConnects(data);
     clearTimeout(timer); // a visibilitychange load may have overlapped this one
     timer = setTimeout(load, data ? 60000 : 30000);
   }
+
+  // The Connect card's data for the viewer's own person and whoever they may edit; a failed or refused request leaves the card as it was (hidden).
+  const loadConnects = (d) =>
+    connectIds(d.viewer, d.people).forEach((id) =>
+      get(`connect?person=${encodeURIComponent(id)}`).then((info) => { connects[id] = info; }, () => {}));
 
   $effect(() => {
     load();
@@ -82,6 +90,7 @@
   const split = $derived(layout(data?.viewer ?? {}, people));
   const week = $derived(people[split.self ?? ids[0]]?.week);
   const canEdit = (id) => !!data?.viewer?.can_edit?.includes(id);
+  const connectTop = $derived(!!split.self && connectOnTop(people[split.self], connects[split.self]));
   const sheetShown = $derived((!!sheet && Object.hasOwn(people, sheet.id)) || (!!goals && !!data)); // the page is inert exactly while a sheet is there
 </script>
 
@@ -102,6 +111,7 @@
     {/if}
   {:else}
     <Status scoredAt={data.scored_at} configError={data.config_error} settingsError={data.settings_error} {now} />
+    {#if connectTop}<Connect info={connects[split.self]} {now} />{/if}
     {#if split.self}
       <!-- mapped viewer: the others compact on top, the own tile full width, the own details (Task 8) below -->
       {#if split.others.length}
@@ -119,7 +129,7 @@
       </div>
     {/if}
     {#if data.group}<Together group={data.group} {people} />{/if}
-    {#if split.self}<Details id={split.self} person={people[split.self]} canEdit={canEdit(split.self)} viewer={data.viewer} />{/if}
+    {#if split.self}<Details id={split.self} person={people[split.self]} canEdit={canEdit(split.self)} viewer={data.viewer} connect={connectTop ? null : connects[split.self]} {now} />{/if}
   {/if}
 </main>
 </div>
@@ -131,7 +141,7 @@
 {:else if sheetShown}
   <Sheet label="{people[sheet.id].name}'s details" from={sheet.from} onclose={closeSheet} onback={goBack}>
     <PersonTile person={people[sheet.id]} index={ids.indexOf(sheet.id)} />
-    <Details id={sheet.id} person={people[sheet.id]} canEdit={canEdit(sheet.id)} viewer={data.viewer} />
+    <Details id={sheet.id} person={people[sheet.id]} canEdit={canEdit(sheet.id)} viewer={data.viewer} connect={connects[sheet.id]} {now} />
   </Sheet>
 {/if}
 <Toast />

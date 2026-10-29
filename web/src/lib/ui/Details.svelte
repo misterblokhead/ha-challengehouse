@@ -1,5 +1,6 @@
 <script>
   import Badges from "./Badges.svelte";
+  import Connect from "./Connect.svelte";
   import Feed from "./Feed.svelte";
   import PlanBar from "./PlanBar.svelte";
   import Progress from "./Progress.svelte";
@@ -9,8 +10,9 @@
   import { recordKeys, shoesManageable } from "../model.js";
 
   // A person's plan, 90-day activity, badges, progress and shoes: inline under the viewer's own tile, or in the sheet for anyone else.
+  // `connect`: the Connect card's data when this viewer may connect this person (and it is not on top of the page already).
   // `canEdit`: this viewer may Remove/Restore this person's workouts (viewer.can_edit); a tap on a workout opens its pop-up.
-  let { id, person: p, canEdit, viewer } = $props();
+  let { id, person: p, canEdit, viewer, connect = null, now } = $props();
   const uid = $props.id();
   const records = $derived(recordKeys(p.pbs));
   const manage = $derived(shoesManageable(p, canEdit)); // live data and this viewer may edit: Manage, and each run's shoe
@@ -47,6 +49,8 @@
   </section>
   {#if manage}<ShoesDialog bind:this={shoesDialog} person={id} shoes={p.shoes} />{/if}
 {/if}
+
+{#if connect}<Connect info={connect} {now} collapsed />{/if}
 
 <style>
   h2 {
