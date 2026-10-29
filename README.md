@@ -12,7 +12,7 @@ household is hard-coded.
 
 ## Install
 
-**HACS:** HACS -> the three-dot menu -> Custom repositories -> add `https://github.com/misterblokhead/ha-fitbridge`,
+**HACS:** HACS -> the three-dot menu -> Custom repositories -> add `https://github.com/misterblokhead/ha-challengehouse`,
 type **Integration**. Install ChallengeHouse, then restart Home Assistant.
 
 **By hand:** copy `custom_components/fitbridge` into your `/config/custom_components/` folder and restart Home Assistant.
