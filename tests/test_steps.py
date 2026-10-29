@@ -1,11 +1,13 @@
 from datetime import date, timedelta
 
 import pytest
+from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
-from pytest_homeassistant_custom_component.common import async_fire_time_changed
+from pytest_homeassistant_custom_component.common import MockConfigEntry, async_fire_time_changed
 
 from custom_components.fitbridge.const import DOMAIN, OPT_STEPS, OPT_VIEWERS
-from custom_components.fitbridge.steps import record, trim, week
+from custom_components.fitbridge.steps import candidates, record, trim, week
 
 
 def test_record_keeps_the_days_maximum_and_ignores_non_numbers():
@@ -102,3 +104,33 @@ async def test_a_value_after_midnight_belongs_to_the_new_day(hass, saved, freeze
     await hass.async_block_till_done()
     await _tick(hass, 61)
     assert saved() == {"p1": {"2026-10-27": 9000, "2026-10-28": 120}}
+
+
+def _phone(hass, user_id, name, unit="steps", platform="mobile_app"):
+    """A sensor on a device of the user's mobile_app entry (one entry per user); returns its entity id."""
+    ce = next((e for e in hass.config_entries.async_entries("mobile_app") if e.data["user_id"] == user_id), None)
+    if ce is None:
+        ce = MockConfigEntry(domain="mobile_app", data={"user_id": user_id})
+        ce.add_to_hass(hass)
+    device = dr.async_get(hass).async_get_or_create(config_entry_id=ce.entry_id, identifiers={("mobile_app", name)})
+    ent = er.async_get(hass).async_get_or_create("sensor", platform, name, config_entry=ce, device_id=device.id, suggested_object_id=name)
+    hass.states.async_set(ent.entity_id, "10", {"unit_of_measurement": unit})
+    return ent.entity_id
+
+
+async def test_steps_candidate_prefilled(hass):
+    steps = _phone(hass, "u1", "phone_steps")
+    _phone(hass, "u1", "battery", unit="%")  # not a step counter
+    assert candidates(hass, "u1") == [steps]
+
+
+async def test_steps_several_candidates_limited(hass):
+    assert sorted(candidates(hass, "u1")) == []
+    a, b = _phone(hass, "u1", "phone_steps"), _phone(hass, "u1", "watch_steps")
+    assert sorted(candidates(hass, "u1")) == sorted([a, b])
+
+
+async def test_steps_candidates_other_user_ignored(hass):
+    _phone(hass, "u2", "phone_steps")
+    _phone(hass, "u1", "other_integration", platform="other")
+    assert candidates(hass, "u1") == []

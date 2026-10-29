@@ -4,6 +4,8 @@ from datetime import date, timedelta
 
 from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.event import async_call_later, async_track_state_change_event
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
@@ -20,6 +22,19 @@ def parse(value: str) -> int | None:
     except ValueError:
         return None
     return int(n) if math.isfinite(n) and n >= 0 else None
+
+
+def candidates(hass: HomeAssistant, user_id: str) -> list[str]:
+    """The user's phone and watch step counters: mobile_app entities with unit steps on the devices of the user's mobile_app entries."""
+    devices, entities = dr.async_get(hass), er.async_get(hass)
+    found = []
+    for entry in hass.config_entries.async_entries("mobile_app"):
+        if entry.data.get("user_id") != user_id:
+            continue
+        for device in dr.async_entries_for_config_entry(devices, entry.entry_id):
+            found += [e.entity_id for e in er.async_entries_for_device(entities, device.id)
+                      if e.platform == "mobile_app" and (s := hass.states.get(e.entity_id)) and s.attributes.get("unit_of_measurement") == "steps"]
+    return found
 
 
 def record(days: dict[str, int], day: str, value: str) -> bool:

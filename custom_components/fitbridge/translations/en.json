@@ -2,9 +2,54 @@
   "config": {
     "step": {
       "user": {
-        "title": "ChallengeHouse",
-        "description": "Adds the ChallengeHouse page to the sidebar and scores the household's workouts."
+        "title": "Who is taking part?",
+        "description": "ChallengeHouse adds a Fitness page to the sidebar and scores workouts. Tick everyone who takes part: each person gets their own score. Anyone you leave out can still look at the household page.",
+        "data": {
+          "users": "People"
+        }
+      },
+      "person": {
+        "title": "Set up a person",
+        "description": "Set up {name}. The step sensor counts daily steps; the phone's Home Assistant app makes one when its step counter is turned on.",
+        "data": {
+          "plan": "Plan",
+          "phone": "Phone",
+          "steps": "Step sensor (optional)"
+        }
+      },
+      "group": {
+        "title": "Group",
+        "description": "Two people can compete and cheer together as a couple.",
+        "data": {
+          "group": "Group these two as a couple"
+        }
+      },
+      "opengym": {
+        "title": "Gym tracking with openGym?",
+        "description": "openGym logs gym sessions. It is optional and can be added later in the ChallengeHouse options.",
+        "menu_options": {
+          "skip": "No gym tracking",
+          "pair": "Pair with openGym"
+        }
+      },
+      "pair": {
+        "title": "Pair with openGym",
+        "description": "openGym needs its own HTTPS address that never changes: a passkey only works at the address it was made for.\n\n1. Open openGym and create your account. The first account becomes the admin.\n2. Go to Settings, Account, Pair the mobile app.\n3. Paste the code here, with openGym's address.",
+        "data": {
+          "opengym_url": "openGym address",
+          "code": "Pairing code"
+        }
+      },
+      "gym_people": {
+        "title": "Who uses openGym?",
+        "description": "Pick each person's openGym account, or invite someone who has none yet: ChallengeHouse makes a sign-up code and shows it to them later. Leave Nobody for a person without openGym."
       }
+    },
+    "error": {
+      "no_people": "Tick at least one person.",
+      "invalid_code": "openGym did not accept this pairing code. Codes are 4 to 16 letters and digits; make a new one in openGym if it expired.",
+      "cannot_connect": "openGym could not be reached at this address.",
+      "invite_failed": "openGym could not make an invite. Check that it is running, or choose Nobody and invite later."
     },
     "abort": {
       "single_instance_allowed": "ChallengeHouse is already set up."

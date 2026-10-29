@@ -1,12 +1,8 @@
-import logging
-import re
 from pathlib import Path
 
-import aiohttp
 import voluptuous as vol
 from homeassistant import config_entries
-from homeassistant.core import callback
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.selector import (
     EntitySelector,
     EntitySelectorConfig,
@@ -17,22 +13,26 @@ from homeassistant.helpers.selector import (
     TextSelectorConfig,
     TextSelectorType,
 )
+from homeassistant.util import dt as dt_util
 
-from . import webhooks
+from . import gym, people, steps, webhooks
 from .const import (
     DOMAIN,
     OPENGYM_TOKEN,
     OPT_FOLDERS,
+    OPT_GROUP,
+    OPT_INVITES,
     OPT_OPENGYM_UIDS,
     OPT_OPENGYM_URL,
+    OPT_PEOPLE,
+    OPT_PHONES,
+    OPT_START,
     OPT_STEPS,
     OPT_VIEWERS,
+    PHONES,
     WEBHOOKS,
 )
 
-_LOGGER = logging.getLogger(__name__)
-CODE = re.compile(r"[A-Za-z0-9]{4,16}")  # as opengym-pair.sh checked it
-GYM_TIMEOUT = aiohttp.ClientTimeout(total=30)
 NEW_URLS = "new_urls"
 
 
@@ -41,17 +41,133 @@ def _labels(names: dict[str, str], tag=lambda k: k) -> dict[str, str]:
     return {k: n if list(names.values()).count(n) == 1 else f"{n} ({tag(k)})" for k, n in names.items()}
 
 
+def _choice(options: dict[str, str]) -> SelectSelector:
+    return SelectSelector(SelectSelectorConfig(
+        mode=SelectSelectorMode.DROPDOWN, options=[{"value": v, "label": n} for v, n in options.items()]))
+
+
+def _pair_schema() -> vol.Schema:
+    return vol.Schema({vol.Required(OPT_OPENGYM_URL): TextSelector(TextSelectorConfig(type=TextSelectorType.URL)),
+                       vol.Required("code"): TextSelector()})
+
+
+async def _pair(hass: HomeAssistant, user_input: dict) -> tuple[str, str | None, dict]:
+    """(address, token, errors) of a pairing form; the token is None when openGym did not give one."""
+    url, code = gym.normalize_url(user_input[OPT_OPENGYM_URL]), user_input["code"].strip()
+    if not gym.CODE.fullmatch(code):
+        return url, None, {"code": "invalid_code"}
+    try:
+        return url, await gym.async_redeem(hass, url, code), {}
+    except gym.GymError as err:
+        return url, None, {"base": err.reason}
+
+
 class FitbridgeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+    """Who takes part (HA users), each one's plan, phone and step sensor, a group for two, optionally openGym."""
     VERSION = 1
     MINOR_VERSION = 4  # 3: options without shadow and shoes; 4: people, group and start in the options (async_migrate_entry)
+
+    def __init__(self) -> None:
+        self._who: list[dict] = []  # per chosen user, in the order ticked: id, uid (HA user), name, then plan, phone, steps
+        self._group = False
+        self._url = self._token = None
 
     async def async_step_user(self, user_input=None):
         if self._async_current_entries():
             return self.async_abort(reason="single_instance_allowed")
-        if user_input is None:
-            return self.async_show_form(step_id="user")
+        users = {u.id: u.name or u.id[:6] for u in await self.hass.auth.async_get_users() if u.is_active and not u.system_generated}
+        errors = {}
+        if user_input is not None:
+            if user_input["users"]:
+                names = [users[uid] for uid in user_input["users"]]
+                self._who = [{"id": pid, "uid": uid, "name": name}
+                             for pid, uid, name in zip(people.make_ids(names), user_input["users"], names)]
+                return await self.async_step_person()
+            errors["users"] = "no_people"
+        options = [{"value": uid, "label": label} for uid, label in _labels(users, lambda uid: uid[:6]).items()]
+        return self.async_show_form(step_id="user", errors=errors, data_schema=vol.Schema({
+            vol.Required("users", default=[]): SelectSelector(SelectSelectorConfig(multiple=True, options=options))}))
+
+    async def async_step_person(self, user_input=None):
+        """Asked once per chosen user."""
+        who = next(w for w in self._who if "plan" not in w)
+        if user_input is not None:
+            who.update(user_input)
+            if any("plan" not in w for w in self._who):
+                return await self.async_step_person()
+            return await (self.async_step_group() if len(self._who) == 2 else self.async_step_opengym())
+        found = steps.candidates(self.hass, who["uid"])
+        sensor = EntitySelector(EntitySelectorConfig(domain="sensor", **({"include_entities": found} if len(found) > 1 else {})))
+        return self.async_show_form(step_id="person", description_placeholders={"name": who["name"]}, data_schema=vol.Schema({
+            vol.Required("plan", default="c25k"): _choice({"c25k": "Couch to 5K, starting today", "none": "No plan"}),
+            vol.Required("phone", default=PHONES[0]): _choice({"iphone": "iPhone", "android": "Android"}),
+            vol.Optional("steps", description={"suggested_value": found[0] if len(found) == 1 else None}): sensor}))
+
+    async def async_step_group(self, user_input=None):
+        if user_input is not None:
+            self._group = user_input["group"]
+            return await self.async_step_opengym()
+        return self.async_show_form(step_id="group", data_schema=vol.Schema({vol.Optional("group", default=True): bool}))
+
+    async def async_step_opengym(self, user_input=None):
+        return self.async_show_menu(step_id="opengym", menu_options=["skip", "pair"])
+
+    async def async_step_skip(self, user_input=None):
+        return await self._create({}, {})
+
+    async def async_step_pair(self, user_input=None):
+        errors = {}
+        if user_input is not None:
+            self._url, self._token, errors = await _pair(self.hass, user_input)
+            if self._token:
+                return await self.async_step_gym_people()
+        return self.async_show_form(step_id="pair", errors=errors, data_schema=self.add_suggested_values_to_schema(
+            _pair_schema(), {OPT_OPENGYM_URL: (user_input or {}).get(OPT_OPENGYM_URL)}))
+
+    async def async_step_gym_people(self, user_input=None):
+        """Each person: no openGym, a new invite, or an account openGym already has."""
+        labels = _labels({w["id"]: w["name"] for w in self._who})
+        errors = {}
+        if user_input is not None:
+            uids, invites = {}, {}
+            try:
+                for w in self._who:
+                    pick = user_input.get(labels[w["id"]])
+                    if pick == "invite":
+                        invites[w["id"]] = await gym.async_invite(self.hass, self._url, self._token, w["name"])
+                    elif pick:
+                        uids[w["id"]] = pick
+            except gym.GymError:
+                errors["base"] = "invite_failed"
+            else:
+                return await self._create(uids, invites)
+        try:
+            users = await gym.async_users(self.hass, self._url, self._token)
+        except gym.GymError:
+            users = []  # linking to an existing account can wait for Configure
+        select = _choice({"": "Nobody", "invite": "Invite", **{u["id"]: str(u.get("name") or u["id"]) for u in users}})
+        return self.async_show_form(step_id="gym_people", errors=errors, data_schema=vol.Schema({
+            vol.Optional(label, default=""): select for label in labels.values()}))
+
+    async def _create(self, uids: dict[str, str], invites: dict[str, str]):
+        today = dt_util.now().date()
+        options = {
+            OPT_PEOPLE: {w["id"]: people.person(w["name"], None if w["plan"] == "none" else w["plan"], today) for w in self._who},
+            OPT_START: today.isoformat(),
+            OPT_PHONES: {w["id"]: w["phone"] for w in self._who},
+            OPT_VIEWERS: {w["uid"]: w["id"] for w in self._who},
+            OPT_STEPS: {w["id"]: w["steps"] for w in self._who if w.get("steps")},
+        }
+        if self._group:
+            options[OPT_GROUP] = {"name": "couple", "members": [w["id"] for w in self._who]}
+        if self._url:
+            options[OPT_OPENGYM_URL] = self._url
+        if uids:
+            options[OPT_OPENGYM_UIDS] = uids
+        if invites:
+            options[OPT_INVITES] = invites
         await self.async_set_unique_id(DOMAIN)
-        return self.async_create_entry(title="ChallengeHouse", data={})
+        return self.async_create_entry(title="ChallengeHouse", data={OPENGYM_TOKEN: self._token} if self._token else {}, options=options)
 
     @staticmethod
     @callback
@@ -105,32 +221,12 @@ class FitbridgeOptionsFlow(config_entries.OptionsFlowWithReload):
         """openGym's address and a pairing code from it, exchanged for the token (never logged)."""
         errors = {}
         if user_input is not None:
-            url, code = user_input[OPT_OPENGYM_URL].strip().rstrip("/"), user_input["code"].strip()
-            if "://" not in url:  # the URL field accepts a bare host name
-                url = f"https://{url}"
-            if not CODE.fullmatch(code):
-                errors["code"] = "invalid_code"
-            else:
-                try:
-                    async with async_get_clientsession(self.hass).post(
-                            f"{url}/api/pair/redeem", json={"code": code}, timeout=GYM_TIMEOUT) as resp:
-                        reply = await resp.json(content_type=None)  # an unknown code comes with an error status
-                except (aiohttp.ClientError, TimeoutError, ValueError) as err:
-                    # the message names host and cause (DNS, TLS, refused); the code travels in the body, never in it
-                    _LOGGER.warning("Pairing with openGym at %s failed: %s: %s", url, type(err).__name__, err)
-                    errors["base"] = "cannot_connect"
-                else:
-                    token = reply.get("token") if isinstance(reply, dict) else None
-                    if isinstance(token, str) and token:
-                        await self.hass.data[DOMAIN].runner.async_pair(token)
-                        return self.async_create_entry(data={**self.config_entry.options, OPT_OPENGYM_URL: url})
-                    if not isinstance(reply, dict):
-                        _LOGGER.warning("Pairing with openGym at %s failed: HTTP %s without a JSON object", url, resp.status)
-                    errors["base"] = "invalid_code" if isinstance(reply, dict) else "cannot_connect"
-        schema = vol.Schema({vol.Required(OPT_OPENGYM_URL): TextSelector(TextSelectorConfig(type=TextSelectorType.URL)),
-                             vol.Required("code"): TextSelector()})
+            url, token, errors = await _pair(self.hass, user_input)
+            if token:
+                await self.hass.data[DOMAIN].runner.async_pair(token)
+                return self.async_create_entry(data={**self.config_entry.options, OPT_OPENGYM_URL: url})
         return self.async_show_form(step_id="opengym", errors=errors, data_schema=self.add_suggested_values_to_schema(
-            schema, {OPT_OPENGYM_URL: (user_input or {}).get(OPT_OPENGYM_URL) or self.config_entry.options.get(OPT_OPENGYM_URL)}))
+            _pair_schema(), {OPT_OPENGYM_URL: (user_input or {}).get(OPT_OPENGYM_URL) or self.config_entry.options.get(OPT_OPENGYM_URL)}))
 
     async def async_step_people(self, user_input=None):
         """Each person's openGym user, from the paired openGym's user list."""
@@ -142,15 +238,11 @@ class FitbridgeOptionsFlow(config_entries.OptionsFlowWithReload):
             uids = {p: user_input[label] for p, label in labels.items() if user_input.get(label)}
             return self.async_create_entry(data={**self.config_entry.options, OPT_OPENGYM_UIDS: uids})
         try:
-            async with async_get_clientsession(self.hass).get(
-                    f"{url}/api/admin/users", headers={"Authorization": f"Bearer {token}"}, timeout=GYM_TIMEOUT) as resp:
-                resp.raise_for_status()
-                users = (await resp.json(content_type=None))["users"]
-            options = [{"value": "", "label": "Nobody"}, *({"value": u["id"], "label": str(u.get("name") or u["id"])} for u in users)]
-        except (aiohttp.ClientError, TimeoutError, ValueError, LookupError, TypeError, AttributeError):
+            users = await gym.async_users(self.hass, url, token)
+        except gym.GymError:
             return self.async_abort(reason="cannot_connect")
-        old, offered = self.config_entry.options.get(OPT_OPENGYM_UIDS, {}), {o["value"] for o in options}
-        select = SelectSelector(SelectSelectorConfig(mode=SelectSelectorMode.DROPDOWN, options=options))
+        names = {"": "Nobody", **{u["id"]: str(u.get("name") or u["id"]) for u in users}}
+        old, offered, select = self.config_entry.options.get(OPT_OPENGYM_UIDS, {}), names.keys(), _choice(names)
         return self.async_show_form(step_id="people", data_schema=vol.Schema({
             vol.Optional(label, default=old.get(p) if old.get(p) in offered else ""): select for p, label in labels.items()}))
 
