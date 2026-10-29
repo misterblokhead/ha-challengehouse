@@ -1,6 +1,7 @@
 {
   "domain": "fitbridge",
   "name": "ChallengeHouse",
+  "after_dependencies": ["hassio"],
   "codeowners": ["@misterblokhead"],
   "config_flow": true,
   "dependencies": ["http", "frontend", "panel_custom", "webhook"],
