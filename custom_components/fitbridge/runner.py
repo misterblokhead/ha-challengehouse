@@ -175,11 +175,12 @@ class Runner:
         if self.store is None or data is None:  # stopped, or unloading (the entry's Data goes before the runner stops)
             return
         og = self._opengym()
+        invites = dict(self.entry.options.get(OPT_INVITES, {}))
         inputs = Inputs(await self._pauses(), data.steps.snapshot() if data.steps else None,
                         {"history": data.settings_history, "profiles": data.settings_profiles}
                         if data.settings_history or data.settings_profiles else None,
                         dict(self.entry.options.get(OPT_OPENGYM_UIDS, {})),
-                        dict(self.entry.options.get(OPT_INVITES, {})))
+                        invites)
         try:
             cycle = await self.hass.async_add_executor_job(self._cycle, og, inputs)
         except Exception as err:  # one bad cycle never stops the timers
@@ -187,7 +188,7 @@ class Runner:
             return
         self._token_issue(og, cycle.gym_error)
         if cycle.gym_links and not self.stopping:
-            self._link(cycle.gym_links)
+            self._link(cycle.gym_links, invites)
         if isinstance(cycle.scores.get("people"), dict):  # no valid scoring config: the page keeps the last
             self.scores = cycle.scores
         if self.stopping:  # stopping: no handler would get it, so nothing is recorded; the next runner announces
@@ -227,12 +228,16 @@ class Runner:
         self.hass.config_entries.async_update_entry(self.entry, data={**self.entry.data, OPENGYM_TOKEN: token})
 
     @callback
-    def _link(self, links: dict[str, str]) -> None:
-        """Invited accounts that joined: their uids join the options and the invites are used up (no reload: the next cycle reads them)."""
+    def _link(self, links: dict[str, str], asked: dict[str, str]) -> None:
+        """Invited accounts that joined: their uids join the options and the invites are used up (no reload: the next cycle reads them).
+        `asked`: the invites the cycle ran with. The options may have changed meanwhile, so each link is checked against them again."""
         options = self.entry.options
-        invites = {p: c for p, c in options.get(OPT_INVITES, {}).items() if p not in links}
+        uids, invites = options.get(OPT_OPENGYM_UIDS, {}), options.get(OPT_INVITES, {})
+        links = {p: u for p, u in links.items() if p not in uids and u not in uids.values() and invites.get(p) == asked.get(p)}
+        if not links:
+            return
         self.hass.config_entries.async_update_entry(self.entry, options={
-            **options, OPT_OPENGYM_UIDS: {**options.get(OPT_OPENGYM_UIDS, {}), **links}, OPT_INVITES: invites})
+            **options, OPT_OPENGYM_UIDS: {**uids, **links}, OPT_INVITES: {p: c for p, c in invites.items() if p not in links}})
         for person in links:
             _LOGGER.info("openGym account linked for %s", person)
 

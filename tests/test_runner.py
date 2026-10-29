@@ -248,6 +248,16 @@ async def test_runner_applies_links(hass, setup, caplog):
     assert "openGym account linked for p2" in caplog.text and "AB" not in caplog.text and "u1" not in caplog.text
 
 
+async def test_links_are_checked_against_the_options_as_they_are_now(hass, setup, cycles):
+    e = await setup({OPT_OPENGYM_UIDS: {"p1": "u0"}, OPT_INVITES: {"p2": "AB"}})
+    asked = {"p2": "AB", "p3": "CD", "p4": "EF", "p5": "GH"}  # what the cycle ran with
+    hass.config_entries.async_update_entry(e, options={**e.options, OPT_OPENGYM_UIDS: {"p1": "u0", "p2": "mine"},  # p2 was linked by hand
+                                                       OPT_INVITES: {"p3": "NEW", "p4": "EF", "p5": "GH"}})  # p3 got a new invite
+    _runner(hass)._link({"p2": "u1", "p3": "u2", "p4": "u0", "p5": "u5"}, asked)  # u0 belongs to p1 now
+    assert e.options[OPT_OPENGYM_UIDS] == {"p1": "u0", "p2": "mine", "p5": "u5"}
+    assert e.options[OPT_INVITES] == {"p3": "NEW", "p4": "EF"}
+
+
 async def test_no_url_or_token_means_no_opengym(hass, setup, cycles):
     await setup({OPT_OPENGYM_URL: "https://gym.example.test"})
     assert cycles.call_args.args[2] is None
