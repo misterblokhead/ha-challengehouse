@@ -8,7 +8,18 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import MockUser
 
-from custom_components.fitbridge.const import DOMAIN, OPT_STEPS, OPT_VIEWERS
+from homeassistant.helpers.network import NoURLAvailableError
+
+from custom_components.fitbridge import webhooks
+from custom_components.fitbridge.const import (
+    DOMAIN,
+    OPT_INVITES,
+    OPT_OPENGYM_URL,
+    OPT_PHONES,
+    OPT_STEPS,
+    OPT_VIEWERS,
+    WEBHOOKS,
+)
 from custom_components.fitbridge.settings import monday_of
 
 UI = "/api/fitbridge/ui"
@@ -551,3 +562,48 @@ async def test_workout_details_refusals(hass, live):
 async def test_workout_details_wait_for_the_first_payload(hass, client):
     resp = await (await client("alex")).get(f"{UI}/workout", params={"person": "p1", "key": "k1"})
     assert resp.status == 503
+
+
+async def test_connect_403_for_other_person(hass, client, send):
+    await send(SCORES)
+    c = await client("alex")
+    assert (await c.get(f"{UI}/connect", params={"person": "p2"})).status == 403
+    assert (await c.get(f"{UI}/connect", params={"person": "nobody"})).status == 404
+
+
+async def test_connect_for_self(hass, entry, client, send):
+    await send(SCORES)
+    hass.config_entries.async_update_entry(entry, data={WEBHOOKS: {"p1": "hook1"}}, options={
+        **entry.options, OPT_PHONES: {"p1": "iphone"}, OPT_OPENGYM_URL: "https://gym.example.test", OPT_INVITES: {"p1": "code1"}})
+    hass.config.external_url = "https://ha.example.test"
+    hass.data[DOMAIN].runner.store.kv_set("last_received:p1", "2026-10-28T12:00:00+00:00")
+    resp = await (await client("alex")).get(f"{UI}/connect", params={"person": "p1"})
+    assert resp.status == 200
+    assert await resp.json() == {
+        "url": "https://ha.example.test/api/webhook/hook1", "external": True, "phone": "iphone",
+        "last_received": "2026-10-28T12:00:00+00:00", "opengym": {"url": "https://gym.example.test", "invite": "code1"}}
+
+
+async def test_connect_admin_without_person(hass, entry, client, send):
+    await send(SCORES)
+    hass.config_entries.async_update_entry(entry, data={WEBHOOKS: {"p2": "hook2"}})
+    resp = await (await client("robin")).get(f"{UI}/connect", params={"person": "p2"})
+    assert resp.status == 200
+    body = await resp.json()
+    assert (body["phone"], body["last_received"], body["opengym"]) == (None, None, None)  # nothing set for p2 yet
+    assert body["url"].endswith("/api/webhook/hook2")
+
+
+async def test_connect_no_external_url(hass, entry, client, send):
+    await send(SCORES)
+    hass.config_entries.async_update_entry(entry, data={WEBHOOKS: {"p1": "hook1"}})
+    with patch.object(webhooks, "get_url", side_effect=NoURLAvailableError):  # no external URL, no cloud, no internal
+        body = await (await (await client("alex")).get(f"{UI}/connect", params={"person": "p1"})).json()
+    assert body["external"] is False and body["url"] == "/api/webhook/hook1"
+    body = await (await (await client("alex")).get(f"{UI}/connect", params={"person": "p1"})).json()  # HA's internal URL: usable, but not away from home
+    assert body["external"] is False and body["url"].endswith(":8123/api/webhook/hook1")
+
+
+async def test_connect_without_a_webhook_id_has_no_url(hass, client, send):
+    await send(SCORES)
+    assert (await (await (await client("alex")).get(f"{UI}/connect", params={"person": "p1"})).json())["url"] is None

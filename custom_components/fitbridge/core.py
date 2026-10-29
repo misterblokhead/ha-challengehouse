@@ -14,6 +14,10 @@ def can_edit(viewer_person: str | None, is_admin: bool, target: str) -> bool:
     return is_admin or viewer_person == target
 
 
+def can_connect(viewer_person: str | None, is_admin: bool, target: str) -> bool:
+    return is_admin or viewer_person == target
+
+
 def public(scores: dict) -> dict:
     """The scores without each person's `older` feed: that stays in memory for GET feed (the page's Load older); /scores
     and the page's payload never carry it."""

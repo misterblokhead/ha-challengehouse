@@ -27,6 +27,16 @@ def async_url(hass: HomeAssistant, webhook_id: str) -> str:
 
 
 @callback
+def async_external(hass: HomeAssistant) -> bool:
+    """Whether a phone away from home can reach the webhook: HA has an external URL or a Nabu Casa remote UI."""
+    try:
+        get_url(hass, allow_internal=False, prefer_external=True)
+    except NoURLAvailableError:
+        return False
+    return True
+
+
+@callback
 def async_setup(hass: HomeAssistant, entry: ConfigEntry, people) -> None:
     """Registers a webhook for each person in people and each one made before. Ids are made once and kept in the entry,
     so a phone keeps its URL; one made before stays registered while scoring.toml is broken (HA answers 200 for an

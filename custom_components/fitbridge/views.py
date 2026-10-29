@@ -9,8 +9,9 @@ from homeassistant.helpers.http import KEY_HASS
 from homeassistant.util import dt as dt_util
 
 from . import settings
-from .const import DOMAIN, OPT_STEPS, OPT_VIEWERS
-from .core import can_edit, find_workout, older_feed, shape, viewer_person
+from . import webhooks
+from .const import DOMAIN, OPT_INVITES, OPT_OPENGYM_URL, OPT_PHONES, OPT_STEPS, OPT_VIEWERS, WEBHOOKS
+from .core import can_connect, can_edit, find_workout, older_feed, shape, viewer_person
 from .engine import shoes as shoe_engine
 from .steps import parse, week
 
@@ -100,7 +101,7 @@ class UiView(HomeAssistantView):
     requires_auth = True
 
     async def get(self, request: web.Request, path: str) -> web.Response:
-        if path not in ("scores", "settings", "shoes", "feed", "workout"):
+        if path not in ("scores", "settings", "shoes", "feed", "workout", "connect"):
             return _detail(self, "not found", HTTPStatus.NOT_FOUND)
         data = request.app[KEY_HASS].data.get(DOMAIN)
         if data is None or data.scores is None:
@@ -115,6 +116,8 @@ class UiView(HomeAssistantView):
             except ValueError:
                 return _detail(self, "before: a date, YYYY-MM-DD", HTTPStatus.BAD_REQUEST)
             return self.json(older_feed(data.scores, request.query["person"], before))
+        if path == "connect":
+            return await self._connect(request, data)
         if path == "workout":
             person = request.query.get("person")
             if person not in data.scores["people"]:
@@ -128,6 +131,23 @@ class UiView(HomeAssistantView):
                               "week_start": monday.isoformat(), "defaults": _defaults(data.scores)})
         shaped = self._scores(request, data)
         return self.json({p: r["shoes"] for p, r in shaped["people"].items()} if path == "shoes" else shaped)
+
+    async def _connect(self, request: web.Request, data) -> web.Response:
+        """A person's webhook URL, phone, last upload and openGym address and invite for the Connect card: the person's own
+        (or an admin's)."""
+        person, user, hass = request.query.get("person"), request["hass_user"], request.app[KEY_HASS]
+        if person not in data.scores["people"]:
+            return _detail(self, "unknown person", HTTPStatus.NOT_FOUND)
+        options = data.entry.options
+        if not can_connect(viewer_person(user.id, options.get(OPT_VIEWERS, {}), data.scores), user.is_admin, person):
+            return _detail(self, "not allowed", HTTPStatus.FORBIDDEN)
+        hook = data.entry.data.get(WEBHOOKS, {}).get(person)
+        gym = options.get(OPT_OPENGYM_URL)
+        return self.json({
+            "url": webhooks.async_url(hass, hook) if hook else None, "external": webhooks.async_external(hass),
+            "phone": options.get(OPT_PHONES, {}).get(person),
+            "last_received": await hass.async_add_executor_job(data.runner.last_received, person),
+            "opengym": {"url": gym, "invite": options.get(OPT_INVITES, {}).get(person)} if gym else None})
 
     def _scores(self, request: web.Request, data) -> dict:
         user, hass = request["hass_user"], request.app[KEY_HASS]

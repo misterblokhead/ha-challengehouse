@@ -108,10 +108,14 @@ class Runner:
         async with self._lock:
             if self.store is None:
                 return None
-            reply = await self.hass.async_add_executor_job(ingest_body, self.store, self.dir / "archive", person, body)
+            reply = await self.hass.async_add_executor_job(self._ingest, person, body)
         if reply["new"]:  # the phone gets its answer without waiting for the cycle
             self.entry.async_create_background_task(self.hass, self.async_score_now(), "fitbridge score")
         return reply
+
+    def last_received(self, person: str) -> str | None:
+        """When something new from person last arrived (ISO, UTC); reads the store, so call it in the executor."""
+        return self.store.kv_get(f"last_received:{person}") if self.store else None
 
     async def async_details(self, person: str, key: str) -> dict | None:
         """What a workout's pop-up shows, read in the executor from the store and the archived GPX; None when the last
@@ -267,12 +271,22 @@ class Runner:
     def _cycle(self, og, inputs):
         return score_cycle(self.store, self.holder, og, inputs, dt_util.utcnow())
 
+    def _ingest(self, person: str, body: bytes) -> dict:
+        reply = ingest_body(self.store, self.dir / "archive", person, body)
+        if reply["new"]:
+            self._received(person)
+        return reply
+
+    def _received(self, person: str) -> None:
+        self.store.kv_set(f"last_received:{person}", dt_util.utcnow().isoformat(timespec="seconds"))
+
     def _scan(self) -> set[str]:
         """Scans each person's folder; returns the people whose folder is not there."""
         missing = {p for p, folder in self.folders.items() if not Path(folder).is_dir()}
         for person, folder in self.folders.items():
             if person not in missing:
-                scan_folder(self.store, self.dir / "archive", person, Path(folder))
+                if scan_folder(self.store, self.dir / "archive", person, Path(folder)):
+                    self._received(person)
         return missing
 
     def _manual(self, store: Store, msg: dict) -> None:

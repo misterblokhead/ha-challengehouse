@@ -23,6 +23,17 @@ def test_can_edit(person, admin, target, expected):
     assert core.can_edit(person, admin, target) is expected
 
 
+@pytest.mark.parametrize("person,admin,target,expected", [
+    (None, True, "p1", True),
+    (None, False, "p1", False),
+    ("p1", False, "p1", True),
+    ("p1", False, "p2", False),
+    ("p1", True, "p2", True),
+])
+def test_can_connect(person, admin, target, expected):
+    assert core.can_connect(person, admin, target) is expected
+
+
 def test_shape_adds_viewer():
     out = core.shape(SCORES, "p1", False)
     assert out["viewer"] == {"person": "p1", "can_edit": ["p1"]}
