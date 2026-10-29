@@ -54,14 +54,14 @@ def goals(frm, runs=2, workouts=2, active_days=0, steps=10000):
 class ScoringTests(unittest.TestCase):
     def test_pause_days_all_day_end_exclusive_and_timed(self):
         ev = [{"summary": "Both", "start": "2026-11-02", "end": "2026-11-06"},
-              {"summary": "person1", "start": "2026-11-10T20:00:00+01:00", "end": "2026-11-11T09:00:00+01:00"},
-              {"summary": "Person2", "start": "2026-11-20", "end": "2026-11-21"}]
+              {"summary": "person 1", "start": "2026-11-10T20:00:00+01:00", "end": "2026-11-11T09:00:00+01:00"},
+              {"summary": "Person 2", "start": "2026-11-20", "end": "2026-11-21"}]
         self.assertEqual(len(pause_days(ev, "person1", CFG)), 4 + 2)
         self.assertEqual(len(pause_days(ev, "person2", CFG)), 4 + 1)
         self.assertEqual(len(pause_days(ev, "person1", SOLO)), 2)   # no group: "Both" doesn't apply
 
     def test_timed_pause_ending_at_midnight_excludes_end_date(self):
-        ev = [{"summary": "Person1", "start": "2026-11-10T20:00:00+01:00", "end": "2026-11-11T00:00:00+01:00"}]
+        ev = [{"summary": "Person 1", "start": "2026-11-10T20:00:00+01:00", "end": "2026-11-11T00:00:00+01:00"}]
         self.assertEqual(len(pause_days(ev, "person1", CFG)), 1)
 
     def test_dedup_prefers_automatic_and_merge_joins_stop_start(self):
@@ -361,7 +361,7 @@ class ScoringTests(unittest.TestCase):
     def test_couple_streak_neutral_when_the_one_who_missed_was_paused(self):
         person1 = week_of(0) + week_of(7)
         person2 = [dict(w, person="person2") for w in week_of(0)]
-        pauses = [{"summary": "Person2", "start": "2026-11-02", "end": "2026-11-07"}]
+        pauses = [{"summary": "Person 2", "start": "2026-11-02", "end": "2026-11-07"}]
         c = score({"person1": person1, "person2": person2}, pauses, CFG, NOW(15))["group"]
         self.assertEqual((c["streak"], c["best_streak"]), (1, 1))
 
@@ -412,7 +412,7 @@ class ScoringTests(unittest.TestCase):
             "mode": "team", "together": 1, "team": 4, "reward": ""}}]}
         person1 = week_of(0) + week_of(14)
         person2 = [dict(w, person="person2") for w in week_of(0) + week_of(14)]
-        pauses = [{"summary": "Person2", "start": "2026-11-02", "end": "2026-11-09"}]
+        pauses = [{"summary": "Person 2", "start": "2026-11-02", "end": "2026-11-09"}]
         g = score({"person1": person1, "person2": person2}, pauses, CFG, NOW(21), None, settings)["group"]
         self.assertEqual((g["streak"], g["best_streak"]), (2, 2))
 

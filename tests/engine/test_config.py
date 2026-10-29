@@ -84,7 +84,7 @@ class ConfigTests(unittest.TestCase):
         head, rest = DEFAULT.split("[people.person1]")
         tail = rest[rest.index("# NHS"):]
         for broken in [
-            head + "[people]\nmark = 5\n\n" + tail,                                   # scalar person
+            head + "[people]\nperson1 = 5\n\n" + tail,                                   # scalar person
             DEFAULT.replace('[{ plan = "c25k", from = 2026-10-26 }]', "[5]", 1),      # scalar plan_history entry
             DEFAULT.replace('[["run", 60], ["walk", 90]]', "5", 1),                   # scalar intervals
         ]:
@@ -94,17 +94,17 @@ class ConfigTests(unittest.TestCase):
     def test_group_optional_and_pause_titles(self):
         cfg = load_config(DEFAULT)
         self.assertEqual(cfg["group"]["members"], ["person1", "person2"])
-        self.assertEqual(pause_titles(cfg, "person1"), {"person1", "both", "couple"})
+        self.assertEqual(pause_titles(cfg, "person1"), {"person 1", "both", "couple"})
         solo = load_config(ONE_PERSON)
         self.assertIsNone(solo["group"])
-        self.assertEqual(pause_titles(solo, "person1"), {"person1"})
+        self.assertEqual(pause_titles(solo, "person1"), {"person 1"})
 
     def test_bad_people_and_group_rejected(self):
         for broken, reason in [
             (DEFAULT.replace('members = ["person1", "person2"]', 'members = ["person1", "bob"]'), "group"),
             (DEFAULT.replace('members = ["person1", "person2"]', 'members = ["person1", "person1"]'), "group"),
             (DEFAULT.replace('name = "couple"', 'name = "person1"'), "group"),
-            (DEFAULT.replace('name = "Person1"', ''), "name"),
+            (DEFAULT.replace('name = "Person 1"', ''), "name"),
             (DEFAULT.replace("[people.person1]", "[people.Person1]").replace('"person1"', '"Person1"'), "id"),
         ]:
             with self.subTest(reason=reason):

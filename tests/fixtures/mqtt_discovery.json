@@ -89,7 +89,7 @@
      ],
      "due_today": false
     },
-    "name": "Person1",
+    "name": "Person 1",
     "badges": {
      "count": 5,
      "recent": [
@@ -465,7 +465,7 @@
      ],
      "due_today": true
     },
-    "name": "Person2",
+    "name": "Person 2",
     "badges": {
      "count": 0,
      "recent": [],
@@ -541,7 +541,7 @@
  "messages": [
   [
    "homeassistant/sensor/fit_person1_xp/config",
-   "{\"name\": \"XP\", \"unique_id\": \"fit_person1_xp\", \"default_entity_id\": \"sensor.fit_person1_xp\", \"state_topic\": \"fitbridge/person1/xp/state\", \"json_attributes_topic\": \"fitbridge/person1/xp/attributes\", \"expire_after\": 1200, \"icon\": \"mdi:star-circle\", \"device\": {\"identifiers\": [\"fitbridge_person1\"], \"name\": \"Fitness Person1\", \"manufacturer\": \"fitbridge\"}, \"unit_of_measurement\": \"XP\", \"state_class\": \"measurement\"}",
+   "{\"name\": \"XP\", \"unique_id\": \"fit_person1_xp\", \"default_entity_id\": \"sensor.fit_person1_xp\", \"state_topic\": \"fitbridge/person1/xp/state\", \"json_attributes_topic\": \"fitbridge/person1/xp/attributes\", \"expire_after\": 1200, \"icon\": \"mdi:star-circle\", \"device\": {\"identifiers\": [\"fitbridge_person1\"], \"name\": \"Fitness Person 1\", \"manufacturer\": \"fitbridge\"}, \"unit_of_measurement\": \"XP\", \"state_class\": \"measurement\"}",
    true
   ],
   [
@@ -556,7 +556,7 @@
   ],
   [
    "homeassistant/sensor/fit_person1_week/config",
-   "{\"name\": \"Week\", \"unique_id\": \"fit_person1_week\", \"default_entity_id\": \"sensor.fit_person1_week\", \"state_topic\": \"fitbridge/person1/week/state\", \"json_attributes_topic\": \"fitbridge/person1/week/attributes\", \"expire_after\": 1200, \"icon\": \"mdi:calendar-week\", \"device\": {\"identifiers\": [\"fitbridge_person1\"], \"name\": \"Fitness Person1\", \"manufacturer\": \"fitbridge\"}, \"unit_of_measurement\": \"%\", \"state_class\": \"measurement\"}",
+   "{\"name\": \"Week\", \"unique_id\": \"fit_person1_week\", \"default_entity_id\": \"sensor.fit_person1_week\", \"state_topic\": \"fitbridge/person1/week/state\", \"json_attributes_topic\": \"fitbridge/person1/week/attributes\", \"expire_after\": 1200, \"icon\": \"mdi:calendar-week\", \"device\": {\"identifiers\": [\"fitbridge_person1\"], \"name\": \"Fitness Person 1\", \"manufacturer\": \"fitbridge\"}, \"unit_of_measurement\": \"%\", \"state_class\": \"measurement\"}",
    true
   ],
   [
@@ -571,7 +571,7 @@
   ],
   [
    "homeassistant/sensor/fit_person1_streak_weeks/config",
-   "{\"name\": \"Streak\", \"unique_id\": \"fit_person1_streak_weeks\", \"default_entity_id\": \"sensor.fit_person1_streak_weeks\", \"state_topic\": \"fitbridge/person1/streak_weeks/state\", \"json_attributes_topic\": \"fitbridge/person1/streak_weeks/attributes\", \"expire_after\": 1200, \"icon\": \"mdi:fire\", \"device\": {\"identifiers\": [\"fitbridge_person1\"], \"name\": \"Fitness Person1\", \"manufacturer\": \"fitbridge\"}, \"unit_of_measurement\": \"wk\", \"state_class\": \"measurement\"}",
+   "{\"name\": \"Streak\", \"unique_id\": \"fit_person1_streak_weeks\", \"default_entity_id\": \"sensor.fit_person1_streak_weeks\", \"state_topic\": \"fitbridge/person1/streak_weeks/state\", \"json_attributes_topic\": \"fitbridge/person1/streak_weeks/attributes\", \"expire_after\": 1200, \"icon\": \"mdi:fire\", \"device\": {\"identifiers\": [\"fitbridge_person1\"], \"name\": \"Fitness Person 1\", \"manufacturer\": \"fitbridge\"}, \"unit_of_measurement\": \"wk\", \"state_class\": \"measurement\"}",
    true
   ],
   [
@@ -586,7 +586,7 @@
   ],
   [
    "homeassistant/sensor/fit_person1_plan/config",
-   "{\"name\": \"Plan\", \"unique_id\": \"fit_person1_plan\", \"default_entity_id\": \"sensor.fit_person1_plan\", \"state_topic\": \"fitbridge/person1/plan/state\", \"json_attributes_topic\": \"fitbridge/person1/plan/attributes\", \"expire_after\": 1200, \"icon\": \"mdi:run-fast\", \"device\": {\"identifiers\": [\"fitbridge_person1\"], \"name\": \"Fitness Person1\", \"manufacturer\": \"fitbridge\"}}",
+   "{\"name\": \"Plan\", \"unique_id\": \"fit_person1_plan\", \"default_entity_id\": \"sensor.fit_person1_plan\", \"state_topic\": \"fitbridge/person1/plan/state\", \"json_attributes_topic\": \"fitbridge/person1/plan/attributes\", \"expire_after\": 1200, \"icon\": \"mdi:run-fast\", \"device\": {\"identifiers\": [\"fitbridge_person1\"], \"name\": \"Fitness Person 1\", \"manufacturer\": \"fitbridge\"}}",
    true
   ],
   [
@@ -601,7 +601,7 @@
   ],
   [
    "homeassistant/sensor/fit_person1_badges/config",
-   "{\"name\": \"Badges\", \"unique_id\": \"fit_person1_badges\", \"default_entity_id\": \"sensor.fit_person1_badges\", \"state_topic\": \"fitbridge/person1/badges/state\", \"json_attributes_topic\": \"fitbridge/person1/badges/attributes\", \"expire_after\": 1200, \"icon\": \"mdi:medal\", \"device\": {\"identifiers\": [\"fitbridge_person1\"], \"name\": \"Fitness Person1\", \"manufacturer\": \"fitbridge\"}}",
+   "{\"name\": \"Badges\", \"unique_id\": \"fit_person1_badges\", \"default_entity_id\": \"sensor.fit_person1_badges\", \"state_topic\": \"fitbridge/person1/badges/state\", \"json_attributes_topic\": \"fitbridge/person1/badges/attributes\", \"expire_after\": 1200, \"icon\": \"mdi:medal\", \"device\": {\"identifiers\": [\"fitbridge_person1\"], \"name\": \"Fitness Person 1\", \"manufacturer\": \"fitbridge\"}}",
    true
   ],
   [
@@ -616,7 +616,7 @@
   ],
   [
    "homeassistant/sensor/fit_person1_pbs/config",
-   "{\"name\": \"Personal bests\", \"unique_id\": \"fit_person1_pbs\", \"default_entity_id\": \"sensor.fit_person1_pbs\", \"state_topic\": \"fitbridge/person1/pbs/state\", \"json_attributes_topic\": \"fitbridge/person1/pbs/attributes\", \"expire_after\": 1200, \"icon\": \"mdi:trophy\", \"device\": {\"identifiers\": [\"fitbridge_person1\"], \"name\": \"Fitness Person1\", \"manufacturer\": \"fitbridge\"}, \"unit_of_measurement\": \"km\", \"state_class\": \"measurement\"}",
+   "{\"name\": \"Personal bests\", \"unique_id\": \"fit_person1_pbs\", \"default_entity_id\": \"sensor.fit_person1_pbs\", \"state_topic\": \"fitbridge/person1/pbs/state\", \"json_attributes_topic\": \"fitbridge/person1/pbs/attributes\", \"expire_after\": 1200, \"icon\": \"mdi:trophy\", \"device\": {\"identifiers\": [\"fitbridge_person1\"], \"name\": \"Fitness Person 1\", \"manufacturer\": \"fitbridge\"}, \"unit_of_measurement\": \"km\", \"state_class\": \"measurement\"}",
    true
   ],
   [
@@ -631,7 +631,7 @@
   ],
   [
    "homeassistant/sensor/fit_person1_recent/config",
-   "{\"name\": \"Recent\", \"unique_id\": \"fit_person1_recent\", \"default_entity_id\": \"sensor.fit_person1_recent\", \"state_topic\": \"fitbridge/person1/recent/state\", \"json_attributes_topic\": \"fitbridge/person1/recent/attributes\", \"expire_after\": 1200, \"icon\": \"mdi:history\", \"device\": {\"identifiers\": [\"fitbridge_person1\"], \"name\": \"Fitness Person1\", \"manufacturer\": \"fitbridge\"}}",
+   "{\"name\": \"Recent\", \"unique_id\": \"fit_person1_recent\", \"default_entity_id\": \"sensor.fit_person1_recent\", \"state_topic\": \"fitbridge/person1/recent/state\", \"json_attributes_topic\": \"fitbridge/person1/recent/attributes\", \"expire_after\": 1200, \"icon\": \"mdi:history\", \"device\": {\"identifiers\": [\"fitbridge_person1\"], \"name\": \"Fitness Person 1\", \"manufacturer\": \"fitbridge\"}}",
    true
   ],
   [
@@ -646,7 +646,7 @@
   ],
   [
    "homeassistant/sensor/fit_person2_xp/config",
-   "{\"name\": \"XP\", \"unique_id\": \"fit_person2_xp\", \"default_entity_id\": \"sensor.fit_person2_xp\", \"state_topic\": \"fitbridge/person2/xp/state\", \"json_attributes_topic\": \"fitbridge/person2/xp/attributes\", \"expire_after\": 1200, \"icon\": \"mdi:star-circle\", \"device\": {\"identifiers\": [\"fitbridge_person2\"], \"name\": \"Fitness Person2\", \"manufacturer\": \"fitbridge\"}, \"unit_of_measurement\": \"XP\", \"state_class\": \"measurement\"}",
+   "{\"name\": \"XP\", \"unique_id\": \"fit_person2_xp\", \"default_entity_id\": \"sensor.fit_person2_xp\", \"state_topic\": \"fitbridge/person2/xp/state\", \"json_attributes_topic\": \"fitbridge/person2/xp/attributes\", \"expire_after\": 1200, \"icon\": \"mdi:star-circle\", \"device\": {\"identifiers\": [\"fitbridge_person2\"], \"name\": \"Fitness Person 2\", \"manufacturer\": \"fitbridge\"}, \"unit_of_measurement\": \"XP\", \"state_class\": \"measurement\"}",
    true
   ],
   [
@@ -661,7 +661,7 @@
   ],
   [
    "homeassistant/sensor/fit_person2_week/config",
-   "{\"name\": \"Week\", \"unique_id\": \"fit_person2_week\", \"default_entity_id\": \"sensor.fit_person2_week\", \"state_topic\": \"fitbridge/person2/week/state\", \"json_attributes_topic\": \"fitbridge/person2/week/attributes\", \"expire_after\": 1200, \"icon\": \"mdi:calendar-week\", \"device\": {\"identifiers\": [\"fitbridge_person2\"], \"name\": \"Fitness Person2\", \"manufacturer\": \"fitbridge\"}, \"unit_of_measurement\": \"%\", \"state_class\": \"measurement\"}",
+   "{\"name\": \"Week\", \"unique_id\": \"fit_person2_week\", \"default_entity_id\": \"sensor.fit_person2_week\", \"state_topic\": \"fitbridge/person2/week/state\", \"json_attributes_topic\": \"fitbridge/person2/week/attributes\", \"expire_after\": 1200, \"icon\": \"mdi:calendar-week\", \"device\": {\"identifiers\": [\"fitbridge_person2\"], \"name\": \"Fitness Person 2\", \"manufacturer\": \"fitbridge\"}, \"unit_of_measurement\": \"%\", \"state_class\": \"measurement\"}",
    true
   ],
   [
@@ -676,7 +676,7 @@
   ],
   [
    "homeassistant/sensor/fit_person2_streak_weeks/config",
-   "{\"name\": \"Streak\", \"unique_id\": \"fit_person2_streak_weeks\", \"default_entity_id\": \"sensor.fit_person2_streak_weeks\", \"state_topic\": \"fitbridge/person2/streak_weeks/state\", \"json_attributes_topic\": \"fitbridge/person2/streak_weeks/attributes\", \"expire_after\": 1200, \"icon\": \"mdi:fire\", \"device\": {\"identifiers\": [\"fitbridge_person2\"], \"name\": \"Fitness Person2\", \"manufacturer\": \"fitbridge\"}, \"unit_of_measurement\": \"wk\", \"state_class\": \"measurement\"}",
+   "{\"name\": \"Streak\", \"unique_id\": \"fit_person2_streak_weeks\", \"default_entity_id\": \"sensor.fit_person2_streak_weeks\", \"state_topic\": \"fitbridge/person2/streak_weeks/state\", \"json_attributes_topic\": \"fitbridge/person2/streak_weeks/attributes\", \"expire_after\": 1200, \"icon\": \"mdi:fire\", \"device\": {\"identifiers\": [\"fitbridge_person2\"], \"name\": \"Fitness Person 2\", \"manufacturer\": \"fitbridge\"}, \"unit_of_measurement\": \"wk\", \"state_class\": \"measurement\"}",
    true
   ],
   [
@@ -691,7 +691,7 @@
   ],
   [
    "homeassistant/sensor/fit_person2_plan/config",
-   "{\"name\": \"Plan\", \"unique_id\": \"fit_person2_plan\", \"default_entity_id\": \"sensor.fit_person2_plan\", \"state_topic\": \"fitbridge/person2/plan/state\", \"json_attributes_topic\": \"fitbridge/person2/plan/attributes\", \"expire_after\": 1200, \"icon\": \"mdi:run-fast\", \"device\": {\"identifiers\": [\"fitbridge_person2\"], \"name\": \"Fitness Person2\", \"manufacturer\": \"fitbridge\"}}",
+   "{\"name\": \"Plan\", \"unique_id\": \"fit_person2_plan\", \"default_entity_id\": \"sensor.fit_person2_plan\", \"state_topic\": \"fitbridge/person2/plan/state\", \"json_attributes_topic\": \"fitbridge/person2/plan/attributes\", \"expire_after\": 1200, \"icon\": \"mdi:run-fast\", \"device\": {\"identifiers\": [\"fitbridge_person2\"], \"name\": \"Fitness Person 2\", \"manufacturer\": \"fitbridge\"}}",
    true
   ],
   [
@@ -706,7 +706,7 @@
   ],
   [
    "homeassistant/sensor/fit_person2_badges/config",
-   "{\"name\": \"Badges\", \"unique_id\": \"fit_person2_badges\", \"default_entity_id\": \"sensor.fit_person2_badges\", \"state_topic\": \"fitbridge/person2/badges/state\", \"json_attributes_topic\": \"fitbridge/person2/badges/attributes\", \"expire_after\": 1200, \"icon\": \"mdi:medal\", \"device\": {\"identifiers\": [\"fitbridge_person2\"], \"name\": \"Fitness Person2\", \"manufacturer\": \"fitbridge\"}}",
+   "{\"name\": \"Badges\", \"unique_id\": \"fit_person2_badges\", \"default_entity_id\": \"sensor.fit_person2_badges\", \"state_topic\": \"fitbridge/person2/badges/state\", \"json_attributes_topic\": \"fitbridge/person2/badges/attributes\", \"expire_after\": 1200, \"icon\": \"mdi:medal\", \"device\": {\"identifiers\": [\"fitbridge_person2\"], \"name\": \"Fitness Person 2\", \"manufacturer\": \"fitbridge\"}}",
    true
   ],
   [
@@ -721,7 +721,7 @@
   ],
   [
    "homeassistant/sensor/fit_person2_pbs/config",
-   "{\"name\": \"Personal bests\", \"unique_id\": \"fit_person2_pbs\", \"default_entity_id\": \"sensor.fit_person2_pbs\", \"state_topic\": \"fitbridge/person2/pbs/state\", \"json_attributes_topic\": \"fitbridge/person2/pbs/attributes\", \"expire_after\": 1200, \"icon\": \"mdi:trophy\", \"device\": {\"identifiers\": [\"fitbridge_person2\"], \"name\": \"Fitness Person2\", \"manufacturer\": \"fitbridge\"}, \"unit_of_measurement\": \"km\", \"state_class\": \"measurement\"}",
+   "{\"name\": \"Personal bests\", \"unique_id\": \"fit_person2_pbs\", \"default_entity_id\": \"sensor.fit_person2_pbs\", \"state_topic\": \"fitbridge/person2/pbs/state\", \"json_attributes_topic\": \"fitbridge/person2/pbs/attributes\", \"expire_after\": 1200, \"icon\": \"mdi:trophy\", \"device\": {\"identifiers\": [\"fitbridge_person2\"], \"name\": \"Fitness Person 2\", \"manufacturer\": \"fitbridge\"}, \"unit_of_measurement\": \"km\", \"state_class\": \"measurement\"}",
    true
   ],
   [
@@ -736,7 +736,7 @@
   ],
   [
    "homeassistant/sensor/fit_person2_recent/config",
-   "{\"name\": \"Recent\", \"unique_id\": \"fit_person2_recent\", \"default_entity_id\": \"sensor.fit_person2_recent\", \"state_topic\": \"fitbridge/person2/recent/state\", \"json_attributes_topic\": \"fitbridge/person2/recent/attributes\", \"expire_after\": 1200, \"icon\": \"mdi:history\", \"device\": {\"identifiers\": [\"fitbridge_person2\"], \"name\": \"Fitness Person2\", \"manufacturer\": \"fitbridge\"}}",
+   "{\"name\": \"Recent\", \"unique_id\": \"fit_person2_recent\", \"default_entity_id\": \"sensor.fit_person2_recent\", \"state_topic\": \"fitbridge/person2/recent/state\", \"json_attributes_topic\": \"fitbridge/person2/recent/attributes\", \"expire_after\": 1200, \"icon\": \"mdi:history\", \"device\": {\"identifiers\": [\"fitbridge_person2\"], \"name\": \"Fitness Person 2\", \"manufacturer\": \"fitbridge\"}}",
    true
   ],
   [

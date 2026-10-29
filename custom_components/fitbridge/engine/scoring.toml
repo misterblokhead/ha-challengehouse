@@ -1,4 +1,4 @@
-# fitbridge scoring rules. Rules are config, code is mechanism (spec 2026-10-26-scoring-design.md).
+# fitbridge scoring rules. Rules are config, code is mechanism.
 
 [rules]
 start = 2026-10-26
@@ -76,11 +76,11 @@ min_days = 4
 max_sessions_per_day = 1
 
 [people.person1]
-name = "Person1"
+name = "Person 1"
 plan_history = [{ plan = "c25k", from = 2026-10-26 }]
 
 [people.person2]
-name = "Person2"
+name = "Person 2"
 plan_history = [{ plan = "c25k", from = 2026-10-26 }]
 
 [group]
