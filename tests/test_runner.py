@@ -215,6 +215,15 @@ async def test_manual_change_is_applied_then_scored(hass, setup, cycles):
     assert cycles.call_count == 2
 
 
+async def test_async_review_rescored(hass, setup, cycles):
+    await setup()
+    runner = _runner(hass)
+    await runner.async_review("p1", "k", "type", "walking")
+    assert runner.store.plan_reviews() == {("p1", "k"): {"decision": "type", "type_match": "walking"}} and cycles.call_count == 2
+    await runner.async_review("p1", "k", None)
+    assert runner.store.plan_reviews() == {} and cycles.call_count == 3
+
+
 async def test_a_failing_cycle_is_logged_by_class_and_the_timer_goes_on(hass, setup, caplog):
     with patch.object(runner_mod, "score_cycle", side_effect=RuntimeError("secret detail")) as failing:
         await setup()

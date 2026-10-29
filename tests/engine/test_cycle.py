@@ -215,6 +215,15 @@ class ScoringCycleTests(unittest.TestCase):
                               "steps_as_of", "scored_at"}, set(res))
         self.assertEqual(res["scored_at"], NOW.isoformat(timespec="seconds"))
 
+    def test_review_types_are_the_non_run_types_per_source(self):
+        types = self.scores()["review_types"]
+        self.assertEqual(set(types), set(self.holder.get()[0]["types"]))
+        shipped = self.holder.get()[0]["types"]
+        for source, entries in types.items():
+            self.assertEqual(entries, [{"match": e["match"], "name": e["name"]} for e in shipped[source] if e["kind"] != "run"])
+        self.assertIn({"match": "walking", "name": "Walk"}, types["health_exporter"])
+        self.assertNotIn("running", [e["match"] for e in types["health_exporter"]])
+
     def test_uncommitted_cycle_does_not_record_badges(self):
         self.run_cycle(FakeOpenGym([]))  # seeds
         self.store.add(P0, "t2", "opentracks", "completed", activity_type="running", points=5,

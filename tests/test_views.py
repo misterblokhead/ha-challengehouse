@@ -182,6 +182,57 @@ async def test_refused_edits_change_nothing(hass, client, send, who, body, statu
     manual.assert_not_called()
 
 
+REVIEWED = {"people": {p: {"feed": [{"key": f"r{p}", "source": "health_exporter"}]} for p in ("p1", "p2")}}
+
+
+async def _review(hass, client, send, who, **body):
+    await send(REVIEWED)
+    types = {"health_exporter": [{"match": "running", "kind": "run"}, {"match": "walking", "kind": "walk"}]}
+    with patch.object(hass.data[DOMAIN].runner, "async_review") as review, patch.object(hass.data[DOMAIN].runner, "async_types", return_value=types):
+        resp = await (await client(who)).post(f"{UI}/workouts", json={"action": "review", "person": "p1", "key": "rp1", **body})
+    return resp, review
+
+
+async def test_review_owner_202(hass, client, send):
+    resp, review = await _review(hass, client, send, "alex", decision="type", type_match="walking")
+    assert resp.status == 202 and await resp.json() == {"ok": True}
+    review.assert_awaited_once_with("p1", "rp1", "type", "walking")
+    resp, review = await _review(hass, client, send, "sam", decision="run", type_match="ignored")  # a mapped admin may; no type, no match kept
+    assert resp.status == 202
+    review.assert_awaited_once_with("p1", "rp1", "run", None)
+
+
+async def test_review_clear_null_202(hass, client, send):
+    resp, review = await _review(hass, client, send, "alex", decision=None)
+    assert resp.status == 202
+    review.assert_awaited_once_with("p1", "rp1", None, None)
+
+
+@pytest.mark.parametrize("who,body,status", [
+    ("alex", {"person": "p2", "key": "rp2", "decision": "plan"}, 403),  # the partner's, not admin
+    ("robin", {"decision": "plan"}, 403),  # admin, but not mapped
+    ("alex", {"key": "gone", "decision": "plan"}, 404),
+])
+async def test_review_other_person_403(hass, client, send, who, body, status):
+    resp, review = await _review(hass, client, send, who, **body)
+    assert resp.status == status
+    review.assert_not_called()
+
+
+@pytest.mark.parametrize("body", [{}, {"decision": "nope"}, {"decision": 1}, {"decision": "plan", "key": 1}])
+async def test_review_bad_decision_400(hass, client, send, body):
+    resp, review = await _review(hass, client, send, "alex", **body)
+    assert resp.status == 400
+    review.assert_not_called()
+
+
+@pytest.mark.parametrize("match", [None, 7, "running", "cycling", ""])  # missing, not text, a run type, not in this source's table
+async def test_review_type_unknown_400(hass, client, send, match):
+    resp, review = await _review(hass, client, send, "alex", decision="type", **({} if match is None else {"type_match": match}))
+    assert resp.status == 400
+    review.assert_not_called()
+
+
 @pytest.mark.parametrize("raw,status", [(b"{nope", 400), (b"\xff\xfe", 400), (b'{"key": NaN}', 400), (b" " * 4097, 413)],
                          ids=["not-json", "bad-utf8", "nan", "too-big"])
 async def test_bad_bodies(hass, client, send, raw, status):

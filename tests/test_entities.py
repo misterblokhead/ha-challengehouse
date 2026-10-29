@@ -73,7 +73,8 @@ async def test_live_entities_match_the_mqtt_discovery_minus_url(hass, setup, sco
         t = payload["event_type"]
         cfg = CONFIGS[f"event.fit_{t}"]
         state = hass.states.get(f"event.fit_{t}")
-        assert dict(state.attributes) == {**payload, "event_types": [t], "icon": cfg["icon"],
+        news = {"review": False, "plan_label": None} if t == "workout_scored" else {}  # plan check: newer than the capture
+        assert dict(state.attributes) == {**payload, **news, "event_types": [t], "icon": cfg["icon"],
                                           "friendly_name": f"{cfg['device']['name']} {cfg['name']}"}
         assert dt_util.parse_datetime(state.state) is not None
         device = devices.async_get(registry.async_get(f"event.fit_{t}").device_id)

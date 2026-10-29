@@ -138,6 +138,10 @@ class Runner:
         when invalid; returns what fn returned."""
         return await self._change(fn)
 
+    async def async_review(self, person: str, key: str, decision: str | None, type_match: str | None = None) -> None:
+        """The owner's plan decision for a run (None clears it), then a cycle that rescores."""
+        await self._change(Store.set_plan_review, person, key, decision, type_match)
+
     async def _change(self, fn, *args):
         """fn(store, *args) in the executor, then a cycle; returns what fn returned. ValueError when stopping."""
         async with self._lock:

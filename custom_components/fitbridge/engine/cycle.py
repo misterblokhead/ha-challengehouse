@@ -214,7 +214,9 @@ def score_cycle(store, holder, og, inputs: Inputs, now) -> Cycle:
     for p, r in result["people"].items():
         r["shoes"] = shoes.rows(store, p, workouts[p])
         r["run_shoes"] = shoes.assigned(store, p)
-    scores = {**result, "config_error": config_error, "gym_data_as_of": gym_as_of,
+    review_types = {src: [{"match": e["match"], "name": e["name"]} for e in entries if e["kind"] != "run"]
+                    for src, entries in config["types"].items()}  # the "Not a run..." picker
+    scores = {**result, "review_types": review_types, "config_error": config_error, "gym_data_as_of": gym_as_of,
               "pauses_as_of": pauses_as_of, "settings_error": settings_error,
               "settings_as_of": settings_as_of, "steps_as_of": steps_as_of, "scored_at": now.isoformat(timespec="seconds")}
     unseen = [(p, *store.unseen_badges(p, r["badges"]["unlocked"])) for p, r in result["people"].items()]

@@ -62,6 +62,9 @@ class FixtureTests(unittest.TestCase):
         items = {"badge_unlocked": badges, "workout_scored": workouts, "record_set": records}
         recorded = [json.loads(p) for t, p, r in FIX["messages"] if not r]
         built = [EVENTS[t](p, item) for t in EVENTS for p, item in items[t]]
+        for e in built:  # plan check: newer than the recorded capture
+            if e["event_type"] == "workout_scored":
+                self.assertEqual((e.pop("review"), e.pop("plan_label")), (False, None))
         self.assertEqual(built, recorded)
         self.assertEqual([tuple(e) for e in built], [tuple(e) for e in recorded])  # same key order too
         for t, (name, icon) in EVENT_ENTITIES.items():
@@ -76,6 +79,19 @@ class EntityTests(unittest.TestCase):
         self.assertEqual(set(EVENTS), set(EVENT_ENTITIES))
         self.assertEqual(set(EVENTS), {"badge_unlocked", "workout_scored", "record_set"})
         self.assertEqual(WORKOUT_FIELDS, ("kind", "minutes", "km", "xp", "plan", "joint"))
+
+    def test_workout_scored_review_field(self):
+        scored = EVENTS["workout_scored"]
+        item = {"key": "k", **dict.fromkeys(WORKOUT_FIELDS)}
+        check = {"state": "review", "label": "W2D1"}
+        for extra, review, label in (({}, False, None), ({"check": None, "review": None}, False, None),
+                                     ({"check": check, "review": None}, True, "W2D1"),
+                                     ({"check": check, "review": {"decision": "run", "type_match": None}}, False, "W2D1"),
+                                     ({"check": {**check, "state": "match"}, "review": None}, False, "W2D1")):
+            with self.subTest(extra=extra):
+                event = scored(P1, {**item, **extra})
+                self.assertEqual((event["review"], event["plan_label"]), (review, label))
+        self.assertEqual(list(event)[-2:], ["review", "plan_label"])
 
     def test_no_sensor_carries_the_older_feed(self):
         old = wk("person1", "gym", 0, 18, 0, 26)

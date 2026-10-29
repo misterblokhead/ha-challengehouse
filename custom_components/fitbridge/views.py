@@ -172,6 +172,8 @@ class UiView(HomeAssistantView):
             return await self._post_shoes(request, body)
         if isinstance(body, dict) and body.get("action") == "shoe":
             return await self._post_run_shoe(request, body)
+        if isinstance(body, dict) and body.get("action") == "review":
+            return await self._post_review(request, body)
         if not (isinstance(body, dict) and body.get("action") in ("remove", "restore")
                 and isinstance(body.get("person"), str) and isinstance(body.get("key"), str)):
             return _detail(self, "expected person, key and action remove or restore", HTTPStatus.BAD_REQUEST)
@@ -258,6 +260,29 @@ class UiView(HomeAssistantView):
         except ValueError as err:
             return _detail(self, str(err), HTTPStatus.BAD_REQUEST)
         return self.json({"ok": True, **({"id": result} if op == "add" else {})}, status_code=HTTPStatus.ACCEPTED)
+
+    async def _post_review(self, request: web.Request, body: dict) -> web.Response:
+        """{"action": "review", person, key, decision: "plan" | "run" | "type" | null (clears), type_match}: the owner's call on a
+        run that does not fit its plan day. type_match: a non-run type of the workout's source."""
+        person, key, decision, match = body.get("person"), body.get("key"), body.get("decision"), body.get("type_match")
+        if not (isinstance(person, str) and isinstance(key, str) and "decision" in body and decision in (None, "plan", "run", "type")):
+            return _detail(self, "expected person, key and decision plan, run, type or null", HTTPStatus.BAD_REQUEST)
+        data, allowed, refused = self._shoe_gate(request)
+        if refused is not None:
+            return refused
+        if not allowed(person):
+            return _detail(self, "not allowed", HTTPStatus.FORBIDDEN)
+        if (item := find_workout(data.scores, person, key)) is None:
+            return _detail(self, "not found", HTTPStatus.NOT_FOUND)
+        if decision == "type":
+            types = (await data.runner.async_types()).get(item.get("source"), [])
+            if not isinstance(match, str) or match not in {e["match"] for e in types if e["kind"] != "run"}:
+                return _detail(self, "type_match: not a type of this workout's source", HTTPStatus.BAD_REQUEST)
+        try:
+            await data.runner.async_review(person, key, decision, match if decision == "type" else None)
+        except ValueError as err:
+            return _detail(self, str(err), HTTPStatus.BAD_REQUEST)
+        return self.json({"ok": True}, status_code=HTTPStatus.ACCEPTED)
 
     async def _post_run_shoe(self, request: web.Request, body: dict) -> web.Response:
         """{"action": "shoe", person, key, shoe_id}: a run moves to another of its owner's shoes."""

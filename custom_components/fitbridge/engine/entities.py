@@ -33,10 +33,18 @@ MEASURED = {"XP", "%", "wk", "km"}                  # units that also get state_
 WORKOUT_FIELDS = ("kind", "minutes", "km", "xp", "plan", "joint")
 EVENT_ENTITIES = {"badge_unlocked": ("Badge unlocked", "mdi:medal"), "workout_scored": ("Workout scored", "mdi:run"),
                   "record_set": ("Record set", "mdi:trophy")}  # event type -> (name, icon); entity event.fit_<type>
+
+
+def _workout_scored(p, w):
+    """review: the run waits for its owner's plan decision; plan_label: the day it was checked against."""
+    check = w.get("check") or {}
+    return {"event_type": "workout_scored", "person": p, "key": w["key"], **{k: w[k] for k in WORKOUT_FIELDS},
+            "review": check.get("state") == "review" and not w.get("review"), "plan_label": check.get("label")}
+
+
 # event type -> payload(person, item): item is a badge, a feed item or a record event
 EVENTS = {
     "badge_unlocked": lambda p, b: {"event_type": "badge_unlocked", "person": p, **b},
-    "workout_scored": lambda p, w: {"event_type": "workout_scored", "person": p, "key": w["key"],
-                                    **{k: w[k] for k in WORKOUT_FIELDS}},
+    "workout_scored": _workout_scored,
     "record_set": lambda p, e: {"event_type": "record_set", "person": p, **e},
 }

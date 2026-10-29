@@ -43,6 +43,11 @@ def test_shape_adds_viewer():
     assert core.shape(SCORES, None, True)["viewer"] == {"person": None, "can_edit": [], "can_connect": ["p1", "p2"]}
 
 
+def test_shape_keeps_review_types():
+    types = {"src": [{"match": "cycling", "name": "Cycling"}]}
+    assert core.shape({**SCORES, "review_types": types}, "p1", False)["review_types"] == types
+
+
 def test_public_drops_older_and_keeps_an_error_payload():
     assert core.public({"x": 1, "people": {"p1": {"feed": [], "older": [{"key": "k"}]}}}) == {"x": 1, "people": {"p1": {"feed": []}}}
     assert core.public({"error": "no valid scoring config"}) == {"error": "no valid scoring config"}
