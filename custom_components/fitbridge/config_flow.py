@@ -1,4 +1,4 @@
-import contextlib
+import logging
 from pathlib import Path
 
 import voluptuous as vol
@@ -34,6 +34,7 @@ from .const import (
     WEBHOOKS,
 )
 
+_LOGGER = logging.getLogger(__name__)
 NEW_URLS = "new_urls"
 
 
@@ -142,8 +143,10 @@ class FitbridgeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         if picks[pid] == "invite" and pid not in self._invites:  # kept from an earlier try
                             self._invites[pid] = await gym.async_invite(self.hass, self._url, self._token, w["name"])
                         elif picks[pid] != "invite" and pid in self._invites:  # changed their mind: do not leave a live code
-                            with contextlib.suppress(gym.GymError):
+                            try:
                                 await gym.async_revoke(self.hass, self._url, self._token, self._invites.pop(pid))
+                            except gym.GymError:  # the code is not kept: it would end up in the options
+                                _LOGGER.warning("Could not withdraw an unused openGym invite for %s; remove it in openGym's admin settings", pid)
                 except gym.GymError:
                     errors["base"] = "invite_failed"
                 else:

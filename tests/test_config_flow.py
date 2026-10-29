@@ -361,7 +361,7 @@ async def test_setup_one_gym_account_per_person(hass, enable_custom_integrations
         assert result["type"] is FlowResultType.FORM and result["errors"] == {"base": "duplicate_gym_user"}
         invite.assert_not_called()
         result = await hass.config_entries.flow.async_configure(result["flow_id"], {first: "invite", second: "invite"})
-        assert result["type"] is FlowResultType.CREATE_ENTRY  # two invites are two different codes
+        assert result["type"] is FlowResultType.CREATE_ENTRY  # one invite per person who picked Invite
     assert result["options"][OPT_INVITES] == {"person_1": "C0DE", "person_2": "C0DE"} and OPT_OPENGYM_UIDS not in result["options"]
 
 
@@ -378,14 +378,21 @@ async def test_setup_failed_invite_keeps_earlier_codes_for_the_retry(hass, enabl
     assert result["options"][OPT_INVITES] == {"person_1": "C0DE", "person_2": "D0DE"}
 
 
-async def test_setup_a_kept_invite_is_revoked_when_the_person_gets_nobody(hass, enable_custom_integrations, aioclient_mock, caplog):
+async def test_setup_a_kept_invite_is_revoked_when_the_person_gets_nobody(hass, enable_custom_integrations, aioclient_mock):
     result, (first, second) = await _gym_people(hass, aioclient_mock, "Person 1", "Person 2")
-    with patch.object(gym, "async_invite", AsyncMock(side_effect=["C0DE", gym.GymError("cannot_connect")])), \
-            patch.object(gym, "async_revoke", AsyncMock()) as revoke:
+    with patch.object(gym, "async_invite", AsyncMock(side_effect=["C0DE", gym.GymError("cannot_connect")])),             patch.object(gym, "async_revoke", AsyncMock()) as revoke:
         result = await hass.config_entries.flow.async_configure(result["flow_id"], {first: "invite", second: "invite"})
         assert result["errors"] == {"base": "invite_failed"}
         result = await hass.config_entries.flow.async_configure(result["flow_id"], {first: "", second: "u2"})
         assert result["type"] is FlowResultType.CREATE_ENTRY
         assert [c.args[3] for c in revoke.call_args_list] == ["C0DE"]
     assert OPT_INVITES not in result["options"] and result["options"][OPT_OPENGYM_UIDS] == {"person_2": "u2"}
-    assert "C0DE" not in caplog.text
+
+
+async def test_setup_a_failed_revoke_is_logged_without_the_code(hass, enable_custom_integrations, aioclient_mock, caplog):
+    result, (first, second) = await _gym_people(hass, aioclient_mock, "Person 1", "Person 2")
+    with patch.object(gym, "async_invite", AsyncMock(side_effect=["C0DE", gym.GymError("cannot_connect")])),             patch.object(gym, "async_revoke", AsyncMock(side_effect=gym.GymError("cannot_connect"))):
+        await hass.config_entries.flow.async_configure(result["flow_id"], {first: "invite", second: "invite"})
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {first: "", second: "u2"})
+    assert result["type"] is FlowResultType.CREATE_ENTRY and OPT_INVITES not in result["options"]  # the failed code is not stored
+    assert "Could not withdraw an unused openGym invite for person_1" in caplog.text and "C0DE" not in caplog.text
