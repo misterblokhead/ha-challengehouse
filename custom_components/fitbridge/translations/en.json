@@ -10,7 +10,7 @@
       },
       "person": {
         "title": "Set up a person",
-        "description": "Set up {name}. The step sensor counts daily steps; the phone's Home Assistant app makes one when its step counter is turned on.",
+        "description": "Set up {name}. The step sensor counts daily steps; the phone's Home Assistant app makes one when its step counter is turned on.{warning}",
         "data": {
           "plan": "Plan",
           "phone": "Phone",
@@ -34,10 +34,11 @@
       },
       "pair": {
         "title": "Pair with openGym",
-        "description": "openGym needs its own HTTPS address that never changes: a passkey only works at the address it was made for.\n\n1. Open openGym and create your account. The first account becomes the admin.\n2. Go to Settings, Account, Pair the mobile app.\n3. Paste the code here, with openGym's address.",
+        "description": "openGym needs its own HTTPS address that never changes: a passkey only works at the address it was made for.\n\n1. Open openGym and create your account. The first account becomes the admin.\n2. Go to Settings, Account, Pair the mobile app.\n3. Paste the code here, with openGym's address.\n\nTo go on without gym tracking (for example when pairing fails), tick the box below and submit; openGym can be paired later in the ChallengeHouse options.",
         "data": {
           "opengym_url": "openGym address",
-          "code": "Pairing code"
+          "code": "Pairing code",
+          "skip": "Continue without gym tracking"
         }
       },
       "gym_people": {
@@ -53,7 +54,8 @@
       "invite_failed": "openGym could not make an invite. Check that it is running, or choose Nobody and invite later."
     },
     "abort": {
-      "single_instance_allowed": "ChallengeHouse is already set up."
+      "single_instance_allowed": "ChallengeHouse is already set up.",
+      "already_configured": "ChallengeHouse is already set up."
     }
   },
   "options": {
@@ -93,6 +95,13 @@
           "phone": "Phone"
         }
       },
+      "group": {
+        "title": "Group",
+        "description": "Two people can compete and cheer together as a couple.",
+        "data": {
+          "group": "Group these two as a couple"
+        }
+      },
       "viewers": {
         "title": "Who is who",
         "description": "Pick the fitbridge person for each Home Assistant user. Users set to Nobody see the household read-only."
@@ -122,7 +131,7 @@
       }
     },
     "abort": {
-      "waiting_for_fitbridge": "Waiting for fitbridge: it has not scored yet. Try again in a minute; check the log if scoring.toml is invalid.",
+      "waiting_for_fitbridge": "Waiting for fitbridge: it knows no people yet. Try again in a minute; check the log if scoring.toml is invalid, or add a person under People.",
       "not_paired": "Pair with openGym first.",
       "people_not_migrated": "The people are still read from scoring.toml because it could not be moved into these options. Check the log, fix the file and restart Home Assistant.",
       "no_free_users": "Every Home Assistant user is already a viewer of a person. Free one in Who is who first."

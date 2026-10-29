@@ -87,6 +87,8 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             options |= {k: v for k, v in old.items() if v is not None}
             if timezone != hass.config.time_zone:
                 _LOGGER.warning("scoring.toml has timezone %s, Home Assistant has %s: Home Assistant's is used", timezone, hass.config.time_zone)
+        elif OPT_PEOPLE not in options:
+            _LOGGER.warning("scoring.toml has no people to move (missing or without [people]); add them in Configure -> People")
         hass.config_entries.async_update_entry(entry, options=options, minor_version=4)
     return True
 

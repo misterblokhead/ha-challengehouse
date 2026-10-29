@@ -52,5 +52,15 @@ def from_toml(text: str) -> dict | None:
     return {OPT_PEOPLE: _json_safe(raw["people"]), OPT_GROUP: _json_safe(raw.get("group")), OPT_START: start.isoformat()}
 
 
-def person(name: str, plan: str | None, today: date) -> dict:
-    return {"name": name, "plan_history": [{"plan": plan, "from": today.isoformat()}] if plan else []}
+def person(name: str, pick: str | None, today: date) -> dict:
+    """A new person; pick as in with_plan."""
+    return with_plan({"name": name, "plan_history": []}, pick, today)
+
+
+def with_plan(record: dict, pick: str | None, today: date) -> dict:
+    """record with the plan picked in a form from today: a plan name starts it (again), "none" (or None) stops the plan;
+    stopping when no plan is active changes nothing. Earlier history stays."""
+    plan, history = None if pick == "none" else pick, record.get("plan_history", [])
+    if plan is None and (not history or history[-1]["plan"] is None):
+        return record
+    return {**record, "plan_history": [*history, {"plan": plan, "from": today.isoformat()}]}

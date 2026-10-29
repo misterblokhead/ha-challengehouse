@@ -37,7 +37,11 @@ NEW_URLS = "new_urls"
 ADD = "+"  # the People step's pick for a new person; not an id (ids are ^[a-z0-9_]+$)
 KEEP = "keep"  # a plan or an open invite left as it is
 INVITE = "invite"
+GROUP = "couple"  # the group's name, never a person's id
 PHONE_LABELS = {"iphone": "iPhone", "android": "Android"}
+PLANS = {"c25k": "Couch to 5K, starting today", "none": "No plan"}
+NO_EXTERNAL_URL = ("\n\nHome Assistant has no external URL, so the phone's webhook address only works at home. Set one in "
+                   "Settings -> System -> Network, or use Home Assistant Cloud's remote access.")
 
 
 def _labels(names: dict[str, str], tag=lambda k: k) -> dict[str, str]:
@@ -45,9 +49,25 @@ def _labels(names: dict[str, str], tag=lambda k: k) -> dict[str, str]:
     return {k: n if list(names.values()).count(n) == 1 else f"{n} ({tag(k)})" for k, n in names.items()}
 
 
+def _names_of(records: dict) -> dict[str, str]:
+    """People records as person -> name."""
+    return {p: str(r.get("name") or p) for p, r in records.items()}
+
+
 def _choice(options: dict[str, str]) -> SelectSelector:
     return SelectSelector(SelectSelectorConfig(
         mode=SelectSelectorMode.DROPDOWN, options=[{"value": v, "label": n} for v, n in options.items()]))
+
+
+def _user_name(user) -> str:
+    return user.name or user.id[:6]  # a user may have no name
+
+
+async def _ha_users(hass: HomeAssistant, skip=()) -> dict[str, str]:
+    """The active, non-system Home Assistant users (but those in skip) as user id -> unique label."""
+    users = {u.id: _user_name(u) for u in await hass.auth.async_get_users()
+             if u.is_active and not u.system_generated and u.id not in skip}
+    return _labels(users, lambda uid: uid[:6])
 
 
 async def _gym_users(hass: HomeAssistant, url: str, token: str) -> dict[str, str]:
@@ -64,20 +84,26 @@ def _gym_choice(users: dict[str, str], open_invite: bool) -> SelectSelector:
                     INVITE: "Invite again (the open code stops working)" if open_invite else "Invite", **users})
 
 
-def _pair_schema() -> vol.Schema:
-    return vol.Schema({vol.Required(OPT_OPENGYM_URL): TextSelector(TextSelectorConfig(type=TextSelectorType.URL)),
-                       vol.Required("code"): TextSelector()})
+def _pair_schema(setup: bool = False) -> vol.Schema:
+    """openGym's address and a pairing code; at first setup both may stay empty to go on without openGym ("skip")."""
+    key = vol.Optional if setup else vol.Required
+    return vol.Schema({key(OPT_OPENGYM_URL): TextSelector(TextSelectorConfig(type=TextSelectorType.URL)), key("code"): TextSelector(),
+                       **({vol.Optional("skip", default=False): bool} if setup else {})})
 
 
 async def _pair(hass: HomeAssistant, user_input: dict) -> tuple[str, str | None, dict]:
     """(address, token, errors) of a pairing form; the token is None when openGym did not give one."""
-    url, code = gym.normalize_url(user_input[OPT_OPENGYM_URL]), user_input["code"].strip()
+    url, code = gym.normalize_url(user_input.get(OPT_OPENGYM_URL, "")), user_input.get("code", "").strip()
     if not gym.CODE.fullmatch(code):
         return url, None, {"code": "invalid_code"}
     try:
         return url, await gym.async_redeem(hass, url, code), {}
     except gym.GymError as err:
         return url, None, {"base": err.reason}
+
+
+def _group_schema() -> vol.Schema:
+    return vol.Schema({vol.Optional("group", default=True): bool})
 
 
 class FitbridgeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -93,16 +119,15 @@ class FitbridgeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_user(self, user_input=None):
         if self._async_current_entries():
             return self.async_abort(reason="single_instance_allowed")
-        users = {u.id: u.name or u.id[:6] for u in await self.hass.auth.async_get_users() if u.is_active and not u.system_generated}
-        errors = {}
+        users, errors = await _ha_users(self.hass), {}
         if user_input is not None:
-            if user_input["users"]:
-                names = [users[uid] for uid in user_input["users"]]
+            if picked := user_input["users"]:
+                names = [_user_name(await self.hass.auth.async_get_user(uid)) for uid in picked]
                 self._who = [{"id": pid, "uid": uid, "name": name}
-                             for pid, uid, name in zip(people.make_ids(names), user_input["users"], names)]
+                             for pid, uid, name in zip(people.make_ids(names, taken=[GROUP]), picked, names)]
                 return await self.async_step_person()
             errors["users"] = "no_people"
-        options = [{"value": uid, "label": label} for uid, label in _labels(users, lambda uid: uid[:6]).items()]
+        options = [{"value": uid, "label": label} for uid, label in users.items()]
         return self.async_show_form(step_id="user", errors=errors, data_schema=vol.Schema({
             vol.Required("users", default=[]): SelectSelector(SelectSelectorConfig(multiple=True, options=options))}))
 
@@ -116,31 +141,35 @@ class FitbridgeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return await (self.async_step_group() if len(self._who) == 2 else self.async_step_opengym())
         found = steps.candidates(self.hass, who["uid"])
         sensor = EntitySelector(EntitySelectorConfig(domain="sensor", **({"include_entities": found} if len(found) > 1 else {})))
-        return self.async_show_form(step_id="person", description_placeholders={"name": who["name"]}, data_schema=vol.Schema({
-            vol.Required("plan", default="c25k"): _choice({"c25k": "Couch to 5K, starting today", "none": "No plan"}),
-            vol.Required("phone", default=PHONES[0]): _choice(PHONE_LABELS),
-            vol.Optional("steps", description={"suggested_value": found[0] if len(found) == 1 else None}): sensor}))
+        return self.async_show_form(step_id="person", description_placeholders={
+            "name": who["name"], "warning": "" if webhooks.async_external(self.hass) else NO_EXTERNAL_URL}, data_schema=vol.Schema({
+                vol.Required("plan", default="c25k"): _choice(PLANS),
+                vol.Required("phone", default=PHONES[0]): _choice(PHONE_LABELS),
+                vol.Optional("steps", description={"suggested_value": found[0] if len(found) == 1 else None}): sensor}))
 
     async def async_step_group(self, user_input=None):
         if user_input is not None:
             self._group = user_input["group"]
             return await self.async_step_opengym()
-        return self.async_show_form(step_id="group", data_schema=vol.Schema({vol.Optional("group", default=True): bool}))
+        return self.async_show_form(step_id="group", data_schema=_group_schema())
 
     async def async_step_opengym(self, user_input=None):
         return self.async_show_menu(step_id="opengym", menu_options=["skip", "pair"])
 
     async def async_step_skip(self, user_input=None):
+        self._url = self._token = None  # a failed pairing leaves no address behind
         return await self._create({}, {})
 
     async def async_step_pair(self, user_input=None):
         errors = {}
         if user_input is not None:
+            if user_input.get("skip"):  # after a failed pairing: no gym tracking after all
+                return await self.async_step_skip()
             self._url, self._token, errors = await _pair(self.hass, user_input)
             if self._token:
                 return await self.async_step_gym_people()
         return self.async_show_form(step_id="pair", errors=errors, data_schema=self.add_suggested_values_to_schema(
-            _pair_schema(), {OPT_OPENGYM_URL: (user_input or {}).get(OPT_OPENGYM_URL)}))
+            _pair_schema(setup=True), {OPT_OPENGYM_URL: (user_input or {}).get(OPT_OPENGYM_URL)}))
 
     async def async_step_gym_people(self, user_input=None):
         """Each person: no openGym, a new invite, or an account openGym already has."""
@@ -164,23 +193,24 @@ class FitbridgeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             vol.Schema({vol.Optional(label, default=""): select for label in labels.values()}), user_input or {}))
 
     async def _create(self, uids: dict[str, str], invites: dict[str, str]):
+        await self.async_set_unique_id(DOMAIN)
+        self._abort_if_unique_id_configured()  # a second setup flow that was open at the same time
         today = dt_util.now().date()
         options = {
-            OPT_PEOPLE: {w["id"]: people.person(w["name"], None if w["plan"] == "none" else w["plan"], today) for w in self._who},
+            OPT_PEOPLE: {w["id"]: people.person(w["name"], w["plan"], today) for w in self._who},
             OPT_START: today.isoformat(),
             OPT_PHONES: {w["id"]: w["phone"] for w in self._who},
             OPT_VIEWERS: {w["uid"]: w["id"] for w in self._who},
             OPT_STEPS: {w["id"]: w["steps"] for w in self._who if w.get("steps")},
         }
         if self._group:
-            options[OPT_GROUP] = {"name": "couple", "members": [w["id"] for w in self._who]}
+            options[OPT_GROUP] = {"name": GROUP, "members": [w["id"] for w in self._who]}
         if self._url:
             options[OPT_OPENGYM_URL] = self._url
         if uids:
             options[OPT_OPENGYM_UIDS] = uids
         if invites:
             options[OPT_INVITES] = invites
-        await self.async_set_unique_id(DOMAIN)
         return self.async_create_entry(title="ChallengeHouse", data={OPENGYM_TOKEN: self._token} if self._token else {}, options=options)
 
     @staticmethod
@@ -194,50 +224,48 @@ class FitbridgeOptionsFlow(config_entries.OptionsFlowWithReload):
     nobody, "", meaning the read-only household view; then each person's phone step sensor), each person's webhook URL and
     watch folder, the openGym pairing, and each person's openGym user or invite."""
 
+    def __init__(self) -> None:
+        self._viewers: dict[str, str] = {}
+        self._person: str | None = None
+        self._added: dict = {}  # person_add's options, waiting for the group question
+
     async def async_step_init(self, user_input=None):
-        data = self.hass.data.get(DOMAIN)
-        if data is None or data.scores is None:
+        if self.hass.data.get(DOMAIN) is None:
             return self.async_abort(reason="waiting_for_fitbridge")
         return self.async_show_menu(step_id="init", menu_options=["people", "viewers", "inputs", "opengym", "gym_people"])
 
+    async def _names(self) -> dict[str, str]:
+        """The people (viewers, step sensors, webhooks, folders and openGym users go by them) as person -> name: the
+        options', or scoring.toml's until they are migrated. Empty while neither has any: those steps then wait."""
+        known = self.config_entry.options.get(OPT_PEOPLE)
+        return _names_of(known if known is not None else await self.hass.data[DOMAIN].runner.async_people())
+
     async def async_step_viewers(self, user_input=None):
-        data = self.hass.data[DOMAIN]
-        users = [u for u in await self.hass.auth.async_get_users() if u.is_active and not u.system_generated]
-        labels = _labels({u.id: u.name or u.id[:6] for u in users}, lambda uid: uid[:6])  # a user may have no name
+        if not (names := await self._names()):
+            return self.async_abort(reason="waiting_for_fitbridge")
+        labels = await _ha_users(self.hass)
         if user_input is not None:
             self._viewers = {uid: user_input[label] for uid, label in labels.items() if user_input.get(label)}
             return await self.async_step_steps()
-        people = data.scores["people"]
-        viewers = self.config_entry.options.get(OPT_VIEWERS, {})
-        select = SelectSelector(SelectSelectorConfig(mode=SelectSelectorMode.DROPDOWN, options=[
-            {"value": "", "label": "Nobody"}, *({"value": p, "label": str(r.get("name") or p)} for p, r in people.items())]))
+        viewers, select = self.config_entry.options.get(OPT_VIEWERS, {}), _choice({"": "Nobody", **names})
         return self.async_show_form(step_id="viewers", data_schema=vol.Schema({
-            vol.Optional(label, default=viewers.get(uid) if viewers.get(uid) in people else ""): select
+            vol.Optional(label, default=viewers.get(uid) if viewers.get(uid) in names else ""): select
             for uid, label in labels.items()}))
 
     async def async_step_steps(self, user_input=None):
-        people = self.hass.data[DOMAIN].scores["people"]
-        labels = _labels({p: str(r.get("name") or p) for p, r in people.items()})
+        labels = _labels(await self._names())
         if user_input is not None:
-            steps = {p: user_input[label] for p, label in labels.items() if user_input.get(label)}
-            return self.async_create_entry(data={**self.config_entry.options, OPT_VIEWERS: self._viewers, OPT_STEPS: steps})
+            sensors = {p: user_input[label] for p, label in labels.items() if user_input.get(label)}
+            return self.async_create_entry(data={**self.config_entry.options, OPT_VIEWERS: self._viewers, OPT_STEPS: sensors})
         old = self.config_entry.options.get(OPT_STEPS, {})
         select = EntitySelector(EntitySelectorConfig(domain="sensor"))
         return self.async_show_form(step_id="steps", data_schema=vol.Schema({  # a suggestion, not a default: the field can be cleared
             vol.Optional(label, description={"suggested_value": old.get(p)}): select for p, label in labels.items()}))
 
-    async def _names(self) -> dict[str, str]:
-        """The people (webhooks, folders and openGym users go by them) as person -> name."""
-        people = await self.hass.data[DOMAIN].runner.async_people()
-        return {p: str(r.get("name") or p) for p, r in people.items()}
-
-    async def _people(self) -> dict[str, str]:
-        """The people as person -> field label."""
-        return _labels(await self._names())
-
     async def async_step_people(self, user_input=None):
         """Pick a person to edit, or add one."""
-        if OPT_PEOPLE not in self.config_entry.options:  # the migration could not read scoring.toml: its people are not ours to rewrite
+        options = self.config_entry.options
+        if OPT_PEOPLE not in options and self.config_entry.minor_version < 4:  # the migration is pending: the file's people are not ours
             return self.async_abort(reason="people_not_migrated")
         if user_input is not None:
             if user_input["person"] == ADD:
@@ -245,7 +273,7 @@ class FitbridgeOptionsFlow(config_entries.OptionsFlowWithReload):
             self._person = user_input["person"]
             return await self.async_step_person_edit()
         return self.async_show_form(step_id="people", data_schema=vol.Schema({
-            vol.Required("person"): _choice({**await self._people(), ADD: "Add a person"})}))
+            vol.Required("person"): _choice({**_labels(_names_of(options.get(OPT_PEOPLE, {}))), ADD: "Add a person"})}))
 
     async def async_step_person_edit(self, user_input=None):
         """Name, plan and phone. A plan change is a new plan_history entry from today: the old ones stay."""
@@ -254,41 +282,52 @@ class FitbridgeOptionsFlow(config_entries.OptionsFlowWithReload):
         if user_input is not None:
             name = user_input["name"].strip()
             if name:
-                history = record.get("plan_history", [])
                 if user_input["plan"] != KEEP:
-                    history = [*history, {"plan": None if user_input["plan"] == "none" else user_input["plan"],
-                                          "from": dt_util.now().date().isoformat()}]
+                    record = people.with_plan(record, user_input["plan"], dt_util.now().date())
                 return self.async_create_entry(data={
-                    **options, OPT_PEOPLE: {**options[OPT_PEOPLE], pid: {**record, "name": name, "plan_history": history}},
+                    **options, OPT_PEOPLE: {**options[OPT_PEOPLE], pid: {**record, "name": name}},
                     OPT_PHONES: {**options.get(OPT_PHONES, {}), pid: user_input["phone"]}})
             errors["name"] = "name_required"
         phone = options.get(OPT_PHONES, {}).get(pid)
         schema = vol.Schema({
             vol.Required("name"): TextSelector(),
-            vol.Required("plan", default=KEEP): _choice({KEEP: "Keep the current plan", "c25k": "Couch to 5K, starting today", "none": "No plan from today"}),
+            vol.Required("plan", default=KEEP): _choice({KEEP: "Keep the current plan", **PLANS}),
             vol.Required("phone", default=phone if phone in PHONES else PHONES[0]): _choice(PHONE_LABELS)})
         return self.async_show_form(step_id="person_edit", errors=errors, data_schema=self.add_suggested_values_to_schema(
             schema, user_input or {"name": record["name"]}))
 
     async def async_step_person_add(self, user_input=None):
-        """A new person from an HA user who is nobody's viewer yet; the user becomes their viewer."""
+        """A new person from an HA user who is nobody's viewer yet; the user becomes their viewer. The second person may
+        make a group, as at first setup."""
         options = self.config_entry.options
         viewers, known = options.get(OPT_VIEWERS, {}), options.get(OPT_PEOPLE, {})
-        free = {u.id: u.name or u.id[:6] for u in await self.hass.auth.async_get_users()
-                if u.is_active and not u.system_generated and not viewers.get(u.id)}
+        free = await _ha_users(self.hass, skip={uid for uid, p in viewers.items() if p})
         if not free:
             return self.async_abort(reason="no_free_users")
         if user_input is not None:
             uid, today = user_input["user"], dt_util.now().date()
-            (pid,) = people.make_ids([free[uid]], taken=known)
-            plan = None if user_input["plan"] == "none" else user_input["plan"]
-            return self.async_create_entry(data={
-                **options, OPT_PEOPLE: {**known, pid: people.person(free[uid], plan, today)}, OPT_START: options.get(OPT_START, today.isoformat()),
-                OPT_PHONES: {**options.get(OPT_PHONES, {}), pid: user_input["phone"]}, OPT_VIEWERS: {**viewers, uid: pid}})
+            name = _user_name(await self.hass.auth.async_get_user(uid))
+            # never an id a retired person's webhook still has, nor the group's name
+            (pid,) = people.make_ids([name], taken={*known, *self.config_entry.data.get(WEBHOOKS, {}), GROUP})
+            known = {**known, pid: people.person(name, user_input["plan"], today)}
+            self._added = {  # the start is there already, unless this is the first person (migrated without a scoring.toml)
+                **options, OPT_PEOPLE: known, OPT_START: options.get(OPT_START, today.isoformat()),
+                OPT_PHONES: {**options.get(OPT_PHONES, {}), pid: user_input["phone"]}, OPT_VIEWERS: {**viewers, uid: pid}}
+            if len(known) == 2 and not options.get(OPT_GROUP):
+                return await self.async_step_group()
+            return self.async_create_entry(data=self._added)
         return self.async_show_form(step_id="person_add", data_schema=vol.Schema({
-            vol.Required("user"): _choice(_labels(free, lambda uid: uid[:6])),
-            vol.Required("plan", default="c25k"): _choice({"c25k": "Couch to 5K, starting today", "none": "No plan"}),
+            vol.Required("user"): _choice(free),
+            vol.Required("plan", default="c25k"): _choice(PLANS),
             vol.Required("phone", default=PHONES[0]): _choice(PHONE_LABELS)}))
+
+    async def async_step_group(self, user_input=None):
+        """After person_add made two people: the first setup's group question."""
+        if user_input is not None:
+            if user_input["group"]:
+                self._added[OPT_GROUP] = {"name": GROUP, "members": list(self._added[OPT_PEOPLE])}
+            return self.async_create_entry(data=self._added)
+        return self.async_show_form(step_id="group", data_schema=_group_schema())
 
     async def async_step_opengym(self, user_input=None):
         """openGym's address and a pairing code from it, exchanged for the token (never logged)."""
@@ -307,7 +346,8 @@ class FitbridgeOptionsFlow(config_entries.OptionsFlowWithReload):
         url, token = options.get(OPT_OPENGYM_URL), self.config_entry.data.get(OPENGYM_TOKEN)
         if not url or not token:
             return self.async_abort(reason="not_paired")
-        names = await self._names()
+        if not (names := await self._names()):
+            return self.async_abort(reason="waiting_for_fitbridge")
         labels, open_invites, old, errors = _labels(names), options.get(OPT_INVITES, {}), options.get(OPT_OPENGYM_UIDS, {}), {}
         if user_input is not None:
             picks = {p: user_input.get(label) for p, label in labels.items()}
@@ -338,8 +378,9 @@ class FitbridgeOptionsFlow(config_entries.OptionsFlowWithReload):
 
     async def async_step_inputs(self, user_input=None):
         """Each person's webhook URL (shown, can be replaced) and optional watch folder (must exist)."""
-        labels = await self._people()
-        errors = {}
+        if not (names := await self._names()):
+            return self.async_abort(reason="waiting_for_fitbridge")
+        labels, errors = _labels(names), {}
         if user_input is not None:
             folders = {p: f for p, label in labels.items() if (f := (user_input.get(label) or "").strip())}
             missing = await self.hass.async_add_executor_job(
@@ -358,4 +399,3 @@ class FitbridgeOptionsFlow(config_entries.OptionsFlowWithReload):
         return self.async_show_form(
             step_id="inputs", errors=errors, description_placeholders={"urls": "\n".join(urls)},
             data_schema=self.add_suggested_values_to_schema(schema, user_input or {labels[p]: f for p, f in old.items() if p in labels}))
-

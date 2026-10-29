@@ -46,6 +46,17 @@ def test_overlay_shape():
 
 def test_person_without_plan_has_no_history():
     assert people.person("Alex", None, date(2026, 10, 26)) == {"name": "Alex", "plan_history": []}
+    assert people.person("Alex", "none", date(2026, 10, 26)) == {"name": "Alex", "plan_history": []}
+
+
+def test_with_plan_appends_and_a_stop_without_a_plan_changes_nothing():
+    today = date(2026, 11, 2)
+    on = people.person("Alex", "c25k", date(2026, 10, 26))
+    stopped = people.with_plan(on, "none", today)
+    assert stopped["plan_history"] == [{"plan": "c25k", "from": "2026-10-26"}, {"plan": None, "from": "2026-11-02"}]
+    assert people.with_plan(stopped, "none", today) == stopped  # already no plan
+    assert people.with_plan(on, "c25k", today)["plan_history"][-1] == {"plan": "c25k", "from": "2026-11-02"}  # starts again
+    assert people.with_plan({"name": "Alex"}, "none", today) == {"name": "Alex"}  # a migrated record without history
 
 
 def test_from_toml():

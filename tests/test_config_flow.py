@@ -1,14 +1,15 @@
 import asyncio
+from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
 import aiohttp
-from conftest import PEOPLE_OPTIONS, SCORES
+from conftest import PEOPLE_OPTIONS
 from engine.test_ingest import P0, P1
 from homeassistant import config_entries
 from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.util import dt as dt_util
-from pytest_homeassistant_custom_component.common import MockConfigEntry, MockUser
+from pytest_homeassistant_custom_component.common import MockUser
 from test_steps import _phone
 
 from custom_components.fitbridge import gym
@@ -56,7 +57,7 @@ async def test_setup_one_person_no_gym(hass, enable_custom_integrations):
     MockUser(name="Gone", is_active=False).add_to_hass(hass)
     MockUser(name="Bot", system_generated=True).add_to_hass(hass)
     result, (user,) = await _start(hass, "Person 1")
-    assert result["description_placeholders"] == {"name": "Person 1"}
+    assert result["description_placeholders"]["name"] == "Person 1" and "only works at home" in result["description_placeholders"]["warning"]
     result = await _answer(hass, result)
     assert result["type"] is FlowResultType.MENU and result["menu_options"] == ["skip", "pair"]  # one person: no group step
     result = await hass.config_entries.flow.async_configure(result["flow_id"], {"next_step_id": "skip"})
@@ -72,6 +73,35 @@ async def test_setup_one_person_no_gym(hass, enable_custom_integrations):
     assert again["type"] is FlowResultType.ABORT and again["reason"] == "single_instance_allowed"
 
 
+async def test_setup_without_the_warning_when_there_is_an_external_url(hass, enable_custom_integrations):
+    hass.config.external_url = "https://ha.example.test"
+    result, _ = await _start(hass, "Person 1")
+    assert result["description_placeholders"]["warning"] == ""
+
+
+async def test_setup_twice_at_once_makes_one_entry(hass, enable_custom_integrations):
+    first, (user,) = await _start(hass, "Person 1")
+    second = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
+    second = await hass.config_entries.flow.async_configure(second["flow_id"], {"users": [user.id]})
+    for result in (first, second):
+        result = await _answer(hass, result)
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {"next_step_id": "skip"})
+    assert result["type"] is FlowResultType.ABORT and result["reason"] == "already_configured"
+    assert len(hass.config_entries.async_entries(DOMAIN)) == 1
+
+
+async def test_setup_after_a_failed_pairing_can_go_on_without_gym(hass, enable_custom_integrations, aioclient_mock):
+    aioclient_mock.post(f"{GYM}/api/pair/redeem", exc=aiohttp.ClientConnectionError())
+    result, _ = await _start(hass, "Person 1")
+    result = await _answer(hass, result)
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {"next_step_id": "pair"})
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {OPT_OPENGYM_URL: GYM, "code": "ABCD"})
+    assert result["type"] is FlowResultType.FORM and result["errors"] == {"base": "cannot_connect"}
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {"skip": True})
+    assert result["type"] is FlowResultType.CREATE_ENTRY and result["data"] == {}
+    assert OPT_OPENGYM_URL not in result["options"]
+
+
 async def test_setup_needs_a_person(hass, enable_custom_integrations):
     MockUser(name="Person 1").add_to_hass(hass)
     result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
@@ -82,7 +112,7 @@ async def test_setup_needs_a_person(hass, enable_custom_integrations):
 async def _two(hass, group_answer):
     result, users = await _start(hass, "Person 1", "Person 2")
     result = await _answer(hass, result, plan="none", phone="android")
-    assert result["step_id"] == "person" and result["description_placeholders"] == {"name": "Person 2"}  # in the order ticked
+    assert result["step_id"] == "person" and result["description_placeholders"]["name"] == "Person 2"  # in the order ticked
     result = await _answer(hass, result)
     assert result["type"] is FlowResultType.FORM and result["step_id"] == "group"
     assert [(str(k), k.default()) for k in result["data_schema"].schema] == [("group", True)]  # on by default
@@ -192,42 +222,52 @@ async def test_setup_invite_failure_creates_nothing(hass, enable_custom_integrat
 
 
 async def test_options_wait_for_fitbridge(hass, entry):
-    result = await hass.config_entries.options.async_init(entry.entry_id)
-    assert result["type"] is FlowResultType.ABORT and result["reason"] == "waiting_for_fitbridge"
+    """No people known yet (scoring.toml invalid, none in the options): steps that would write per person wait."""
+    for step in ("viewers", "inputs"):
+        result = await _open(hass, entry, step)
+        assert result["type"] is FlowResultType.ABORT and result["reason"] == "waiting_for_fitbridge"
 
 
-async def test_options_map_users_to_people(hass, entry, send):
-    await send(SCORES)
+async def test_options_people_steps_need_no_scores(hass, setup):
+    e = await setup()
+    hass.data[DOMAIN].runner.scores = None  # e.g. a scoring.toml broken after the last start
+    result = await _people_step(hass, e, P0)
+    assert result["type"] is FlowResultType.FORM and result["step_id"] == "person_edit"
+    result = await _open(hass, e, "viewers")
+    assert result["type"] is FlowResultType.FORM and result["step_id"] == "viewers"
+
+
+async def test_options_map_users_to_people(hass, setup):
+    e = await setup()
     alex, sam = MockUser(name="Alex").add_to_hass(hass), MockUser(name="Sam").add_to_hass(hass)
     twins = MockUser(id="aaaaaa01", name="Robin").add_to_hass(hass), MockUser(id="bbbbbb02", name="Robin").add_to_hass(hass)
     MockUser(id="cccccc03", name=None).add_to_hass(hass)  # a user without a name is labelled by its id
     MockUser(name="Gone", is_active=False).add_to_hass(hass)
     MockUser(name="Bot", system_generated=True).add_to_hass(hass)
-    result = await _open(hass, entry, "viewers")
+    result = await _open(hass, e, "viewers")
     assert result["type"] is FlowResultType.FORM
     fields = [str(k) for k in result["data_schema"].schema]
     assert sorted(fields) == ["Alex", "Robin (aaaaaa)", "Robin (bbbbbb)", "Sam", "cccccc"]
     result = await hass.config_entries.options.async_configure(
-        result["flow_id"], {"Alex": "p1", "Sam": "", "Robin (bbbbbb)": "p2"})
+        result["flow_id"], {"Alex": P0, "Sam": "", "Robin (bbbbbb)": P1})
     assert result["type"] is FlowResultType.FORM and result["step_id"] == "steps"  # the shoes steps are gone: shoes are managed on the page
-    assert sorted(str(k) for k in result["data_schema"].schema) == ["Alex", "Sam"]  # the payload's people, by name
+    assert sorted(str(k) for k in result["data_schema"].schema) == ["Person 1", "Person 2"]  # the people, by name
     result = await hass.config_entries.options.async_configure(result["flow_id"], {})
     assert result["type"] is FlowResultType.CREATE_ENTRY
-    assert entry.options == {OPT_VIEWERS: {alex.id: "p1", twins[1].id: "p2"}, OPT_STEPS: {}}
-    assert sam.id not in entry.options[OPT_VIEWERS]
+    assert e.options == {**PEOPLE_OPTIONS, OPT_VIEWERS: {alex.id: P0, twins[1].id: P1}, OPT_STEPS: {}}
+    assert sam.id not in e.options[OPT_VIEWERS]
 
 
-async def test_options_step_sensors_after_viewers(hass, entry, send):
-    await send(SCORES)
-    hass.config_entries.async_update_entry(entry, options={OPT_VIEWERS: {}, OPT_STEPS: {"p2": "sensor.old_steps"}})
-    result = await _open(hass, entry, "viewers")
+async def test_options_step_sensors_after_viewers(hass, setup):
+    e = await setup({OPT_VIEWERS: {}, OPT_STEPS: {P1: "sensor.old_steps"}})
+    result = await _open(hass, e, "viewers")
     result = await hass.config_entries.options.async_configure(result["flow_id"], {})
     assert result["type"] is FlowResultType.FORM and result["step_id"] == "steps"
     assert {str(k): k.description for k in result["data_schema"].schema} == {
-        "Alex": {"suggested_value": None}, "Sam": {"suggested_value": "sensor.old_steps"}}  # earlier choices are kept, and can be cleared
-    result = await hass.config_entries.options.async_configure(result["flow_id"], {"Alex": "sensor.phone_steps"})
+        "Person 1": {"suggested_value": None}, "Person 2": {"suggested_value": "sensor.old_steps"}}  # earlier choices are kept, and can be cleared
+    result = await hass.config_entries.options.async_configure(result["flow_id"], {"Person 1": "sensor.phone_steps"})
     assert result["type"] is FlowResultType.CREATE_ENTRY
-    assert entry.options[OPT_STEPS] == {"p1": "sensor.phone_steps"}
+    assert e.options[OPT_STEPS] == {P0: "sensor.phone_steps"}
 
 
 async def test_inputs_show_each_persons_url_and_take_existing_folders_only(hass, setup, tmp_path):
@@ -430,6 +470,38 @@ async def test_add_person_with_a_plan_starts_today(hass, setup):
     assert e.options[OPT_PEOPLE]["person_3"]["plan_history"] == [{"plan": "c25k", "from": dt_util.now().date().isoformat()}]
 
 
+async def test_add_person_making_two_asks_for_the_group(hass, setup):
+    e = await setup({OPT_PEOPLE: {P0: PEOPLE_OPTIONS[OPT_PEOPLE][P0]}, OPT_GROUP: None})
+    user = MockUser(name="Person 3").add_to_hass(hass)
+    result = await _people_step(hass, e, "+")
+    result = await _configure(hass, result, {"user": user.id, "plan": "none", "phone": "iphone"})
+    assert result["type"] is FlowResultType.FORM and result["step_id"] == "group"
+    assert [(str(k), k.default()) for k in result["data_schema"].schema] == [("group", True)]  # on by default
+    result = await _configure(hass, result, {})
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    await hass.async_block_till_done(wait_background_tasks=True)
+    assert e.options[OPT_GROUP] == {"name": "couple", "members": [P0, "person_3"]}
+    assert set(hass.data[DOMAIN].runner.scores["people"]) == {P0, "person_3"}  # the engine took the group
+
+
+async def test_add_person_never_reuses_a_retired_id_or_the_group_name(hass, setup):
+    e = await setup(data={WEBHOOKS: {"person_3": "retired-hook"}})  # a person whose id still owns a webhook
+    for name, pid in (("Person 3", "person_3_2"), ("Couple", "couple_2")):
+        user = MockUser(name=name).add_to_hass(hass)
+        result = await _people_step(hass, e, "+")
+        result = await _configure(hass, result, {"user": user.id, "plan": "none", "phone": "iphone"})
+        assert result["type"] is FlowResultType.CREATE_ENTRY
+        await hass.async_block_till_done(wait_background_tasks=True)
+        assert e.options[OPT_VIEWERS][user.id] == pid
+
+
+async def test_setup_never_uses_the_group_name_as_an_id(hass, enable_custom_integrations):
+    result, _ = await _start(hass, "Couple")
+    result = await _answer(hass, result)
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {"next_step_id": "skip"})
+    assert list(result["options"][OPT_PEOPLE]) == ["couple_2"]
+
+
 async def test_add_person_needs_a_free_user(hass, setup):
     user = MockUser(name="Person 3").add_to_hass(hass)
     e = await setup({OPT_VIEWERS: {user.id: P0}})
@@ -554,16 +626,33 @@ async def test_gym_people_failed_invite_changes_nothing(hass, setup, aioclient_m
     assert dict(e.options) == before
 
 
-async def test_people_not_migrated_are_left_alone(hass, enable_custom_integrations):
-    """An entry whose scoring.toml could not be migrated has no people in its options: neither add nor edit may start."""
-    e = MockConfigEntry(domain=DOMAIN, unique_id=DOMAIN, title="Fitness", minor_version=4)
-    e.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(e.entry_id)
-    await hass.async_block_till_done(wait_background_tasks=True)
-    hass.data[DOMAIN].runner.scores = SCORES  # the options flow waits for a first score
+async def test_people_not_migrated_are_left_alone(hass, setup):
+    """An entry whose migration is still pending (scoring.toml unreadable) has no people in its options: neither add nor
+    edit may start."""
+    path = Path(hass.config.path("fitbridge", "scoring.toml"))
+    path.parent.mkdir()
+    path.write_text("not [toml", encoding="utf-8")
+    e = await setup(minor_version=3)
+    assert e.minor_version == 3
     MockUser(name="Person 3").add_to_hass(hass)
     before = dict(e.options)
     result = await _open(hass, e, "people")
     assert result["type"] is FlowResultType.ABORT and result["reason"] == "people_not_migrated"
     assert dict(e.options) == before
-    await hass.config_entries.async_unload(e.entry_id)
+
+
+async def test_first_person_after_a_migration_without_people(hass, setup):
+    """Migrated (minor 4) while scoring.toml was missing: People adds the first person, as the first setup would."""
+    e = await setup(minor_version=4)
+    hass.config_entries.async_update_entry(e, options={})
+    user = MockUser(name="Person 3").add_to_hass(hass)
+    result = await _open(hass, e, "people")
+    assert [o["value"] for o in _field(result, "person")[1].config["options"]] == ["+"]
+    result = await _configure(hass, result, {"person": "+"})
+    result = await _configure(hass, result, {"user": user.id, "plan": "c25k", "phone": "iphone"})
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    await hass.async_block_till_done(wait_background_tasks=True)
+    today = dt_util.now().date().isoformat()
+    assert e.options == {OPT_PEOPLE: {"person_3": {"name": "Person 3", "plan_history": [{"plan": "c25k", "from": today}]}},
+                         OPT_START: today, OPT_PHONES: {"person_3": "iphone"}, OPT_VIEWERS: {user.id: "person_3"}}
+    assert set(hass.data[DOMAIN].runner.scores["people"]) == {"person_3"}

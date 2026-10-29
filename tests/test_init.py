@@ -50,9 +50,10 @@ async def test_migrate_keeps_the_people_already_in_the_options(hass, setup):
     assert set(await hass.data[DOMAIN].runner.async_people()) == {"mine"}
 
 
-async def test_migrate_a_toml_without_people_or_a_missing_one_just_bumps(hass, setup):
-    e = await setup({OPT_VIEWERS: {"u1": "p1"}}, minor_version=3)  # no file yet: a fresh install
+async def test_migrate_a_toml_without_people_or_a_missing_one_just_bumps(hass, setup, caplog):
+    e = await setup({OPT_VIEWERS: {"u1": "p1"}}, minor_version=3)  # no file
     assert e.minor_version == 4 and e.options == {OPT_VIEWERS: {"u1": "p1"}}
+    assert "add them in Configure -> People" in caplog.text
 
 
 async def test_migrate_unreadable_toml_keeps_minor_3(hass, setup, caplog):
