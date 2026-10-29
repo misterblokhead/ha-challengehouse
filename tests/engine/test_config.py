@@ -25,6 +25,23 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(s[26]["total_s"], 300 + 1800)        # W9D3
         self.assertEqual(cfg["people"]["person1"]["goal"], {"runs": 2, "workouts": 2, "active_days": 0, "steps": 10000})
 
+    def test_cooldown_default_and_total(self):
+        s = plan_sessions(load_config(DEFAULT, TWO), "c25k")
+        self.assertEqual({x["cooldown_s"] for x in s}, {300})
+        self.assertEqual(s[0]["total_s"], 1500)
+        cfg = load_config(DEFAULT.replace("cooldown_s = 300, ", "", 1), TWO)
+        self.assertEqual(plan_sessions(cfg, "c25k")[0]["cooldown_s"], 0)
+        self.assertEqual(plan_sessions(cfg, "c25k")[0]["total_s"], 1500)
+
+    def test_cooldown_negative_rejected(self):
+        for bad in ("-1", '"x"'):
+            with self.subTest(bad=bad), self.assertRaisesRegex(ConfigError, r"cooldown_s must be a number >= 0"):
+                load_config(DEFAULT.replace("cooldown_s = 300", f"cooldown_s = {bad}", 1), TWO)
+
+    def test_plan_sessions_steps_times(self):
+        w1 = plan_sessions(load_config(DEFAULT, TWO), "c25k")[0]
+        self.assertEqual((w1["steps"], w1["times"]), ([("run", 60), ("walk", 90)], 8))
+
     def test_goal_defaults_and_gym_alias(self):
         cfg = load_config(DEFAULT.replace("workouts = 2", "gym = 1"), TWO)
         self.assertEqual(cfg["people"]["person1"]["goal"], {"runs": 2, "workouts": 1, "active_days": 0, "steps": 10000})

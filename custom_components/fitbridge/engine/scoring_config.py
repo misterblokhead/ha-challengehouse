@@ -80,6 +80,8 @@ def _check_session(errs, where, s):
         return errs.append(f"{where} must be a table")
     if not finite(s.get("warmup_s")) or s["warmup_s"] < 0:
         errs.append(f"{where}.warmup_s must be a number >= 0")
+    if "cooldown_s" in s and (not finite(s["cooldown_s"]) or s["cooldown_s"] < 0):
+        errs.append(f"{where}.cooldown_s must be a number >= 0")
     times = s.get("times", 1)
     if not isinstance(times, int) or isinstance(times, bool) or times < 1:
         errs.append(f"{where}.times must be an integer >= 1")
@@ -291,8 +293,10 @@ def plan_sessions(config, plan_id):
     for wi, wk in enumerate(config["plans"][plan_id]["weeks"], 1):
         sessions = wk["sessions"] * wk.get("repeat", 1)
         for di, s in enumerate(sessions, 1):
-            intervals = [(k, sec) for k, sec in s.get("intervals", [])] * s.get("times", 1)
-            out.append({"week": wi, "day": di, "warmup_s": s["warmup_s"], "intervals": intervals,
+            steps = [(k, sec) for k, sec in s.get("intervals", [])]
+            intervals = steps * s.get("times", 1)
+            out.append({"week": wi, "day": di, "warmup_s": s["warmup_s"], "cooldown_s": s.get("cooldown_s", 0),
+                        "intervals": intervals, "steps": steps, "times": s.get("times", 1),
                         "target": s["target"],
                         "total_s": s["warmup_s"] + sum(sec for _, sec in intervals)})
     return out

@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from custom_components.fitbridge.engine.plancheck import blocks, indoor
+from custom_components.fitbridge.engine.plancheck import blocks, check, indoor
 
 T0 = datetime(2000, 1, 1, tzinfo=timezone.utc)
 
@@ -77,3 +77,59 @@ def test_unreadable():
 def test_indoor():
     assert indoor(540, 780) == {"indoor": True, "avg_kmh": pytest.approx(2.49, abs=0.01)}
     assert indoor(None, 780)["avg_kmh"] is None
+
+
+W1_DAY = {"intervals": [("run", 60), ("walk", 90)] * 8}
+
+
+def det(*lengths):
+    """A blocks() result with one block per length, 150 s apart."""
+    return {"blocks": [[i * 150, n, 8.0] for i, n in enumerate(lengths)], "boundary_kmh": 7.0}
+
+
+def state(b, session=W1_DAY):
+    return check(b, session)
+
+
+def test_match_w1():
+    assert state(det(*[60] * 8)) == {"state": "match", "found": 8, "planned": 8, "run_s": 480, "planned_run_s": 480}
+
+
+def test_match_tolerates_two_missing():
+    assert state(det(*[60] * 6))["state"] == "match"
+
+
+def test_review_five_of_eight():
+    assert state(det(*[60] * 5))["state"] == "review"
+
+
+def test_review_short_blocks():
+    r = state(det(*[25] * 8))
+    assert (r["state"], r["found"]) == ("review", 0)
+
+
+def test_review_run_time():
+    r = state(det(*[35] * 6))
+    assert (r["state"], r["found"], r["run_s"]) == ("review", 6, 210)
+
+
+def test_extra_blocks_ok():
+    r = state(det(*[60] * 8, 30))
+    assert (r["state"], r["found"], r["run_s"]) == ("match", 8, 510)
+
+
+def test_w5_single_block():
+    w5 = {"intervals": [("run", 1200)]}
+    assert state(det(900), w5)["state"] == "match"
+    assert state(det(500), w5)["state"] == "review"
+
+
+def test_indoor_pass_and_fail():
+    assert state(indoor(6000, 3600))["state"] == "indoor"
+    assert state(indoor(2490, 3600))["state"] == "review"
+    assert state(indoor(None, 3600))["state"] == "review"
+
+
+def test_error_none():
+    assert state({"error": True})["state"] == "none"
+    assert state(None)["state"] == "none"

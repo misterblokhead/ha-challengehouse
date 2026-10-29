@@ -13,6 +13,10 @@ FALLBACK_KMH = 7.0  # the boundary when speeds form one cluster (a continuous ru
 MOVING_KMH = 1.0
 MIN_GAP_KMH = 1.5  # cluster means closer than this are one cluster
 ITERATIONS = 20
+MIN_PART = 0.5  # a detected block counts for a planned one at this share of its length
+MATCH_BLOCKS = 0.75  # share of the planned run blocks that must be found ...
+MATCH_RUN = 0.7  # ... and of the planned running time
+INDOOR_KMH = 4.5  # an indoor run matches at this average speed
 
 
 def _speeds(seg, t0):
@@ -73,3 +77,27 @@ def blocks(gpx):
 def indoor(distance_m, duration_s):
     """A run with no usable track: {"indoor": True, "avg_kmh"} (None without a distance or duration)."""
     return {"indoor": True, "avg_kmh": distance_m / duration_s * 3.6 if distance_m is not None and duration_s > 0 else None}
+
+
+def check(found, session):
+    """Match a run against a plan session: {"state": match|review|indoor|none, found, planned, run_s, planned_run_s}.
+    `found` is blocks(), indoor(), {"error": True} or None; planned run blocks pair with detected ones in order,
+    greedily, each detected block used once."""
+    plan = [sec for kind, sec in session["intervals"] if kind == "run"]
+    out = {"state": "none", "found": 0, "planned": len(plan), "run_s": 0, "planned_run_s": sum(plan)}
+    if not found or found.get("error"):
+        return out
+    if found.get("indoor"):
+        kmh = found["avg_kmh"]
+        return {**out, "state": "indoor" if kmh is not None and kmh >= INDOOR_KMH else "review"}
+    lengths = [b[1] for b in found["blocks"]]
+    i = n = 0
+    for want in plan:
+        while i < len(lengths) and lengths[i] < want * MIN_PART:
+            i += 1
+        if i == len(lengths):
+            break
+        n, i = n + 1, i + 1
+    out.update(found=n, run_s=sum(lengths))
+    ok = n >= MATCH_BLOCKS * len(plan) and out["run_s"] >= MATCH_RUN * out["planned_run_s"]
+    return {**out, "state": "match" if ok else "review"}

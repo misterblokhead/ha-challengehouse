@@ -85,45 +85,45 @@ name = "Couch to 5K"
 
 [[plans.c25k.weeks]]
 repeat = 3
-sessions = [{ warmup_s = 300, intervals = [["run", 60], ["walk", 90]], times = 8, target = { type = "duration", fraction = 0.8 } }]
+sessions = [{ warmup_s = 300, cooldown_s = 300, intervals = [["run", 60], ["walk", 90]], times = 8, target = { type = "duration", fraction = 0.8 } }]
 
 [[plans.c25k.weeks]]
 repeat = 3
-sessions = [{ warmup_s = 300, intervals = [["run", 90], ["walk", 120]], times = 6, target = { type = "duration", fraction = 0.8 } }]
+sessions = [{ warmup_s = 300, cooldown_s = 300, intervals = [["run", 90], ["walk", 120]], times = 6, target = { type = "duration", fraction = 0.8 } }]
 
 [[plans.c25k.weeks]]
 repeat = 3
-sessions = [{ warmup_s = 300, intervals = [["run", 90], ["walk", 90], ["run", 180], ["walk", 180]], times = 2, target = { type = "duration", fraction = 0.8 } }]
+sessions = [{ warmup_s = 300, cooldown_s = 300, intervals = [["run", 90], ["walk", 90], ["run", 180], ["walk", 180]], times = 2, target = { type = "duration", fraction = 0.8 } }]
 
 [[plans.c25k.weeks]]
 repeat = 3
-sessions = [{ warmup_s = 300, intervals = [["run", 180], ["walk", 90], ["run", 300], ["walk", 150], ["run", 180], ["walk", 90], ["run", 300]], target = { type = "duration", fraction = 0.8 } }]
+sessions = [{ warmup_s = 300, cooldown_s = 300, intervals = [["run", 180], ["walk", 90], ["run", 300], ["walk", 150], ["run", 180], ["walk", 90], ["run", 300]], target = { type = "duration", fraction = 0.8 } }]
 
 [[plans.c25k.weeks]]
 sessions = [
-  { warmup_s = 300, intervals = [["run", 300], ["walk", 180]], times = 3, target = { type = "duration", fraction = 0.8 } },
-  { warmup_s = 300, intervals = [["run", 480], ["walk", 300], ["run", 480]], target = { type = "duration", fraction = 0.8 } },
-  { warmup_s = 300, intervals = [["run", 1200]], target = { type = "duration", fraction = 0.8 } },
+  { warmup_s = 300, cooldown_s = 300, intervals = [["run", 300], ["walk", 180]], times = 3, target = { type = "duration", fraction = 0.8 } },
+  { warmup_s = 300, cooldown_s = 300, intervals = [["run", 480], ["walk", 300], ["run", 480]], target = { type = "duration", fraction = 0.8 } },
+  { warmup_s = 300, cooldown_s = 300, intervals = [["run", 1200]], target = { type = "duration", fraction = 0.8 } },
 ]
 
 [[plans.c25k.weeks]]
 sessions = [
-  { warmup_s = 300, intervals = [["run", 300], ["walk", 180], ["run", 480], ["walk", 180], ["run", 300]], target = { type = "duration", fraction = 0.8 } },
-  { warmup_s = 300, intervals = [["run", 600], ["walk", 180], ["run", 600]], target = { type = "duration", fraction = 0.8 } },
-  { warmup_s = 300, intervals = [["run", 1500]], target = { type = "duration", fraction = 0.8 } },
+  { warmup_s = 300, cooldown_s = 300, intervals = [["run", 300], ["walk", 180], ["run", 480], ["walk", 180], ["run", 300]], target = { type = "duration", fraction = 0.8 } },
+  { warmup_s = 300, cooldown_s = 300, intervals = [["run", 600], ["walk", 180], ["run", 600]], target = { type = "duration", fraction = 0.8 } },
+  { warmup_s = 300, cooldown_s = 300, intervals = [["run", 1500]], target = { type = "duration", fraction = 0.8 } },
 ]
 
 [[plans.c25k.weeks]]
 repeat = 3
-sessions = [{ warmup_s = 300, intervals = [["run", 1500]], target = { type = "duration", fraction = 0.8 } }]
+sessions = [{ warmup_s = 300, cooldown_s = 300, intervals = [["run", 1500]], target = { type = "duration", fraction = 0.8 } }]
 
 [[plans.c25k.weeks]]
 repeat = 3
-sessions = [{ warmup_s = 300, intervals = [["run", 1680]], target = { type = "duration", fraction = 0.8 } }]
+sessions = [{ warmup_s = 300, cooldown_s = 300, intervals = [["run", 1680]], target = { type = "duration", fraction = 0.8 } }]
 
 [[plans.c25k.weeks]]
 repeat = 3
-sessions = [{ warmup_s = 300, intervals = [["run", 1800]], target = { type = "duration", fraction = 0.8 } }]
+sessions = [{ warmup_s = 300, cooldown_s = 300, intervals = [["run", 1800]], target = { type = "duration", fraction = 0.8 } }]
 
 [[badges]]
 id = "runs"
