@@ -7,6 +7,7 @@ KEEP_DAYS = 35
 DATA_DIR = "fitbridge"  # under /config: fitbridge.db, archive/, scoring.toml
 OPT_OPENGYM_URL = "opengym_url"
 OPT_OPENGYM_UIDS = "opengym_uids"
+OPT_OPENGYM_LINK = "opengym_link"  # the installed app's address for people: the confirmed address + "/" + its slug
 OPENGYM_TOKEN = "opengym_token"  # in entry.data
 SIGNAL_SCORES = "fitbridge_scores"
 OPT_FOLDERS = "folders"  # person -> watch folder

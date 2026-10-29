@@ -1,24 +1,26 @@
 import asyncio
 from pathlib import Path
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import aiohttp
 from conftest import PEOPLE_OPTIONS
 from engine.test_ingest import P0, P1
 from homeassistant import config_entries
+from homeassistant.components import persistent_notification
 from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import MockUser
 from test_steps import _phone
 
-from custom_components.fitbridge import gym
+from custom_components.fitbridge import gym, opengym_app
 from custom_components.fitbridge import runner as runner_mod
 from custom_components.fitbridge.const import (
     DOMAIN,
     OPT_FOLDERS,
     OPT_GROUP,
     OPT_INVITES,
+    OPT_OPENGYM_LINK,
     OPT_OPENGYM_UIDS,
     OPT_OPENGYM_URL,
     OPT_PEOPLE,
@@ -308,7 +310,7 @@ async def test_opengym_pairing_stores_the_token_and_clears_the_issue(hass, setup
                               translation_key="opengym_token")
         aioclient_mock.post(f"{GYM}/api/pair/redeem", json={"token": "tok-new"})
         result = await _open(hass, e, "opengym")
-        assert result["type"] is FlowResultType.FORM and result["step_id"] == "opengym"
+        assert result["type"] is FlowResultType.FORM and result["step_id"] == "opengym_pair"
         result = await hass.config_entries.options.async_configure(result["flow_id"], {OPT_OPENGYM_URL: " gym.example.test/", "code": "AB12cd"})  # typed without https://
         assert result["type"] is FlowResultType.CREATE_ENTRY
         await hass.async_block_till_done(wait_background_tasks=True)
@@ -656,3 +658,139 @@ async def test_first_person_after_a_migration_without_people(hass, setup):
     assert e.options == {OPT_PEOPLE: {"person_3": {"name": "Person 3", "plan_history": [{"plan": "c25k", "from": today}]}},
                          OPT_START: today, OPT_PHONES: {"person_3": "iphone"}, OPT_VIEWERS: {user.id: "person_3"}}
     assert set(hass.data[DOMAIN].runner.scores["people"]) == {"person_3"}
+
+
+APP = "http://abcd1234-opengym:8099"
+HA = "https://ha.example.test"
+
+
+def _app(**overrides):
+    """opengym_app with a Supervisor, a detected address and an install that works, unless overridden; (patcher, mocks)."""
+    mocks = {"available": MagicMock(return_value=True), "detected_address": MagicMock(return_value="https://abc.ui.nabu.casa"),
+             "async_install": AsyncMock(return_value=("abcd1234_opengym", APP)), "async_invite_only": AsyncMock(), **overrides}
+    return patch.multiple(opengym_app, **mocks), mocks
+
+
+async def _install(hass, address=HA):
+    """One person set up, the install form answered; returns the result after it."""
+    result, _ = await _start(hass, "Person 1")
+    result = await _answer(hass, result)
+    assert result["type"] is FlowResultType.MENU and result["menu_options"] == ["skip", "pair", "install"]
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {"next_step_id": "install"})
+    assert result["type"] is FlowResultType.FORM and result["step_id"] == "install"
+    return await hass.config_entries.flow.async_configure(result["flow_id"], {"address": address})
+
+
+async def _installed(hass, result, flow):
+    """Past the progress step, once the install has finished."""
+    assert result["type"] is FlowResultType.SHOW_PROGRESS and result["step_id"] == "install_progress"
+    assert result["progress_action"] == "install_app"
+    await hass.async_block_till_done()
+    return await flow.async_configure(result["flow_id"])
+
+
+async def test_setup_install_hidden_without_supervisor(hass, enable_custom_integrations):
+    patcher, _ = _app(available=MagicMock(return_value=False))
+    with patcher:
+        result, _ = await _start(hass, "Person 1")
+        result = await _answer(hass, result)
+    assert result["type"] is FlowResultType.MENU and result["menu_options"] == ["skip", "pair"]
+
+
+async def test_setup_install_prefills_and_takes_the_edited_address(hass, enable_custom_integrations):
+    patcher, app = _app()
+    with patcher:
+        result, _ = await _start(hass, "Person 1")
+        result = await _answer(hass, result)
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {"next_step_id": "install"})
+        assert _field(result, "address")[0].description == {"suggested_value": "https://abc.ui.nabu.casa"}
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {"address": " ha.example.test/"})
+        result = await _installed(hass, result, hass.config_entries.flow)
+    assert result["type"] is FlowResultType.FORM and result["step_id"] == "install_pair"
+    app["async_install"].assert_awaited_once_with(hass, HA)  # what the person confirmed, not what was detected
+
+
+async def test_setup_install_rejects_http(hass, enable_custom_integrations):
+    patcher, app = _app()
+    with patcher:
+        result = await _install(hass, "http://homeassistant.local:8123")
+    assert result["type"] is FlowResultType.FORM and result["step_id"] == "install" and result["errors"] == {"address": "address_https"}
+    app["async_install"].assert_not_called()
+
+
+async def test_setup_install_pair_and_invite(hass, enable_custom_integrations, aioclient_mock, caplog):
+    aioclient_mock.post(f"{APP}/api/pair/redeem", json={"token": "tok-new"})
+    aioclient_mock.get(f"{APP}/api/admin/users", json={"users": []})
+    patcher, app = _app()
+    with patcher, patch.object(runner_mod.Runner, "_opengym", return_value=None):
+        result = await _installed(hass, await _install(hass), hass.config_entries.flow)
+        assert result["type"] is FlowResultType.FORM and result["step_id"] == "install_pair"
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {"code": "AB12cd"})
+        assert result["type"] is FlowResultType.FORM and result["step_id"] == "gym_people"
+        app["async_invite_only"].assert_awaited_once_with(hass, "abcd1234_opengym")
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {"Person 1": ""})
+        assert result["type"] is FlowResultType.CREATE_ENTRY
+        await hass.async_block_till_done(wait_background_tasks=True)
+    assert aioclient_mock.mock_calls[0][2] == {"code": "AB12cd"}  # redeemed at the app's internal address
+    assert result["data"] == {"opengym_token": "tok-new"}
+    assert result["options"][OPT_OPENGYM_URL] == APP and result["options"][OPT_OPENGYM_LINK] == f"{HA}/abcd1234_opengym"
+    assert persistent_notification._async_get_or_create_notifications(hass) == {}
+    assert "tok-new" not in caplog.text and "AB12cd" not in caplog.text
+
+
+async def test_setup_install_failure_offers_retry_pair_or_skip(hass, enable_custom_integrations):
+    patcher, app = _app(async_install=AsyncMock(side_effect=[opengym_app.AppError("app_install_failed"), ("abcd1234_opengym", APP)]))
+    with patcher:
+        result = await _installed(hass, await _install(hass), hass.config_entries.flow)
+        assert result["type"] is FlowResultType.MENU and result["step_id"] == "install_failed"
+        assert result["menu_options"] == ["install", "pair", "skip"]
+        assert "could not install" in result["description_placeholders"]["reason"]  # the reason, readable
+        assert hass.config_entries.async_entries(DOMAIN) == []
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {"next_step_id": "install"})  # retry
+        assert result["step_id"] == "install" and _field(result, "address")[0].description == {"suggested_value": HA}
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {"address": HA})
+        result = await _installed(hass, result, hass.config_entries.flow)
+    assert result["step_id"] == "install_pair" and app["async_install"].await_count == 2
+
+
+async def test_setup_invite_only_failure_still_creates_the_entry(hass, enable_custom_integrations, aioclient_mock):
+    aioclient_mock.post(f"{APP}/api/pair/redeem", json={"token": "tok-new"})
+    aioclient_mock.get(f"{APP}/api/admin/users", json={"users": []})
+    patcher, _ = _app(async_invite_only=AsyncMock(side_effect=opengym_app.AppError("app_start_failed")))
+    with patcher, patch.object(runner_mod.Runner, "_opengym", return_value=None):
+        result = await _installed(hass, await _install(hass), hass.config_entries.flow)
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {"code": "AB12cd"})
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {"Person 1": ""})
+        assert result["type"] is FlowResultType.CREATE_ENTRY
+        await hass.async_block_till_done(wait_background_tasks=True)
+    (note,) = persistent_notification._async_get_or_create_notifications(hass).values()
+    assert note["message"] == "openGym: switch on \"invite_only\" in the openGym app's settings"
+
+
+async def test_install_pair_wrong_code_stays(hass, enable_custom_integrations, aioclient_mock):
+    aioclient_mock.post(f"{APP}/api/pair/redeem", status=404, json={"error": "unknown code"})
+    patcher, app = _app()
+    with patcher:
+        result = await _installed(hass, await _install(hass), hass.config_entries.flow)
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {"code": "nope"})
+    assert result["type"] is FlowResultType.FORM and result["step_id"] == "install_pair" and result["errors"] == {"base": "invalid_code"}
+    app["async_invite_only"].assert_not_called()
+
+
+async def test_options_install_pairs_and_saves_both_addresses(hass, setup, aioclient_mock):
+    aioclient_mock.post(f"{APP}/api/pair/redeem", json={"token": "tok-new"})
+    patcher, app = _app()
+    with patcher, patch.object(runner_mod.Runner, "_opengym", return_value=None):
+        e = await setup()
+        result = await _open(hass, e, "opengym")
+        assert result["type"] is FlowResultType.MENU and result["menu_options"] == ["opengym_pair", "install"]
+        result = await _configure(hass, result, {"next_step_id": "install"})
+        result = await _configure(hass, result, {"address": HA})
+        result = await _installed(hass, result, hass.config_entries.options)
+        assert result["type"] is FlowResultType.FORM and result["step_id"] == "install_pair"
+        result = await _configure(hass, result, {"code": "AB12cd"})
+        assert result["type"] is FlowResultType.CREATE_ENTRY
+        await hass.async_block_till_done(wait_background_tasks=True)
+    assert e.data["opengym_token"] == "tok-new"  # runner.async_pair stored it
+    assert e.options == {**PEOPLE_OPTIONS, OPT_OPENGYM_URL: APP, OPT_OPENGYM_LINK: f"{HA}/abcd1234_opengym"}
+    app["async_invite_only"].assert_awaited_once_with(hass, "abcd1234_opengym")

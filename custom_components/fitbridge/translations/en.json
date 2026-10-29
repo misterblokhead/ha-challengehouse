@@ -29,7 +29,31 @@
         "description": "openGym logs gym sessions. It is optional and can be added later in the ChallengeHouse options.",
         "menu_options": {
           "skip": "No gym tracking",
-          "pair": "Pair with openGym"
+          "pair": "Pair with openGym",
+          "install": "Install openGym in Home Assistant"
+        }
+      },
+      "install": {
+        "title": "Install openGym in Home Assistant",
+        "description": "openGym runs as an app next to Home Assistant and opens at Home Assistant's address followed by the app's name. Give the HTTPS address people open Home Assistant at from anywhere, for example Home Assistant Cloud's or your own domain.\n\nThis address can never change once people have signed up: a passkey only works at the address it was made for.",
+        "data": {
+          "address": "Home Assistant's address"
+        }
+      },
+      "install_failed": {
+        "title": "openGym was not installed",
+        "description": "{reason}",
+        "menu_options": {
+          "install": "Try again",
+          "pair": "Pair with an openGym that runs elsewhere",
+          "skip": "No gym tracking"
+        }
+      },
+      "install_pair": {
+        "title": "Pair with the new openGym",
+        "description": "openGym is installed and running.\n\n1. In Chrome (or another browser, not the Home Assistant app), open openGym from the sidebar.\n2. Choose Create new profile: the first profile becomes the admin.\n3. Go to Settings -> Account -> Pair the mobile app and paste the code here.",
+        "data": {
+          "code": "Pairing code"
         }
       },
       "pair": {
@@ -51,7 +75,14 @@
       "invalid_code": "openGym did not accept this pairing code. Codes are 4 to 16 letters and digits; make a new one in openGym if it expired.",
       "cannot_connect": "openGym could not be reached at this address.",
       "duplicate_gym_user": "Each openGym account can belong to one person only.",
-      "invite_failed": "openGym could not make an invite. Check that it is running, or choose Nobody and invite later."
+      "invite_failed": "openGym could not make an invite. Check that it is running, or choose Nobody and invite later.",
+      "address_https": "Give an address that starts with https://.",
+      "app_unavailable": "Couldn't fetch the openGym app. Check the internet connection and try again.",
+      "app_install_failed": "Home Assistant could not install the openGym app. Its log (Settings -> System -> Logs, Supervisor) says why.",
+      "app_start_failed": "The openGym app is installed but did not start. Its log (Settings -> Apps -> openGym) says why."
+    },
+    "progress": {
+      "install_app": "Installing openGym. Home Assistant builds it on this machine; this takes a minute or two."
     },
     "abort": {
       "single_instance_allowed": "ChallengeHouse is already set up.",
@@ -111,10 +142,39 @@
         "description": "Pick each person's daily steps sensor, for example from the phone's companion app. Leave it empty for no steps."
       },
       "opengym": {
+        "title": "openGym",
+        "menu_options": {
+          "opengym_pair": "Pair with openGym",
+          "install": "Install openGym in Home Assistant"
+        }
+      },
+      "opengym_pair": {
         "title": "Pair with openGym",
         "description": "Enter openGym's address and a pairing code made in openGym's admin settings. ChallengeHouse exchanges the code for a token and keeps renewing it.",
         "data": {
           "opengym_url": "openGym address",
+          "code": "Pairing code"
+        }
+      },
+      "install": {
+        "title": "Install openGym in Home Assistant",
+        "description": "openGym runs as an app next to Home Assistant and opens at Home Assistant's address followed by the app's name. Give the HTTPS address people open Home Assistant at from anywhere, for example Home Assistant Cloud's or your own domain.\n\nThis address can never change once people have signed up: a passkey only works at the address it was made for.",
+        "data": {
+          "address": "Home Assistant's address"
+        }
+      },
+      "install_failed": {
+        "title": "openGym was not installed",
+        "description": "{reason}",
+        "menu_options": {
+          "install": "Try again",
+          "opengym_pair": "Pair with an openGym that runs elsewhere"
+        }
+      },
+      "install_pair": {
+        "title": "Pair with the new openGym",
+        "description": "openGym is installed and running.\n\n1. In Chrome (or another browser, not the Home Assistant app), open openGym from the sidebar.\n2. Choose Create new profile: the first profile becomes the admin.\n3. Go to Settings -> Account -> Pair the mobile app and paste the code here.",
+        "data": {
           "code": "Pairing code"
         }
       },
@@ -142,7 +202,14 @@
       "folder_missing": "This folder does not exist. Give its full path, for example /share/opentracks.",
       "name_required": "Give the person a name.",
       "duplicate_gym_user": "Each openGym account can belong to one person only.",
-      "invite_failed": "openGym could not make an invite. Check that it is running, then submit again."
+      "invite_failed": "openGym could not make an invite. Check that it is running, then submit again.",
+      "address_https": "Give an address that starts with https://.",
+      "app_unavailable": "Couldn't fetch the openGym app. Check the internet connection and try again.",
+      "app_install_failed": "Home Assistant could not install the openGym app. Its log (Settings -> System -> Logs, Supervisor) says why.",
+      "app_start_failed": "The openGym app is installed but did not start. Its log (Settings -> Apps -> openGym) says why."
+    },
+    "progress": {
+      "install_app": "Installing openGym. Home Assistant builds it on this machine; this takes a minute or two."
     }
   },
   "issues": {

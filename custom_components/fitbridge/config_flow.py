@@ -2,6 +2,7 @@ from pathlib import Path
 
 import voluptuous as vol
 from homeassistant import config_entries
+from homeassistant.components import persistent_notification
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.selector import (
     EntitySelector,
@@ -13,15 +14,17 @@ from homeassistant.helpers.selector import (
     TextSelectorConfig,
     TextSelectorType,
 )
+from homeassistant.helpers.translation import async_get_translations
 from homeassistant.util import dt as dt_util
 
-from . import gym, people, steps, webhooks
+from . import gym, opengym_app, people, steps, webhooks
 from .const import (
     DOMAIN,
     OPENGYM_TOKEN,
     OPT_FOLDERS,
     OPT_GROUP,
     OPT_INVITES,
+    OPT_OPENGYM_LINK,
     OPT_OPENGYM_UIDS,
     OPT_OPENGYM_URL,
     OPT_PEOPLE,
@@ -106,7 +109,62 @@ def _group_schema() -> vol.Schema:
     return vol.Schema({vol.Optional("group", default=True): bool})
 
 
-class FitbridgeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+class _InstallSteps:
+    """Install the openGym app next to Home Assistant and pair with it, in the setup and the Configure flow:
+    _failed_menu is what install_failed offers, _paired(token) goes on once paired."""
+    _address = _slug = _url = _link = _install_task = _reason = None
+    _category = "config"  # en.json's section, for the reason's text
+
+    async def async_step_install(self, user_input=None):
+        """The address people open Home Assistant at (prefilled, editable): the app is set up for what they confirm."""
+        errors = {}
+        if user_input is not None:
+            address = gym.normalize_url(user_input["address"])
+            if address.startswith("https://") and address != "https://":
+                self._address = address
+                return await self.async_step_install_progress()
+            errors["address"] = "address_https"
+        return self.async_show_form(step_id="install", errors=errors, data_schema=self.add_suggested_values_to_schema(
+            vol.Schema({vol.Required("address"): TextSelector(TextSelectorConfig(type=TextSelectorType.URL))}),
+            {"address": (user_input or {}).get("address") or self._address or opengym_app.detected_address(self.hass)}))
+
+    async def async_step_install_progress(self, user_input=None):
+        """The Supervisor builds the app on this machine: minutes, and no time limit of ours."""
+        if not self._install_task:  # not eager: the progress shows before the install can be done
+            self._install_task = self.hass.async_create_task(opengym_app.async_install(self.hass, self._address), eager_start=False)
+        if not self._install_task.done():
+            return self.async_show_progress(step_id="install_progress", progress_action="install_app", progress_task=self._install_task)
+        task, self._install_task = self._install_task, None
+        try:
+            self._slug, self._url = task.result()
+        except opengym_app.AppError as err:
+            self._reason = err.reason
+            return self.async_show_progress_done(next_step_id="install_failed")
+        return self.async_show_progress_done(next_step_id="install_pair")
+
+    async def async_step_install_failed(self, user_input=None):
+        texts = await async_get_translations(self.hass, self.hass.config.language, self._category, {DOMAIN})
+        return self.async_show_menu(step_id="install_failed", menu_options=self._failed_menu, description_placeholders={
+            "reason": texts.get(f"component.{DOMAIN}.{self._category}.error.{self._reason}", self._reason)})
+
+    async def async_step_install_pair(self, user_input=None):
+        """A pairing code from the new app, redeemed at its internal address (never logged); then invite-only on."""
+        errors = {}
+        if user_input is not None:
+            _, token, errors = await _pair(self.hass, {**user_input, OPT_OPENGYM_URL: self._url})
+            if token:
+                try:
+                    await opengym_app.async_invite_only(self.hass, self._slug)
+                except opengym_app.AppError:  # paired all the same: the person switches it on by hand
+                    persistent_notification.async_create(
+                        self.hass, "openGym: switch on \"invite_only\" in the openGym app's settings",
+                        title="ChallengeHouse", notification_id=f"{DOMAIN}_opengym_invite_only")
+                self._link = f"{self._address}/{self._slug}"
+                return await self._paired(token)
+        return self.async_show_form(step_id="install_pair", errors=errors, data_schema=vol.Schema({vol.Required("code"): TextSelector()}))
+
+
+class FitbridgeConfigFlow(_InstallSteps, config_entries.ConfigFlow, domain=DOMAIN):
     """Who takes part (HA users), each one's plan, phone and step sensor, a group for two, optionally openGym."""
     VERSION = 1
     MINOR_VERSION = 4  # 3: options without shadow and shoes; 4: people, group and start in the options (async_migrate_entry)
@@ -153,8 +211,14 @@ class FitbridgeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return await self.async_step_opengym()
         return self.async_show_form(step_id="group", data_schema=_group_schema())
 
+    _failed_menu = ["install", "pair", "skip"]
+
     async def async_step_opengym(self, user_input=None):
-        return self.async_show_menu(step_id="opengym", menu_options=["skip", "pair"])
+        return self.async_show_menu(step_id="opengym", menu_options=["skip", "pair", *(["install"] if opengym_app.available(self.hass) else [])])
+
+    async def _paired(self, token: str):
+        self._token = token
+        return await self.async_step_gym_people()
 
     async def async_step_skip(self, user_input=None):
         self._url = self._token = None  # a failed pairing leaves no address behind
@@ -207,6 +271,8 @@ class FitbridgeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             options[OPT_GROUP] = {"name": GROUP, "members": [w["id"] for w in self._who]}
         if self._url:
             options[OPT_OPENGYM_URL] = self._url
+        if self._link:
+            options[OPT_OPENGYM_LINK] = self._link
         if uids:
             options[OPT_OPENGYM_UIDS] = uids
         if invites:
@@ -219,10 +285,12 @@ class FitbridgeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return FitbridgeOptionsFlow()
 
 
-class FitbridgeOptionsFlow(config_entries.OptionsFlowWithReload):
+class FitbridgeOptionsFlow(_InstallSteps, config_entries.OptionsFlowWithReload):
     """A menu: people (add one from an HA user, edit name, plan and phone), viewers (which fitbridge person each HA user is,
     nobody, "", meaning the read-only household view; then each person's phone step sensor), each person's webhook URL and
-    watch folder, the openGym pairing, and each person's openGym user or invite."""
+    watch folder, the openGym pairing (or installing the app), and each person's openGym user or invite."""
+    _failed_menu = ["install", "opengym_pair"]
+    _category = "options"
 
     def __init__(self) -> None:
         self._viewers: dict[str, str] = {}
@@ -330,6 +398,16 @@ class FitbridgeOptionsFlow(config_entries.OptionsFlowWithReload):
         return self.async_show_form(step_id="group", data_schema=_group_schema())
 
     async def async_step_opengym(self, user_input=None):
+        """Pairing, or installing the app when there is a Supervisor to run it."""
+        if opengym_app.available(self.hass):
+            return self.async_show_menu(step_id="opengym", menu_options=["opengym_pair", "install"])
+        return await self.async_step_opengym_pair()
+
+    async def _paired(self, token: str):
+        await self.hass.data[DOMAIN].runner.async_pair(token)
+        return self.async_create_entry(data={**self.config_entry.options, OPT_OPENGYM_URL: self._url, OPT_OPENGYM_LINK: self._link})
+
+    async def async_step_opengym_pair(self, user_input=None):
         """openGym's address and a pairing code from it, exchanged for the token (never logged)."""
         errors = {}
         if user_input is not None:
@@ -337,7 +415,7 @@ class FitbridgeOptionsFlow(config_entries.OptionsFlowWithReload):
             if token:
                 await self.hass.data[DOMAIN].runner.async_pair(token)
                 return self.async_create_entry(data={**self.config_entry.options, OPT_OPENGYM_URL: url})
-        return self.async_show_form(step_id="opengym", errors=errors, data_schema=self.add_suggested_values_to_schema(
+        return self.async_show_form(step_id="opengym_pair", errors=errors, data_schema=self.add_suggested_values_to_schema(
             _pair_schema(), {OPT_OPENGYM_URL: (user_input or {}).get(OPT_OPENGYM_URL) or self.config_entry.options.get(OPT_OPENGYM_URL)}))
 
     async def async_step_gym_people(self, user_input=None):
