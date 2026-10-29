@@ -85,6 +85,20 @@ export async function shoeOp(body) {
   return true;
 }
 
+// The owner's call on a run's plan check: decision "plan" | "run" | "type" (with `type_match`), or null to clear it. `name` is what the
+// toast names: the plan day for "plan", the type for "type". True once the integration took it.
+export async function reviewRun(person, key, decision, type_match = null, name = "") {
+  try {
+    await send("POST", "workouts", { action: "review", person, key, decision, ...(decision === "type" && { type_match }) });
+  } catch (e) {
+    say(why(e));
+    return false;
+  }
+  refresh.n++;
+  say({ plan: `Counts for ${name}`, run: "Kept as a run", type: `Changed to ${name}` }[decision] ?? "Decision cleared");
+  return true;
+}
+
 // A run moved to another of its owner's shoes; true once the integration took it.
 export async function moveRun(person, key, shoe_id) {
   try {

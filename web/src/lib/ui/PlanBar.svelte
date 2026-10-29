@@ -1,10 +1,11 @@
 <script>
-  import { planBar } from "../model.js";
+  import { planBar, programmeText } from "../model.js";
 
   // The next session of the running plan: "W1D2" with "Due today" or "Rest day", and its run/walk intervals; a finished plan has none.
   let { plan } = $props();
   const segs = $derived(planBar(plan));
-  const minutes = $derived(Math.round(((plan.warmup_s ?? 0) + plan.intervals.reduce((t, [, s]) => t + s, 0)) / 60));
+  const minutes = $derived(Math.round(((plan.warmup_s ?? 0) + plan.intervals.reduce((t, [, s]) => t + s, 0) + (plan.cooldown_s ?? 0)) / 60));
+  const text = $derived(programmeText(plan));
 </script>
 
 <div class="card plan">
@@ -21,6 +22,11 @@
       <span>{minutes} min</span>
     </div>
   {/if}
+  {#if text || plan.review_pending}
+    <p class="caption prog">
+      {text}{#if plan.review_pending}<span class="review">{text ? " · " : ""}{plan.review_pending} {plan.review_pending === 1 ? "run" : "runs"} to review</span>{/if}
+    </p>
+  {/if}
 </div>
 
 <style>
@@ -31,5 +37,7 @@
   .segs { display: flex; gap: 2px; height: 1.75rem; margin-top: 0.875rem; overflow: hidden; border-radius: 0.5rem; }
   .segs i { flex: 1 1 0; min-width: 2px; }
   .legend { display: flex; justify-content: space-between; margin-top: 0.5rem; }
+  .prog { margin: 0.5rem 0 0; }
+  .review { color: var(--warn-text); font-weight: 600; }
   .dot { display: inline-block; width: 0.625rem; height: 0.625rem; border-radius: 50%; vertical-align: -0.0625rem; }
 </style>

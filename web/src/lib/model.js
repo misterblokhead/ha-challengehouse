@@ -76,12 +76,23 @@ export const duration = (m) => (m < 60 ? `${m} min` : m % 60 ? `${Math.floor(m /
 // Why a workout earns nothing (`reason` of an uncounted one); the row shows it greyed, in place of its XP.
 const UNCOUNTED = { short: "Too short", easy: "Too easy", type: "Type not counted", no_gps: "No GPS" };
 
+// The plan-check chip after the plan day: a match "8/8 blocks", a run waiting for its owner's call "Review", an indoor run; else none.
+const chip = (item) => {
+  const c = item.check;
+  if (c?.state === "review" && !item.review) return { text: "Review", tone: "warn" };
+  if (c?.state === "match") return { text: `${c.found}/${c.planned} blocks`, tone: "plain" };
+  if (c?.state === "indoor") return { text: "indoor", tone: "plain" };
+  return null;
+};
+
 export const feedRow = (item) => ({
   title: item.name,
   when: when(item.start, item.kind !== "active_day"),
   duration: item.kind === "active_day" ? `${num(item.steps)} steps` : duration(item.minutes),
   xp: item.xp ? `+${item.xp}` : "",
   label: UNCOUNTED[item.reason] ?? null,
+  plan: item.plan && item.caught_up ? `${item.plan} · caught up` : item.plan,
+  chip: chip(item),
   removable: item.kind === "active_day" ? null : item.excluded ? "restore" : item.key.startsWith("manual:") ? "delete" : "remove",
 });
 
@@ -99,9 +110,30 @@ export const olderState = (items, person, done) =>
 // "YYYY-MM-DD" minus `n` days
 export const minusDays = (day, n) => new Date(Date.parse(`${day}T00:00:00Z`) - n * 864e5).toISOString().slice(0, 10);
 
+// Seconds as minutes in halves: 60 -> "1 min", 90 -> "1.5 min"
+const half = (s) => Math.round(s / 30) / 2;
+const mins = (s) => `${half(s)} min`;
+
+// The next session as text: "5 min warm-up walk · 8 × (1 min run + 1.5 min walk) · 5 min cool-down walk"; once through (times 1) the steps
+// run on with arrows. "" for no plan or a graduated one.
+export function programmeText(plan) {
+  if (!plan?.steps?.length) return "";
+  const step = ([kind, s]) => `${mins(s)} ${kind}`;
+  const main = plan.times > 1 ? `${plan.times} × (${plan.steps.map(step).join(" + ")})` : plan.steps.map(step).join(" → ");
+  return [plan.warmup_s > 0 && `${mins(plan.warmup_s)} warm-up walk`, main, plan.cooldown_s > 0 && `${mins(plan.cooldown_s)} cool-down walk`].filter(Boolean).join(" · ");
+}
+
+// The plan check of a run in the pop-up: "8 of 8 run blocks · 9.5 of 8 min running · matches W1D2". `kmh`: the run's average speed, which
+// an indoor run has no blocks to show instead (the feed row's km over its minutes).
+export function checkLine(c, kmh = null) {
+  if (c.state === "indoor") return kmh == null ? "Indoor run" : `Indoor: ${kmh.toFixed(1)} km/h average`;
+  const fit = c.state === "match" ? "matches" : "doesn't match";
+  return `${c.found} of ${c.planned} run blocks · ${half(c.run_s)} of ${mins(c.planned_run_s)} running · ${fit} ${c.label}`;
+}
+
 export function planBar(plan) {
   if (!plan) return []; // a person without a plan has no bar
-  const segs = [["walk", plan.warmup_s ?? 0], ...plan.intervals].filter(([, s]) => s > 0);
+  const segs = [["walk", plan.warmup_s ?? 0], ...plan.intervals, ["walk", plan.cooldown_s ?? 0]].filter(([, s]) => s > 0);
   const total = segs.reduce((t, [, s]) => t + s, 0);
   return segs.map(([kind, s]) => ({ kind, frac: s / total }));
 }

@@ -12,7 +12,7 @@
   // A person's plan, 90-day activity, badges, progress and shoes: inline under the viewer's own tile, or in the sheet for anyone else.
   // `connect`: the Connect card's data when this viewer may connect this person (and it is not on top of the page already).
   // `canEdit`: this viewer may Remove/Restore this person's workouts (viewer.can_edit); a tap on a workout opens its pop-up.
-  let { id, person: p, canEdit, viewer, connect = null, now } = $props();
+  let { id, person: p, canEdit, viewer, connect = null, reviewTypes = {}, now } = $props();
   const uid = $props.id();
   const records = $derived(recordKeys(p.pbs));
   const manage = $derived(shoesManageable(p, canEdit)); // live data and this viewer may edit: Manage, and each run's shoe
@@ -38,7 +38,7 @@
   <h2 id="{uid}-pbs">Progress</h2>
   <Progress person={p} onopen={openWorkout} />
 </section>
-<WorkoutDialog bind:this={workout} person={id} feed={p.feed} {viewer} shoes={manage ? p.shoes : null} runShoes={p.run_shoes} />
+<WorkoutDialog bind:this={workout} person={id} feed={p.feed} {viewer} shoes={manage ? p.shoes : null} runShoes={p.run_shoes} {reviewTypes} />
 {#if p.shoes?.length || manage}
   <section aria-labelledby="{uid}-shoes">
     <h2 id="{uid}-shoes">

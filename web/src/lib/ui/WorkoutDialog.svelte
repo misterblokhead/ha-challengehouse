@@ -1,15 +1,16 @@
 <script>
-  import { act, done, moveRun, pending } from "../actions.svelte.js";
+  import { act, done, moveRun, pending, reviewRun } from "../actions.svelte.js";
   import { get } from "../api.js";
   import { charts, detailActions, figures, gymRows, header, noteText, paced, speedShown, splitRows, zoneRows } from "../details.js";
-  import { feedRow, shoePicker } from "../model.js";
+  import { checkLine, feedRow, shoePicker } from "../model.js";
   import Modal from "./Modal.svelte";
 
   // One workout's details (GET workout) in a wide Modal you can swipe down: `open(item)` with a feed row, or `{key}` alone
   // (the fastest 1 km). Header, figures, map, graphs, HR zones, splits, the gym block, then Remove / Restore / Delete and the shoe for
   // who may edit this person. Leaflet and uPlot load on the first open (loadViz); if that fails the rest stays and the map says so.
   // feed: the person's payload feed (a row's live excluded); shoes: the owner's shoe rows when the viewer may move runs, else null.
-  let { person, feed, viewer, shoes = null, runShoes } = $props();
+  // reviewTypes: the payload's {source: [{match, name}]} for a run that is not a run ("Not a run…").
+let { person, feed, viewer, shoes = null, runShoes, reviewTypes = {} } = $props();
   const uid = $props.id();
   const loadViz = () => import("../viz.js");
   let modal;
@@ -17,6 +18,7 @@
   let d = $state.raw(null), failure = $state.raw(null);
   let viz = $state.raw(null), vizError = $state.raw(null);
   let confirming = $state(false);
+  let choosing = $state(false); // "Not a run…" is open
   let seq = 0;
 
   export async function open(item) {
@@ -25,7 +27,7 @@
     const n = ++seq;
     snap = item;
     d = failure = vizError = null;
-    confirming = false;
+    confirming = choosing = false;
     body.scrollTop = 0;
     try {
       const res = await get(`workout?person=${encodeURIComponent(person)}&key=${encodeURIComponent(item.key)}`);
@@ -60,11 +62,21 @@
   const splits = $derived(d ? splitRows(d) : []);
   const gym = $derived(d && gymRows(d.gym));
   const speed = $derived(d && speedShown(d));
+  const check = $derived(item?.check ?? null); // the plan check of a run (null: not a plan run, or an older row)
+  const review = $derived(item?.review ?? null);
+  const types = $derived(reviewTypes[item?.source] ?? []);
+  const kmh = $derived(item?.km && item.minutes ? item.km / (item.minutes / 60) : null); // an indoor run's only speed
   const why = (e) => (e.status === 404 ? "Workout not found" : e.status === 503 ? "Waiting for fitbridge" : "Couldn't reach Home Assistant");
 
   async function pick(e) {
     const select = e.currentTarget;
     if (!(await moveRun(person, snap.key, Number(select.value)))) select.value = String(picker.value); // refused: back to the shoe it is on
+  }
+  // The owner's call on the plan check (reviewRun); the page reloads after it, which marks the chosen button
+  const decide = (decision, type_match = null, name = "") => reviewRun(person, snap.key, decision, type_match, name);
+  async function pickType(e) {
+    const m = e.currentTarget.value;
+    await decide("type", m, types.find((t) => t.match === m)?.name);
   }
   const label = { remove: "Remove", restore: "Restore", delete: "Delete" };
   function action() {
@@ -98,6 +110,27 @@
       </dl>
     {/if}
     {#if noteText(d.note)}<p class="caption note">{noteText(d.note)}</p>{/if}
+
+    {#if check}
+      <h3>Programme</h3>
+      <p class="check" class:warn={check.state === "review" && !review}>{checkLine(check, kmh)}</p>
+      {#if acts.remove !== null}
+        <div class="acts review">
+          <button type="button" class="btn" class:on={review?.decision === "plan"} aria-pressed={review?.decision === "plan"} onclick={() => decide("plan", null, check.label)}>Counts for the plan day</button>
+          <button type="button" class="btn" class:on={review?.decision === "run"} aria-pressed={review?.decision === "run"} onclick={() => decide("run")}>A run, not the programme</button>
+          {#if types.length}
+            <button type="button" class="btn" class:on={review?.decision === "type"} aria-pressed={review?.decision === "type"} onclick={() => (choosing = !choosing)}>Not a run…</button>
+          {/if}
+          {#if choosing || review?.decision === "type"}
+            <select aria-label="Change the type to" value={review?.decision === "type" ? review.type_match : ""} onchange={pickType}>
+              <option value="" disabled>Choose a type</option>
+              {#each types as t (t.match)}<option value={t.match}>{t.name}</option>{/each}
+            </select>
+          {/if}
+          {#if review}<button type="button" class="link" onclick={() => decide(null)}>Clear decision</button>{/if}
+        </div>
+      {/if}
+    {/if}
 
     {#if d.route?.length || graphs?.list.length}
       {#if vizError}
@@ -194,6 +227,11 @@
   b { font-weight: 600; font-variant-numeric: tabular-nums; color: var(--soon-text); } /* the workouts orange, as in Progress */
   .vol { color: var(--muted); }
   .acts { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-top: 1rem; }
+  .check { margin: 0; font-variant-numeric: tabular-nums; }
+  .check.warn { color: var(--warn-text); font-weight: 600; }
+  .acts.review { margin-top: 0.5rem; }
+  .btn.on { background: color-mix(in srgb, var(--accent) 18%, transparent); }
+  .link { min-height: 2.75rem; padding: 0 0.5rem; border: 0; background: none; color: var(--accent-text); font: inherit; font-size: 0.875rem; }
   .danger { color: var(--warn-text); }
   .ask { flex-basis: 100%; font-weight: 600; }
 </style>

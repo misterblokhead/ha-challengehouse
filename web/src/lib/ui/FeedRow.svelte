@@ -26,7 +26,8 @@
   <span class="main">
     <span class="t1">
       {row.title}
-      {#if item.plan}<span class="mini">{item.plan}</span>{/if}
+      {#if row.plan}<span class="mini">{row.plan}</span>{/if}
+      {#if row.chip}<span class="mini" class:warn={row.chip.tone === "warn"}>{row.chip.text}</span>{/if}
       {#if item.joint}<span class="mini">Together</span>{/if}
       {#if record}<span role="img" aria-label="Holds a record">🏆</span>{/if}
     </span>
@@ -65,6 +66,7 @@
     padding: 0.0625rem 0.4375rem; border-radius: var(--radius-chip); font-size: 0.6875rem; font-weight: 700;
     background: color-mix(in srgb, var(--bonus) 18%, transparent); color: var(--fg);
   }
+  .mini.warn { background: color-mix(in srgb, var(--warn-text) 16%, transparent); color: var(--warn-text); }
   .spin {
     width: 0.75rem; height: 0.75rem; box-sizing: border-box; border-radius: 50%;
     border: 2px solid var(--muted); border-right-color: transparent; animation: spin 0.8s linear infinite;

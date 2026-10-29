@@ -129,7 +129,7 @@
       </div>
     {/if}
     {#if data.group}<Together group={data.group} {people} />{/if}
-    {#if split.self}<Details id={split.self} person={people[split.self]} canEdit={canEdit(split.self)} viewer={data.viewer} connect={connectTop ? null : connects[split.self]} {now} />{/if}
+    {#if split.self}<Details id={split.self} person={people[split.self]} canEdit={canEdit(split.self)} viewer={data.viewer} reviewTypes={data.review_types} connect={connectTop ? null : connects[split.self]} {now} />{/if}
   {/if}
 </main>
 </div>
@@ -141,7 +141,7 @@
 {:else if sheetShown}
   <Sheet label="{people[sheet.id].name}'s details" from={sheet.from} onclose={closeSheet} onback={goBack}>
     <PersonTile person={people[sheet.id]} index={ids.indexOf(sheet.id)} />
-    <Details id={sheet.id} person={people[sheet.id]} canEdit={canEdit(sheet.id)} viewer={data.viewer} connect={connects[sheet.id]} {now} />
+    <Details id={sheet.id} person={people[sheet.id]} canEdit={canEdit(sheet.id)} viewer={data.viewer} reviewTypes={data.review_types} connect={connects[sheet.id]} {now} />
   </Sheet>
 {/if}
 <Toast />

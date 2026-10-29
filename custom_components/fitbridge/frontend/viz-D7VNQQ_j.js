@@ -1,4 +1,4 @@
-import { Et as e, Gt as t, It as n, Jt as r, Lt as i, Ot as a, Pt as o, Wt as s, dt as c, ht as l, ot as u, qt as d, r as f, rt as p, t as m, tn as h } from "./shared-saL3rk-R.js";
+import { At as e, It as t, Kt as n, Ot as r, Rt as i, Xt as a, Yt as o, _t as s, at as c, ct as l, pt as u, qt as d, r as f, rn as p, t as m, zt as h } from "./shared-5BpQZL6K.js";
 // \0rolldown/runtime.js
 var g = Object.create, _ = Object.defineProperty, v = Object.getOwnPropertyDescriptor, y = Object.getOwnPropertyNames, b = Object.getPrototypeOf, x = Object.prototype.hasOwnProperty, S = (e, t) => () => (t || (e((t = { exports: {} }).exports, t, t.exports), e = null), t.exports), C = (e, t, n, r) => {
 	if (t && typeof t == "object" || typeof t == "function") for (var i = y(t), a = 0, o = i.length, s; a < o; a++) s = i[a], !x.call(e, s) && s !== n && _(e, s, {
@@ -4540,7 +4540,7 @@ var g = Object.create, _ = Object.defineProperty, v = Object.getOwnPropertyDescr
 })))()), O = /* @__PURE__ */ new Map();
 function ee(e) {
 	let t = O.get(e);
-	if (t ? O.delete(e) : (t = h(e).then(async (e) => {
+	if (t ? O.delete(e) : (t = p(e).then(async (e) => {
 		if (!e.ok) throw Error(String(e.status));
 		return URL.createObjectURL(await e.blob());
 	}), t.catch(() => O.get(e) === t && O.delete(e))), O.set(e, t), O.size > 200) {
@@ -4550,59 +4550,59 @@ function ee(e) {
 	return t;
 }
 // src/lib/ui/MapView.svelte
-var k = a("<div class=\"map svelte-1zqw7d\" role=\"region\"></div>");
-function A(a, f) {
-	r(f, !0);
-	let h = D.default.TileLayer.extend({ createTile(e, t) {
+var k = e("<div class=\"map svelte-1zqw7d\" role=\"region\"></div>");
+function A(e, f) {
+	a(f, !0);
+	let p = D.default.TileLayer.extend({ createTile(e, t) {
 		let n = document.createElement("img");
 		return n.alt = "", D.default.DomEvent.on(n, "load", D.default.Util.bind(this._tileOnLoad, this, t, n)), D.default.DomEvent.on(n, "error", D.default.Util.bind(this._tileOnError, this, t, n)), ee(this.getTileUrl(e)).then((e) => n.src = e, (e) => t(e, n)), n;
-	} }), g = p(f, "height", 3, 220), _ = p(f, "label", 3, "Route map"), v = t(void 0);
-	i(() => {
-		let e = getComputedStyle(o(v)).getPropertyValue(`--${f.kind}`).trim(), t = matchMedia("(pointer: coarse)").matches, n = !m.reducedMotion, r = D.default.map(o(v), {
+	} }), g = c(f, "height", 3, 220), _ = c(f, "label", 3, "Route map"), v = d(void 0);
+	h(() => {
+		let e = getComputedStyle(t(v)).getPropertyValue(`--${f.kind}`).trim(), n = matchMedia("(pointer: coarse)").matches, r = !m.reducedMotion, i = D.default.map(t(v), {
 			scrollWheelZoom: !1,
-			dragging: !t,
-			zoomAnimation: n,
-			fadeAnimation: n,
-			markerZoomAnimation: n
+			dragging: !n,
+			zoomAnimation: r,
+			fadeAnimation: r,
+			markerZoomAnimation: r
 		});
-		r.attributionControl.setPrefix(!1), new h("/api/map_tiles/raster/{z}/{x}/{y}.png", {
+		i.attributionControl.setPrefix(!1), new p("/api/map_tiles/raster/{z}/{x}/{y}.png", {
 			maxZoom: 19,
 			attribution: "&copy; <a href=\"https://www.openstreetmap.org/copyright\" target=\"_blank\" rel=\"noopener\">OpenStreetMap</a> contributors"
-		}).addTo(r);
-		let i = f.route.filter((e) => e.length), a = D.default.latLngBounds([]);
-		for (let t of i) D.default.polyline(t, {
+		}).addTo(i);
+		let a = f.route.filter((e) => e.length), o = D.default.latLngBounds([]);
+		for (let t of a) D.default.polyline(t, {
 			color: e,
 			weight: 4
-		}).addTo(r), a.extend(t);
-		(i.length ? [i[0][0], i.at(-1).at(-1)] : []).forEach((t, n) => D.default.circleMarker(t, {
+		}).addTo(i), o.extend(t);
+		(a.length ? [a[0][0], a.at(-1).at(-1)] : []).forEach((t, n) => D.default.circleMarker(t, {
 			radius: 6,
 			fillColor: e,
 			fillOpacity: 1,
 			color: "#fff",
 			weight: n ? 2 : 0
-		}).addTo(r)), a.isValid() && r.fitBounds(a, {
+		}).addTo(i)), o.isValid() && i.fitBounds(o, {
 			padding: [16, 16],
 			maxZoom: 17
 		});
-		let s = () => (r.scrollWheelZoom.enable(), r.dragging.enable()), c = () => r.scrollWheelZoom.disable(), l = [
+		let s = () => (i.scrollWheelZoom.enable(), i.dragging.enable()), c = () => i.scrollWheelZoom.disable(), l = [
 			["click", s],
 			["focus", s],
-			["blur", () => (c(), t && r.dragging.disable())],
+			["blur", () => (c(), n && i.dragging.disable())],
 			["mouseleave", c]
 		];
-		for (let [e, t] of l) o(v).addEventListener(e, t, { passive: !0 });
-		let u = new ResizeObserver(() => r.invalidateSize());
-		return u.observe(o(v)), () => {
+		for (let [e, n] of l) t(v).addEventListener(e, n, { passive: !0 });
+		let u = new ResizeObserver(() => i.invalidateSize());
+		return u.observe(t(v)), () => {
 			u.disconnect();
-			for (let [e, t] of l) o(v).removeEventListener(e, t);
-			r.remove();
+			for (let [e, n] of l) t(v).removeEventListener(e, n);
+			i.remove();
 		};
 	});
 	var y = k();
 	let b;
-	u(y, (e) => s(v, e), () => o(v)), n(() => {
-		c(y, "aria-label", _()), b = l(y, "", b, { height: `${g() ?? ""}px` });
-	}), e(a, y), d();
+	l(y, (e) => n(v, e), () => t(v)), i(() => {
+		u(y, "aria-label", _()), b = s(y, "", b, { height: `${g() ?? ""}px` });
+	}), r(e, y), o();
 }
 // node_modules/uplot/dist/uPlot.esm.js
 var j = !0, te = "uplot", M = "u-hz", N = "u-vt", ne = "u-title", re = "u-wrap", ie = "u-under", P = "u-over", F = "u-axis", ae = "u-off", oe = "u-select", se = "u-cursor-x", ce = "u-cursor-y", le = "u-cursor-pt", ue = "u-legend", de = "u-live", fe = "u-inline", pe = "u-series", me = "u-marker", he = "u-label", ge = "u-value", _e = "width", ve = "height", ye = "top", be = "bottom", xe = "left", Se = "right", Ce = "#000", we = "#0000", Te = "mousemove", Ee = "mousedown", De = "mouseup", Oe = "mouseenter", ke = "mouseleave", Ae = "dblclick", je = "resize", Me = "scroll", Ne = "change", Pe = "dppxchange", Fe = "--", Ie = typeof window < "u", Le = Ie ? document : null, Re = Ie ? window : null, ze = Ie ? navigator : null, I, R;
@@ -6763,25 +6763,25 @@ $.assign = nn, $.fmtNum = vt, $.rangeNum = mt, $.rangeLog = ct, $.rangeAsinh = l
 	e.linear = gi, e.stepped = _i, e.bars = yi, e.spline = xi;
 }
 // src/lib/Chart.svelte
-var Bi = a("<div class=\"chart svelte-1knyfmf\" role=\"img\"></div>");
-function Vi(t, a) {
-	r(a, !0);
-	let o = p(a, "fmt", 3, null), s = p(a, "height", 3, 140), l;
-	i(() => {
-		let e = getComputedStyle(l), t = (t) => e.getPropertyValue(t).trim(), n = t("--muted"), r = t("--line"), i = `11px ${t("--font")}`, c = (e) => ({
-			stroke: n,
-			font: i,
+var Bi = e("<div class=\"chart svelte-1knyfmf\" role=\"img\"></div>");
+function Vi(e, t) {
+	a(t, !0);
+	let n = c(t, "fmt", 3, null), s = c(t, "height", 3, 140), d;
+	h(() => {
+		let e = getComputedStyle(d), r = (t) => e.getPropertyValue(t).trim(), i = r("--muted"), a = r("--line"), o = `11px ${r("--font")}`, c = (e) => ({
+			stroke: i,
+			font: o,
 			grid: {
-				stroke: r,
+				stroke: a,
 				width: 1
 			},
 			ticks: {
-				stroke: r,
+				stroke: a,
 				width: 1
 			},
 			...e
-		}), u = new $({
-			width: l.clientWidth || 300,
+		}), l = new $({
+			width: d.clientWidth || 300,
 			height: s(),
 			legend: { show: !1 },
 			cursor: { drag: {
@@ -6789,27 +6789,27 @@ function Vi(t, a) {
 				y: !1
 			} },
 			scales: { x: { time: !1 } },
-			axes: [c({ values: (e, t) => t.map(f) }), c(o() ? {
-				values: (e, t) => t.map(o()),
+			axes: [c({ values: (e, t) => t.map(f) }), c(n() ? {
+				values: (e, t) => t.map(n()),
 				size: 48
 			} : {})],
 			series: [{}, {
-				label: a.label,
-				stroke: t(a.color),
+				label: t.label,
+				stroke: r(t.color),
 				width: 2,
 				spanGaps: !1,
 				points: { show: !1 }
 			}]
-		}, [a.x, a.values], l), d = new ResizeObserver(() => u.setSize({
-			width: l.clientWidth,
+		}, [t.x, t.values], d), u = new ResizeObserver(() => l.setSize({
+			width: d.clientWidth,
 			height: s()
 		}));
-		return d.observe(l), () => {
-			d.disconnect(), u.destroy();
+		return u.observe(d), () => {
+			u.disconnect(), l.destroy();
 		};
 	});
-	var m = Bi();
-	u(m, (e) => l = e, () => l), n(() => c(m, "aria-label", `Graph: ${a.label ?? ""} against time`)), e(t, m), d();
+	var p = Bi();
+	l(p, (e) => d = e, () => d), i(() => u(p, "aria-label", `Graph: ${t.label ?? ""} against time`)), r(e, p), o();
 }
 // src/lib/viz.js
 document.head.append(Object.assign(document.createElement("style"), { textContent: T + E }));

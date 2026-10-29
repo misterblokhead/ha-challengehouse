@@ -2554,50 +2554,82 @@ var fa = (e) => e < 60 ? `${e} min` : e % 60 ? `${Math.floor(e / 60)} h ${Xi(e %
 	easy: "Too easy",
 	type: "Type not counted",
 	no_gps: "No GPS"
-}, ma = (e) => ({
+}, ma = (e) => {
+	let t = e.check;
+	return t?.state === "review" && !e.review ? {
+		text: "Review",
+		tone: "warn"
+	} : t?.state === "match" ? {
+		text: `${t.found}/${t.planned} blocks`,
+		tone: "plain"
+	} : t?.state === "indoor" ? {
+		text: "indoor",
+		tone: "plain"
+	} : null;
+}, ha = (e) => ({
 	title: e.name,
 	when: da(e.start, e.kind !== "active_day"),
 	duration: e.kind === "active_day" ? `${na(e.steps)} steps` : fa(e.minutes),
 	xp: e.xp ? `+${e.xp}` : "",
 	label: pa[e.reason] ?? null,
+	plan: e.plan && e.caught_up ? `${e.plan} · caught up` : e.plan,
+	chip: ma(e),
 	removable: e.kind === "active_day" ? null : e.excluded ? "restore" : e.key.startsWith("manual:") ? "delete" : "remove"
 });
-function ha(e, t) {
+function ga(e, t) {
 	let n = new Set(e.map((e) => e.key));
 	return [...e, ...t.filter((e) => !n.has(e.key))];
 }
-var ga = (e, t, n) => e.flatMap((e) => {
+var _a = (e, t, n) => e.flatMap((e) => {
 	let r = n[`${t}/${e.key}`];
 	return r === null ? [] : r === void 0 ? [e] : [{
 		...e,
 		excluded: r
 	}];
-}), _a = (e, t) => (/* @__PURE__ */ new Date(Date.parse(`${e}T00:00:00Z`) - t * 864e5)).toISOString().slice(0, 10);
-function va(e) {
+}), va = (e, t) => (/* @__PURE__ */ new Date(Date.parse(`${e}T00:00:00Z`) - t * 864e5)).toISOString().slice(0, 10), ya = (e) => Math.round(e / 30) / 2, ba = (e) => `${ya(e)} min`;
+function xa(e) {
+	if (!e?.steps?.length) return "";
+	let t = ([e, t]) => `${ba(t)} ${e}`, n = e.times > 1 ? `${e.times} × (${e.steps.map(t).join(" + ")})` : e.steps.map(t).join(" → ");
+	return [
+		e.warmup_s > 0 && `${ba(e.warmup_s)} warm-up walk`,
+		n,
+		e.cooldown_s > 0 && `${ba(e.cooldown_s)} cool-down walk`
+	].filter(Boolean).join(" · ");
+}
+function Sa(e, t = null) {
+	if (e.state === "indoor") return t == null ? "Indoor run" : `Indoor: ${t.toFixed(1)} km/h average`;
+	let n = e.state === "match" ? "matches" : "doesn't match";
+	return `${e.found} of ${e.planned} run blocks · ${ya(e.run_s)} of ${ba(e.planned_run_s)} running · ${n} ${e.label}`;
+}
+function Ca(e) {
 	if (!e) return [];
-	let t = [["walk", e.warmup_s ?? 0], ...e.intervals].filter(([, e]) => e > 0), n = t.reduce((e, [, t]) => e + t, 0);
+	let t = [
+		["walk", e.warmup_s ?? 0],
+		...e.intervals,
+		["walk", e.cooldown_s ?? 0]
+	].filter(([, e]) => e > 0), n = t.reduce((e, [, t]) => e + t, 0);
 	return t.map(([e, t]) => ({
 		kind: e,
 		frac: t / n
 	}));
 }
-function ya(e, t) {
+function wa(e, t) {
 	let n = Object.hasOwn(t, e.person) ? e.person : null;
 	return {
 		self: n,
 		others: Object.keys(t).filter((e) => e !== n)
 	};
 }
-var ba = (e) => `${Number(e.slice(8, 10))} ${ua[Number(e.slice(5, 7)) - 1]}`;
-function xa(e, t, n) {
+var Ta = (e) => `${Number(e.slice(8, 10))} ${ua[Number(e.slice(5, 7)) - 1]}`;
+function Ea(e, t, n) {
 	let r = t.find((t) => t.key === e.key);
 	return n - e.at > 6e5 || !r || e.want !== null && r.excluded === e.want;
 }
-function Sa(e, t, n) {
+function Da(e, t, n) {
 	let r = (e[t] ?? Promise.resolve()).then(n), i = e[t] = r.catch(() => {});
 	return i.then(() => e[t] === i && delete e[t]), r;
 }
-function Ca(e) {
+function Oa(e) {
 	let t = (e) => e < 10 ? e.toFixed(1) : Math.round(e).toLocaleString(), n = e.km == null ? "unknown" : e.km >= e.limit ? "replace" : e.km >= .9 * e.limit ? "soon" : "ok", r = e.last_run ? new Date(e.last_run) : null, i = e.runs ? `${e.runs} ${e.runs === 1 ? "run" : "runs"}` : e.runs === 0 ? "No runs yet" : "";
 	return {
 		name: e.name,
@@ -2611,30 +2643,30 @@ function Ca(e) {
 		detail: [i, r && `last run ${r.getDate()} ${ua[r.getMonth()]}`].filter(Boolean).join(" · ")
 	};
 }
-var wa = {
+var ka = {
 	name: [1, 40],
 	replace_at_km: [
 		100,
 		3e3,
 		10
 	]
-}, Ta = (e, t) => !!t && (e.run_shoes !== void 0 || (e.shoes ?? []).some((e) => e.id != null));
-function Ea(e, t, { partial: n = !1 } = {}) {
+}, Aa = (e, t) => !!t && (e.run_shoes !== void 0 || (e.shoes ?? []).some((e) => e.id != null));
+function ja(e, t, { partial: n = !1 } = {}) {
 	let r = {};
 	if (!(n && e === void 0)) {
 		let t = String(e ?? "").trim();
-		if (t.length < wa.name[0]) return { error: "Give the shoe a name" };
-		if (t.length > wa.name[1]) return { error: `A name of at most ${wa.name[1]} characters` };
+		if (t.length < ka.name[0]) return { error: "Give the shoe a name" };
+		if (t.length > ka.name[1]) return { error: `A name of at most ${ka.name[1]} characters` };
 		r.name = t;
 	}
 	if (!(n && t === void 0)) {
-		let [e, n] = wa.replace_at_km, i = typeof t == "number" ? t : t === null || String(t).trim() === "" ? NaN : Number(t);
+		let [e, n] = ka.replace_at_km, i = typeof t == "number" ? t : t === null || String(t).trim() === "" ? NaN : Number(t);
 		if (!(i >= e && i <= n)) return { error: `Replace at: ${e} to ${n} km` };
 		r.replace_at_km = i;
 	}
 	return r;
 }
-function Da(e, t) {
+function Ma(e, t) {
 	let n = e.map((e) => ({
 		id: e.id,
 		label: e.current ? `${e.name} (current)` : e.name
@@ -2645,7 +2677,7 @@ function Da(e, t) {
 		extra: r ? null : t == null ? "No shoe" : "Retired shoe"
 	};
 }
-var Oa = {
+var Na = {
 	runs: [
 		0,
 		7,
@@ -2676,27 +2708,27 @@ var Oa = {
 		42,
 		1
 	]
-}, ka = [
+}, Pa = [
 	"runs",
 	"workouts",
 	"active_days",
 	"steps"
-], Aa = {
+], Fa = {
 	runs: 0,
 	workouts: 0,
 	active_days: 0,
 	steps: 1e4
 };
-function ja(e, t) {
-	let [n, r, i] = Oa[e];
+function Ia(e, t) {
+	let [n, r, i] = Na[e];
 	return Math.min(r, Math.max(n, Math.round(t / i) * i));
 }
-function Ma(e, t) {
+function La(e, t) {
 	let n = e.current, r = (t) => n?.people?.[t] ?? e.defaults?.[t] ?? {};
 	return {
 		people: Object.fromEntries(Object.keys(t).map((e) => {
 			let t = r(e);
-			return [e, Object.fromEntries(ka.map((e) => [e, ja(e, t[e] ?? Aa[e])]))];
+			return [e, Object.fromEntries(Pa.map((e) => [e, Ia(e, t[e] ?? Fa[e])]))];
 		})),
 		couple: {
 			mode: "own",
@@ -2708,13 +2740,13 @@ function Ma(e, t) {
 		profiles: Object.fromEntries(Object.keys(t).map((t) => [t, { birth_year: e.profiles?.[t]?.birth_year ?? null }]))
 	};
 }
-var Na = (e) => e ? `Max HR ${e.bpm} · ${e.source === "measured" && e.date ? `measured ${ba(e.date)}` : e.source}` : "—";
-function Pa(e) {
+var Ra = (e) => e ? `Max HR ${e.bpm} · ${e.source === "measured" && e.date ? `measured ${Ta(e.date)}` : e.source}` : "—";
+function za(e) {
 	let t = /* @__PURE__ */ new Date(`${e}T00:00:00Z`);
 	return t.setUTCDate(t.getUTCDate() + 3 - (t.getUTCDay() + 6) % 7), Math.ceil(((t - Date.UTC(t.getUTCFullYear(), 0, 1)) / 864e5 + 1) / 7);
 }
-var Fa = (e, t) => ka.every((n) => (n === "workouts" ? Qi(t) : t[n]) === e[n]), Ia = (e, t, n) => n - e.at > 6e5 || Object.entries(e.entry.people).every(([e, n]) => !t[e] || Fa(n, t[e].week.goal));
-function La(e, t) {
+var Ba = (e, t) => Pa.every((n) => (n === "workouts" ? Qi(t) : t[n]) === e[n]), Va = (e, t, n) => n - e.at > 6e5 || Object.entries(e.entry.people).every(([e, n]) => !t[e] || Ba(n, t[e].week.goal));
+function Ha(e, t) {
 	if (!t) return e;
 	let n = { ...e };
 	for (let [r, i] of Object.entries(t.people)) {
@@ -2733,8 +2765,8 @@ function La(e, t) {
 	}
 	return n;
 }
-var Ra = (e = /* @__PURE__ */ new Date()) => `${e.getFullYear()}-${Xi(e.getMonth() + 1)}-${Xi(e.getDate())}`;
-function za(e, t, n) {
+var Ua = (e = /* @__PURE__ */ new Date()) => `${e.getFullYear()}-${Xi(e.getMonth() + 1)}-${Xi(e.getDate())}`;
+function Wa(e, t, n) {
 	if (e == null) return null;
 	let r = Date.parse(`${n}T00:00:00Z`), i = r - (new Date(r).getUTCDay() + 6) % 7 * 864e5, a = Array.from({ length: 7 }, (e, t) => new Date(i + t * 864e5).toISOString().slice(0, 10)), o = a.map((t) => t > n ? null : e[t] ?? 0), s = Math.max(t ?? 0, ...o.map((e) => e ?? 0));
 	return {
@@ -2750,11 +2782,11 @@ function za(e, t, n) {
 		goalFrac: t > 0 ? t / s : null
 	};
 }
-function Ba(e) {
+function Ga(e) {
 	let t = e.filter((e) => e.active).length;
 	return `${t} active ${t === 1 ? "day" : "days"} · ${na(e.reduce((e, t) => e + (t.steps ?? 0), 0))} steps`;
 }
-var Va = (e) => `${e.w} ${e.unit} × ${e.r}`, Ha = [
+var Ka = (e) => `${e.w} ${e.unit} × ${e.r}`, qa = [
 	"Chest",
 	"Back",
 	"Shoulders",
@@ -2762,17 +2794,17 @@ var Va = (e) => `${e.w} ${e.unit} × ${e.r}`, Ha = [
 	"Legs",
 	"Core",
 	"Other"
-], Ua = (e) => Ha.map((t) => ({
+], Ja = (e) => qa.map((t) => ({
 	group: t,
-	lifts: (e ?? []).filter((e) => (Ha.includes(e.group) ? e.group : "Other") === t)
-})).filter((e) => e.lifts.length), Wa = (e) => Ua(e).map(({ group: e, lifts: t }) => ({
+	lifts: (e ?? []).filter((e) => (qa.includes(e.group) ? e.group : "Other") === t)
+})).filter((e) => e.lifts.length), Ya = (e) => Ja(e).map(({ group: e, lifts: t }) => ({
 	group: e,
 	count: t.length,
 	lift: [...t].sort((e, t) => (t.sessions ?? 0) - (e.sessions ?? 0) || t.date.localeCompare(e.date) || e.name.localeCompare(t.name))[0]
-})), Ga = (e) => Ua(e).map(({ group: e, lifts: t }) => ({
+})), Xa = (e) => Ja(e).map(({ group: e, lifts: t }) => ({
 	group: e,
 	lifts: [...t].sort((e, t) => e.name.localeCompare(t.name))
-})), Ka = (e) => `${Math.floor(e / 60)}:${Xi(e % 60)}`, qa = (e) => new Set([...(e?.lifts ?? []).map((e) => e.key), e?.fastest_1k?.key].filter(Boolean)), Ja = (e, t) => !!t && t.last_received == null && !e.feed.length, Ya = (e, t) => [.../* @__PURE__ */ new Set([e.person, ...e.can_connect ?? []])].filter((e) => Object.hasOwn(t, e)), Xa = {
+})), Za = (e) => `${Math.floor(e / 60)}:${Xi(e % 60)}`, Qa = (e) => new Set([...(e?.lifts ?? []).map((e) => e.key), e?.fastest_1k?.key].filter(Boolean)), $a = (e, t) => !!t && t.last_received == null && !e.feed.length, eo = (e, t) => [.../* @__PURE__ */ new Set([e.person, ...e.can_connect ?? []])].filter((e) => Object.hasOwn(t, e)), to = {
 	iphone: {
 		title: "iPhone",
 		steps: [
@@ -2790,11 +2822,11 @@ var Va = (e) => `${e.w} ${e.unit} × ${e.r}`, Ha = [
 			"In the flow, open the HTTP request block and paste your address as its URL, then start the flow."
 		]
 	}
-}, Za = (e) => Xa[e] ?? {
+}, no = (e) => to[e] ?? {
 	title: "Which phone do you have?",
 	steps: []
 };
-function Qa(e, t, n = null) {
+function ro(e, t, n = null) {
 	if (e.last_received == null) return {
 		state: "waiting",
 		text: n?.feed?.length ? "No upload since this update" : "Waiting for the first workout"
@@ -2806,24 +2838,24 @@ function Qa(e, t, n = null) {
 	};
 }
 // src/lib/details.js
-var $a = (e) => String(e).padStart(2, "0"), eo = (e) => /T(\d+:\d+)/.exec(e ?? "")?.[1] ?? "";
-function to(e) {
+var io = (e) => String(e).padStart(2, "0"), ao = (e) => /T(\d+:\d+)/.exec(e ?? "")?.[1] ?? "";
+function oo(e) {
 	let t = Math.round(e), n = Math.floor(t / 3600), r = Math.floor(t % 3600 / 60);
-	return n ? `${n}:${$a(r)}:${$a(t % 60)}` : `${r}:${$a(t % 60)}`;
+	return n ? `${n}:${io(r)}:${io(t % 60)}` : `${r}:${io(t % 60)}`;
 }
-var no = (e) => e.summary.kind === "run" || e.summary.kind === "walk", ro = (e) => !!e.route?.length && !no(e), io = (e) => e ? 3600 / e : null, ao = (e) => ({
+var so = (e) => e.summary.kind === "run" || e.summary.kind === "walk", co = (e) => !!e.route?.length && !so(e), lo = (e) => e ? 3600 / e : null, uo = (e) => ({
 	title: e.name,
 	date: da(e.start, !1),
-	time: e.end ? `${eo(e.start)}–${eo(e.end)}` : eo(e.start),
+	time: e.end ? `${ao(e.start)}–${ao(e.end)}` : ao(e.start),
 	duration: fa(e.minutes),
 	plan: e.plan ?? null
 });
-function oo(e) {
-	let t = e.summary, n = t.km > 0 ? t.km : null, r = n && no(e) ? Math.round(t.minutes * 60 / n) : null;
+function fo(e) {
+	let t = e.summary, n = t.km > 0 ? t.km : null, r = n && so(e) ? Math.round(t.minutes * 60 / n) : null;
 	return [
 		["Distance", n && `${n.toFixed(1)} km`],
-		["Pace", r && `${to(r)} /km`],
-		["Speed", n && ro(e) && `${(n / (t.minutes / 60)).toFixed(1)} km/h`],
+		["Pace", r && `${oo(r)} /km`],
+		["Speed", n && co(e) && `${(n / (t.minutes / 60)).toFixed(1)} km/h`],
 		["Elevation gain", e.gain_m != null && `${Math.round(e.gain_m)} m`],
 		["Avg heart rate", t.avg_hr != null && `${Math.round(t.avg_hr)} bpm`],
 		["Max heart rate", t.max_hr != null && `${Math.round(t.max_hr)} bpm`],
@@ -2831,49 +2863,49 @@ function oo(e) {
 		["Shoe", t.kind === "run" && t.shoe?.name]
 	].filter(([, e]) => e);
 }
-function so(e) {
-	let t = ro(e);
+function po(e) {
+	let t = co(e);
 	return e.splits.map((e, n) => ({
 		km: e.km === 1 ? String(n + 1) : `${e.km} km`,
-		time: to(e.s),
-		pace: e.pace ? t ? io(e.pace).toFixed(1) : to(e.pace) : "—",
+		time: oo(e.s),
+		pace: e.pace ? t ? lo(e.pace).toFixed(1) : oo(e.pace) : "—",
 		hr: e.hr == null ? "—" : String(e.hr),
 		climb: e.climb == null ? "—" : `${Math.round(e.climb)} m`
 	}));
 }
-function co(e, t) {
+function mo(e, t) {
 	if (!e) return null;
 	let n = e.reduce((e, t) => e + t, 0), r = (e) => Math.round(e * t);
 	return e.map((e, t) => ({
 		zone: `Z${t + 1}`,
 		bpm: t === 4 ? `${r(.9)}+` : `${r(.5 + t / 10)}–${r(.6 + t / 10)}`,
-		time: to(e),
+		time: oo(e),
 		pct: n ? Math.round(e / n * 100) : 0
 	}));
 }
-var lo = (e) => e && {
+var ho = (e) => e && {
 	exercises: e.exercises.map((e) => ({
 		name: e.name,
-		set: Va(e),
+		set: Ka(e),
 		record: e.record
 	})),
 	volume: `${Math.round(e.vol_kg).toLocaleString("en-US")} kg`
 };
-function uo(e) {
+function go(e) {
 	if (!e.series) return null;
 	let { t, pace: n, hr: r, ele: i } = e.series;
 	return {
 		x: t,
 		list: [
-			ro(e) ? {
+			co(e) ? {
 				label: "Speed km/h",
-				values: n.map(io),
+				values: n.map(lo),
 				color: "--gym"
 			} : {
 				label: "Pace /km",
 				values: n,
 				color: "--run",
-				fmt: to
+				fmt: oo
 			},
 			{
 				label: "Heart rate",
@@ -2888,23 +2920,23 @@ function uo(e) {
 		].filter((e) => e.values.some((e) => e != null))
 	};
 }
-function fo(e, t, n) {
+function _o(e, t, n) {
 	return e?.can_edit?.includes(t) ? {
-		remove: ma(n).removable,
+		remove: ha(n).removable,
 		shoe: n.kind === "run"
 	} : {
 		remove: null,
 		shoe: !1
 	};
 }
-var po = (e) => ({
+var vo = (e) => ({
 	file_missing: "Route file not found",
 	file_unreadable: "Route file unreadable"
-})[e] ?? null, mo = en({
+})[e] ?? null, yo = en({
 	wide: !1,
 	reducedMotion: !1
-}), ho = matchMedia("(min-width: 768px)"), go = matchMedia("(prefers-reduced-motion: reduce)"), _o = () => {
-	mo.wide = ho.matches, mo.reducedMotion = go.matches;
+}), bo = matchMedia("(min-width: 768px)"), xo = matchMedia("(prefers-reduced-motion: reduce)"), So = () => {
+	yo.wide = bo.matches, yo.reducedMotion = xo.matches;
 };
-ho.addEventListener("change", _o), go.addEventListener("change", _o), _o();
-export { za as $, g as $t, oa as A, Mr as At, qa as B, dn as Bt, $i as C, Ur as Ct, Ga as D, Ar as Dt, Wa as E, jr as Et, _a as F, ar as Ft, Da as G, I as Gt, ta as H, pn as Ht, ga as I, An as It, ba as J, et as Jt, Ca as K, xt as Kt, Ka as L, Cn as Lt, Ra as M, vr as Mt, Na as N, _r as Nt, Pa as O, Dr as Ot, ha as P, $ as Pt, ia as Q, ke as Qt, xa as R, rn as Rt, ma as S, Gr as St, Ma as T, Lr as Tt, Sa as U, en as Ut, aa as V, fn as Vt, Ea as W, L as Wt, ra as X, Ye as Xt, ca as Y, Ze as Yt, Ba as Z, Ae as Zt, Ya as _, oi as _t, oo as a, Vi as at, Za as b, Xr as bt, po as c, Ni as ct, so as d, Di as dt, ee as en, sa as et, co as f, Ei as ft, ja as g, fi as gt, wa as h, mi as ht, fo as i, t as in, Hi as it, Va as j, yr as jt, ya as k, kr as kt, no as l, ji as lt, ka as m, _i as mt, uo as n, i as nn, qi as nt, lo as o, Bi as ot, Oa as p, vi as pt, Ta as q, tt as qt, to as r, r as rn, Ki as rt, ao as s, Ri as st, mo as t, n as tn, La as tt, ro as u, Ti as ut, Ja as v, ri as vt, Ia as w, Rr as wt, ea as x, Kr as xt, Qa as y, ni as yt, va as z, un as zt };
+bo.addEventListener("change", So), xo.addEventListener("change", So), So();
+export { Ga as $, Ae as $t, wa as A, Dr as At, Ca as B, rn as Bt, ha as C, Kr as Ct, Ya as D, Lr as Dt, La as E, Rr as Et, ga as F, _r as Ft, Da as G, en as Gt, Qa as H, dn as Ht, va as I, $ as It, Oa as J, xt as Jt, ja as K, L as Kt, _a as L, ar as Lt, Ka as M, Mr as Mt, Ua as N, yr as Nt, Xa as O, jr as Ot, Ra as P, vr as Pt, ra as Q, Ye as Qt, Za as R, An as Rt, ea as S, Xr as St, Va as T, Ur as Tt, aa as U, fn as Ut, xa as V, un as Vt, ta as W, pn as Wt, Ta as X, et as Xt, Aa as Y, tt as Yt, ca as Z, Ze as Zt, Ia as _, mi as _t, fo as a, r as an, Ki as at, ro as b, ri as bt, vo as c, Bi as ct, po as d, ji as dt, ke as en, ia as et, mo as f, Ti as ft, Sa as g, _i as gt, ka as h, vi as ht, _o as i, i as in, qi as it, oa as j, kr as jt, za as k, Ar as kt, so as l, Ri as lt, Pa as m, Ei as mt, go as n, ee as nn, sa as nt, ho as o, t as on, Hi as ot, Na as p, Di as pt, Ma as q, I as qt, oo as r, n as rn, Ha as rt, uo as s, Vi as st, yo as t, g as tn, Wa as tt, co as u, Ni as ut, eo as v, fi as vt, $i as w, Gr as wt, no as x, ni as xt, $a as y, oi as yt, Ea as z, Cn as zt };

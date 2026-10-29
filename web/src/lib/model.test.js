@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { counts, goals, ringFractions, stepsLine, togetherLine, rewardLine, levelProgress, weekLabel, staleSince, feedRow, planBar, layout, shortDate, pendingDone, PENDING_MS, serial, shoeRow, goalsDraft, maxHrText, clampGoal, isoWeek, goalsDone, withPendingGoals, weekBars, localDay, stepsSummary, liftSet, liftLine, GROUPS, groupRows, groupedLifts, paceText, recordKeys, SHOE_LIMITS, SHOE_DEFAULT_KM, shoesManageable, shoeForm, shoePicker, mergeOlder, minusDays, olderState, connectOnTop, connectSteps, connectStatus, connectIds } from "./model.js";
+import { counts, goals, ringFractions, stepsLine, togetherLine, rewardLine, levelProgress, weekLabel, staleSince, feedRow, planBar, layout, shortDate, pendingDone, PENDING_MS, serial, shoeRow, goalsDraft, maxHrText, clampGoal, isoWeek, goalsDone, withPendingGoals, weekBars, localDay, stepsSummary, liftSet, liftLine, GROUPS, groupRows, groupedLifts, paceText, recordKeys, SHOE_LIMITS, SHOE_DEFAULT_KM, shoesManageable, shoeForm, shoePicker, mergeOlder, minusDays, olderState, connectOnTop, connectSteps, connectStatus, connectIds, programmeText, checkLine } from "./model.js";
 
 const week = { runs: 1, workouts: 2, active_days: 3, bonus: 1, goal: { runs: 2, workouts: 2, active_days: 4, steps: 10000 }, days_left: 3, week: "2026-W44" };
 
@@ -96,7 +96,7 @@ const run = { key: "endurain:1", kind: "run", name: "Morning Run", start: "2026-
 
 test("feedRow: a counted run", () => {
   assert.deepEqual(feedRow({ ...run, counts: true, reason: null }), {
-    title: "Morning Run", when: "Mon 26 Oct, 07:30", duration: "28 min", xp: "+24", label: null, removable: "remove",
+    title: "Morning Run", when: "Mon 26 Oct, 07:30", duration: "28 min", xp: "+24", label: null, removable: "remove", plan: "W1D2", chip: null,
   });
 });
 
@@ -111,7 +111,7 @@ test("feedRow: an uncounted workout says why", () => {
 test("feedRow: long durations in hours, no xp when 0", () => {
   const gym = { key: "opengym:9", kind: "gym", name: "Gym", start: "2026-10-25T18:05:00+01:00", minutes: 65, km: null, avg_hr: null, plan: null, xp: 0, excluded: false, url: null };
   assert.deepEqual(feedRow(gym), {
-    title: "Gym", when: "Sun 25 Oct, 18:05", duration: "1 h 05 min", xp: "", label: null, removable: "remove",
+    title: "Gym", when: "Sun 25 Oct, 18:05", duration: "1 h 05 min", xp: "", label: null, removable: "remove", plan: null, chip: null,
   });
   assert.equal(feedRow({ ...gym, minutes: 60 }).duration, "1 h");
 });
@@ -119,7 +119,7 @@ test("feedRow: long durations in hours, no xp when 0", () => {
 test("feedRow: an active day shows its steps, has no Remove", () => {
   const day = { key: "steps:person1:2026-10-26", kind: "active_day", name: "Active day", start: "2026-10-26T00:00:00+01:00", minutes: 0, km: null, avg_hr: null, plan: null, xp: 15, steps: 12034, excluded: false, url: null };
   assert.deepEqual(feedRow(day), {
-    title: "Active day", when: "Mon 26 Oct", duration: "12,034 steps", xp: "+15", label: null, removable: null,
+    title: "Active day", when: "Mon 26 Oct", duration: "12,034 steps", xp: "+15", label: null, removable: null, plan: null, chip: null,
   });
 });
 
@@ -144,6 +144,59 @@ test("planBar: warm-up walk then intervals as fractions of the total", () => {
 
 test("planBar: graduated plan has no bar", () => {
   assert.deepEqual(planBar({ state: "Graduated", plan: "c25k", completed: 27, week: null, day: null, target: null, due_today: false, warmup_s: null, intervals: [] }), []);
+});
+
+test("planBar: the cool-down walk comes last", () => {
+  assert.deepEqual(planBar({ warmup_s: 0, cooldown_s: 300, intervals: [["run", 300], ["walk", 600]] }), [
+    { kind: "run", frac: 0.25 }, { kind: "walk", frac: 0.5 }, { kind: "walk", frac: 0.25 },
+  ]);
+});
+
+const w1 = { warmup_s: 300, cooldown_s: 300, times: 8, steps: [["run", 60], ["walk", 90]] };
+
+test("programmeText: W1, a repeated pair", () => {
+  assert.equal(programmeText(w1), "5 min warm-up walk · 8 × (1 min run + 1.5 min walk) · 5 min cool-down walk");
+});
+
+test("programmeText: W3, a repeated four-step block", () => {
+  const w3 = { ...w1, times: 2, steps: [["run", 90], ["walk", 90], ["run", 180], ["walk", 180]] };
+  assert.equal(programmeText(w3), "5 min warm-up walk · 2 × (1.5 min run + 1.5 min walk + 3 min run + 3 min walk) · 5 min cool-down walk");
+});
+
+test("programmeText: W4, once through, steps joined with arrows", () => {
+  const w4 = { ...w1, times: 1, steps: [["run", 180], ["walk", 90], ["run", 300], ["walk", 150], ["run", 180], ["walk", 90], ["run", 300]] };
+  assert.equal(programmeText(w4), "5 min warm-up walk · 3 min run → 1.5 min walk → 5 min run → 2.5 min walk → 3 min run → 1.5 min walk → 5 min run · 5 min cool-down walk");
+});
+
+test("programmeText: no warm-up or cool-down leaves those parts out; graduated or no plan is empty", () => {
+  assert.equal(programmeText({ ...w1, warmup_s: 0, cooldown_s: 0, times: 1, steps: [["run", 60]] }), "1 min run");
+  assert.equal(programmeText({ ...w1, warmup_s: 0, cooldown_s: 0 }), "8 × (1 min run + 1.5 min walk)");
+  assert.equal(programmeText({ ...w1, steps: [] }), "");
+  assert.equal(programmeText(null), "");
+});
+
+test("feedRow: chips for a match, a review, an indoor run, and none", () => {
+  const check = { state: "match", found: 8, planned: 8, run_s: 570, planned_run_s: 480, label: "W1D2" };
+  assert.deepEqual(feedRow({ ...run, check }).chip, { text: "8/8 blocks", tone: "plain" });
+  assert.deepEqual(feedRow({ ...run, check: { ...check, state: "review", found: 5 }, review: null }).chip, { text: "Review", tone: "warn" });
+  assert.equal(feedRow({ ...run, check: { ...check, state: "review" }, review: { decision: "plan", type_match: null } }).chip, null); // decided
+  assert.deepEqual(feedRow({ ...run, check: { ...check, state: "indoor" } }).chip, { text: "indoor", tone: "plain" });
+  assert.equal(feedRow({ ...run, check: { ...check, state: "none" } }).chip, null);
+  assert.equal(feedRow({ ...run, check: null }).chip, null);
+  assert.equal(feedRow(run).chip, null); // an older payload
+});
+
+test("feedRow: a caught-up run says so after its plan day", () => {
+  assert.equal(feedRow({ ...run, plan: "W1D3", caught_up: true }).plan, "W1D3 · caught up");
+  assert.equal(feedRow({ ...run, plan: "W1D3", caught_up: false }).plan, "W1D3");
+});
+
+test("checkLine: a match, a review, an indoor run", () => {
+  const c = { state: "match", found: 8, planned: 8, run_s: 570, planned_run_s: 480, label: "W1D2" };
+  assert.equal(checkLine(c), "8 of 8 run blocks · 9.5 of 8 min running · matches W1D2");
+  assert.equal(checkLine({ ...c, state: "review", found: 5, run_s: 300 }), "5 of 8 run blocks · 5 of 8 min running · doesn't match W1D2");
+  assert.equal(checkLine({ ...c, state: "indoor", found: 0, run_s: 0 }, 6), "Indoor: 6.0 km/h average");
+  assert.equal(checkLine({ ...c, state: "indoor", found: 0, run_s: 0 }), "Indoor run"); // no distance to average
 });
 
 test("layout: the viewer's own tile first, the rest after", () => {
