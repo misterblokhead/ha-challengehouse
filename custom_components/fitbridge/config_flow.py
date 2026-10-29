@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 
 import voluptuous as vol
@@ -36,6 +37,7 @@ from .const import (
     WEBHOOKS,
 )
 
+_LOGGER = logging.getLogger(__name__)
 NEW_URLS = "new_urls"
 ADD = "+"  # the People step's pick for a new person; not an id (ids are ^[a-z0-9_]+$)
 KEEP = "keep"  # a plan or an open invite left as it is
@@ -139,6 +141,10 @@ class _InstallSteps:
             self._slug, self._url = task.result()
         except opengym_app.AppError as err:
             self._reason = err.reason
+            return self.async_show_progress_done(next_step_id="install_failed")
+        except Exception:  # anything else would leave the flow on the spinner for good
+            _LOGGER.exception("Installing the openGym app failed")
+            self._reason = "app_install_failed"
             return self.async_show_progress_done(next_step_id="install_failed")
         return self.async_show_progress_done(next_step_id="install_pair")
 
@@ -414,7 +420,9 @@ class FitbridgeOptionsFlow(_InstallSteps, config_entries.OptionsFlowWithReload):
             url, token, errors = await _pair(self.hass, user_input)
             if token:
                 await self.hass.data[DOMAIN].runner.async_pair(token)
-                return self.async_create_entry(data={**self.config_entry.options, OPT_OPENGYM_URL: url})
+                options = {**self.config_entry.options, OPT_OPENGYM_URL: url}
+                options.pop(OPT_OPENGYM_LINK, None)  # an installed app's link: not this openGym's
+                return self.async_create_entry(data=options)
         return self.async_show_form(step_id="opengym_pair", errors=errors, data_schema=self.add_suggested_values_to_schema(
             _pair_schema(), {OPT_OPENGYM_URL: (user_input or {}).get(OPT_OPENGYM_URL) or self.config_entry.options.get(OPT_OPENGYM_URL)}))
 

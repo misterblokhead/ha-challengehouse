@@ -753,6 +753,26 @@ async def test_setup_install_failure_offers_retry_pair_or_skip(hass, enable_cust
     assert result["step_id"] == "install_pair" and app["async_install"].await_count == 2
 
 
+async def test_setup_install_unexpected_error_still_ends_on_install_failed(hass, enable_custom_integrations, caplog):
+    patcher, _ = _app(async_install=AsyncMock(side_effect=RuntimeError("boom")))
+    with patcher:
+        result = await _installed(hass, await _install(hass), hass.config_entries.flow)
+    assert result["type"] is FlowResultType.MENU and result["step_id"] == "install_failed"
+    assert "could not install" in result["description_placeholders"]["reason"] and "boom" in caplog.text
+    assert hass.config_entries.async_entries(DOMAIN) == []
+
+
+async def test_options_pairing_by_hand_drops_the_app_link(hass, setup, aioclient_mock):
+    aioclient_mock.post(f"{GYM}/api/pair/redeem", json={"token": "tok-new"})
+    with patch.object(runner_mod.Runner, "_opengym", return_value=None):
+        e = await setup({OPT_OPENGYM_URL: APP, OPT_OPENGYM_LINK: f"{HA}/abcd1234_opengym"}, {"opengym_token": "tok"})
+        result = await _open(hass, e, "opengym")  # no Supervisor: the pairing form
+        result = await _configure(hass, result, {OPT_OPENGYM_URL: GYM, "code": "AB12cd"})
+        assert result["type"] is FlowResultType.CREATE_ENTRY
+        await hass.async_block_till_done(wait_background_tasks=True)
+    assert e.options == {**PEOPLE_OPTIONS, OPT_OPENGYM_URL: GYM}  # no link to the old app next to another openGym's token
+
+
 async def test_setup_invite_only_failure_still_creates_the_entry(hass, enable_custom_integrations, aioclient_mock):
     aioclient_mock.post(f"{APP}/api/pair/redeem", json={"token": "tok-new"})
     aioclient_mock.get(f"{APP}/api/admin/users", json={"users": []})
