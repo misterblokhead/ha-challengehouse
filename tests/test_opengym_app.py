@@ -42,6 +42,14 @@ async def test_install_skips_what_is_already_there(hass, client):
     client.addons.start_addon.assert_awaited_once_with(SLUG)
 
 
+@pytest.mark.parametrize("url", ["", "https://other.example.test/declared"])
+async def test_a_repository_is_also_found_by_the_source_it_was_added_from(hass, client, url):
+    client.store.repositories_list.return_value = [
+        Repository(slug="abcd1234", name="openGym", source=REPOSITORY + ".git", url=url, maintainer="Synthetic")]
+    assert await opengym_app.async_install(hass, ADDRESS) == (SLUG, "http://abcd1234-opengym:8099")
+    client.store.add_repository.assert_not_awaited()
+
+
 @pytest.mark.parametrize(("failing", "reason"), [
     ("store.install_addon", "app_install_failed"),
     ("store.add_repository", "app_unavailable"),

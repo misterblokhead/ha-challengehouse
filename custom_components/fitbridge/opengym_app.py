@@ -45,10 +45,14 @@ def detected_address(hass: HomeAssistant) -> str:
         return ""
 
 
+def _same(url: str | None) -> str:
+    return (url or "").rstrip("/").removesuffix(".git").casefold()
+
+
 async def _repository_slug(client) -> str | None:
-    wanted = REPOSITORY.casefold()
+    """The slug of the added repository; url is what its repository.yaml declares, source the git URL it was added by."""
     for repo in await client.store.repositories_list():
-        if repo.url and repo.url.rstrip("/").casefold() == wanted:
+        if _same(REPOSITORY) in (_same(repo.url), _same(repo.source)):
             return repo.slug
     return None
 
