@@ -1,4 +1,4 @@
-"""Pure scoring functions (no I/O). See specs/2026-10-26-scoring-design.md."""
+"""Pure scoring functions (no I/O)."""
 import math
 from collections import defaultdict
 from datetime import date, datetime, time, timedelta

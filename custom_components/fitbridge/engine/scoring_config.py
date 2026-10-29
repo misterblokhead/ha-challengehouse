@@ -1,4 +1,4 @@
-"""Loads and validates scoring.toml (see specs/2026-10-26-scoring-design.md, sections 5 and 6)."""
+"""Loads and validates scoring.toml."""
 import math
 import re
 import tomllib
