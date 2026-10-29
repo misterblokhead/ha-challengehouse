@@ -4,6 +4,7 @@ from zoneinfo import ZoneInfo
 
 from custom_components.fitbridge.engine.scoring import clean, local_date, mark_joint, pause_days, score, score_person, week_couple, week_goal
 from custom_components.fitbridge.engine.scoring_config import COUNTERS, load_config
+from . import overlay
 from .test_config import DEFAULT, ONE_PERSON
 
 TZ = ZoneInfo("Europe/Amsterdam")
@@ -247,6 +248,23 @@ class ScoringTests(unittest.TestCase):
         ws = clean([wk("person1", "run", 2, 18, 0, 5, km=1), wk("person1", "run", 4, 18, 0, 30, km=4.4)], cfg)
         r = score_person(ws, set(), cfg, "person1", NOW(5))
         self.assertEqual((r["plan"]["plan"], r["plan"]["completed"]), ("free", 1))   # 4.4 < 0.9*5
+
+    def test_score_person_without_plan(self):
+        ov = overlay(("person1",))
+        ov["people"]["person1"]["plan_history"] = []
+        cfg = load_config(DEFAULT, ov)
+        r = score_person(clean([wk("person1", "run", 0, 18, 0, 26, km=3)], cfg), set(), cfg, "person1", NOW(1))
+        self.assertIsNone(r["plan"])
+        self.assertEqual(r["xp"], 26)                          # the run still earns its minutes
+
+    def test_stopped_plan(self):
+        ov = overlay(("person1",))
+        ov["people"]["person1"]["plan_history"].append({"plan": None, "from": "2026-11-10"})
+        cfg = load_config(DEFAULT, ov)
+        before, after = wk("person1", "run", 6, 18, 0, 26, km=3), wk("person1", "run", 17, 18, 0, 26, km=3)
+        res = score({"person1": [before, after]}, [], cfg, NOW(17))["people"]["person1"]
+        self.assertEqual({r["key"]: r["plan"] for r in res["recent"]}, {before["key"]: "W1D1", after["key"]: None})
+        self.assertIsNone(res["plan"])
 
     def test_counters_and_week_fields(self):
         r = sp(week_of(0, runs=3, gym=3) + [wk("person1", "walk", 6, 7, 0, 30)], 6)

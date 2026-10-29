@@ -206,7 +206,7 @@ def score_person(workouts, paused, cfg, person, now, steps=None, settings=None, 
     tz = ZoneInfo(cfg["rules"]["timezone"])
     rules, xpc = cfg["rules"], cfg["xp"]
     history = cfg["people"][person]["plan_history"]
-    sessions = [plan_sessions(cfg, h["plan"]) for h in history]
+    sessions = [plan_sessions(cfg, h["plan"]) if h["plan"] else [] for h in history]
     done = [0] * len(history)                      # completed sessions per plan_history entry
     today = local_date(now, tz)
     this_monday = today - timedelta(days=today.weekday())
@@ -348,7 +348,8 @@ def score_person(workouts, paused, cfg, person, now, steps=None, settings=None, 
     base = xpc["level_base"]
     level = int(math.sqrt(xp / base)) + 1
     i = _active_plan(history, today) or 0
-    nxt = sessions[i][done[i]] if done[i] < len(sessions[i]) else None
+    active = history[i]["plan"] if history else None   # no history, or a stopped plan: no plan block
+    nxt = sessions[i][done[i]] if active and done[i] < len(sessions[i]) else None
     total = sum(goal[k] for k in GOAL_KEYS)        # `goal` is this week's now
     progress = sum(min(wkst[k], goal[k]) for k in GOAL_KEYS) / total if total else 1
     return {
@@ -357,7 +358,7 @@ def score_person(workouts, paused, cfg, person, now, steps=None, settings=None, 
                      days_left=7 - today.weekday(), progress=int(100 * progress),
                      goal=goal, last_week=last_week),
         "streak": streak, "best_streak": c["best_streak"],
-        "plan": {
+        "plan": active and {
             "state": f"W{nxt['week']}D{nxt['day']}" if nxt else "Graduated",
             "plan": history[i]["plan"], "completed": done[i], "warmup_s": nxt["warmup_s"] if nxt else None,
             "week": nxt["week"] if nxt else None, "day": nxt["day"] if nxt else None,

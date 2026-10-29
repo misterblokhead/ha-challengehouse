@@ -1,8 +1,11 @@
 import json
 import unittest
+from datetime import date
 from pathlib import Path
 
 from custom_components.fitbridge.engine.scoring_config import COUNTERS, ConfigError, load_config, parse_settings, parse_steps, pause_titles, plan_sessions
+
+from . import overlay
 
 DEFAULT = (Path(__file__).parents[2] / "custom_components" / "fitbridge" / "engine" / "scoring.toml").read_text()
 
@@ -111,6 +114,31 @@ class ConfigTests(unittest.TestCase):
                 with self.assertRaises(ConfigError) as e:
                     load_config(broken)
                 self.assertIn(reason, str(e.exception))
+
+    def test_overlay_replaces_people_group_start_and_timezone(self):
+        cfg = load_config(DEFAULT, overlay(("person1",), start="2026-11-01", timezone="Europe/London"))
+        self.assertEqual(cfg["people"].keys(), {"person1"})
+        self.assertIsNone(cfg["group"])
+        self.assertEqual(cfg["rules"]["start"], date(2026, 11, 1))
+        self.assertEqual(cfg["rules"]["timezone"], "Europe/London")
+        self.assertEqual(cfg["people"]["person1"]["plan_history"][0]["from"], date(2026, 11, 1))
+
+    def test_overlay_still_validated(self):
+        with self.assertRaises(ConfigError) as e:
+            load_config(DEFAULT, overlay(("Bad Id",)))
+        self.assertIn("id must match", str(e.exception))
+
+    def test_person_without_plan_is_valid(self):
+        ov = overlay(("person1", "person2"))
+        ov["people"]["person1"]["plan_history"] = []
+        del ov["people"]["person2"]["plan_history"]
+        cfg = load_config(DEFAULT, ov)
+        self.assertEqual([cfg["people"][p]["plan_history"] for p in ("person1", "person2")], [[], []])
+
+    def test_overlay_is_not_modified(self):
+        ov = overlay()
+        load_config(DEFAULT, ov)
+        self.assertEqual(ov, overlay())
 
 
 PEOPLE = ("person1", "person2")

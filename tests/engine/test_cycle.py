@@ -11,6 +11,7 @@ from unittest import mock
 from custom_components.fitbridge.engine import cycle, ingest, opengym
 from custom_components.fitbridge.engine.scoring_config import load_config
 from custom_components.fitbridge.engine.store import Store
+from . import overlay
 from .test_config import DEFAULT
 from .test_ingest import gpx_with_points, hex_workout, hex_zip
 from .test_opengym import fake
@@ -299,6 +300,10 @@ class ScoringCycleTests(unittest.TestCase):
         self.assertEqual([k for _, k in self.workout_keys()], ["t1"])
 
     # ---------- scoring config ----------
+
+    def test_holder_uses_overlay(self):
+        holder = cycle.ConfigHolder(self.toml_path, overlay(("person1",)))
+        self.assertEqual(holder.get()[0]["people"].keys(), {"person1"})
 
     def test_broken_toml_keeps_last_good(self):
         self.holder.get()

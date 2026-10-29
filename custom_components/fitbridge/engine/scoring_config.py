@@ -1,4 +1,5 @@
 """Loads and validates scoring.toml."""
+import copy
 import math
 import re
 import tomllib
@@ -222,14 +223,14 @@ def _validate(cfg, errs):
         goal = {**GOAL_DEFAULTS, **cfg.get("goal", {}), **own}
         _check_goal(errs, f"people.{p}.goal", goal)
         person["goal"] = goal
-        hist = person.get("plan_history")
-        if not isinstance(hist, list) or not hist:
-            errs.append(f"people.{p}.plan_history must be a non-empty list")
+        hist = person.setdefault("plan_history", [])  # empty: no plan; an entry with plan null stops one
+        if not isinstance(hist, list):
+            errs.append(f"people.{p}.plan_history must be a list")
             continue
         for h in hist:
             if not _date(h.get("from")):
                 errs.append(f"people.{p}.plan_history entry needs a date `from`")
-            if h.get("plan") not in cfg.get("plans", {}):
+            if h.get("plan") is not None and h["plan"] not in cfg.get("plans", {}):
                 errs.append(f"people.{p}: unknown plan {h.get('plan')!r}")
     if not cfg.get("people"):
         errs.append("missing table [people]")
@@ -240,12 +241,28 @@ def _validate(cfg, errs):
         errs.append("missing [[badges]]")
 
 
-def load_config(text):
-    """Parse and validate scoring.toml text; per-person goals default from [goal]."""
+def _apply_overlay(cfg, overlay):
+    """People, group, start and timezone come from the integration's settings, not the TOML."""
+    overlay = copy.deepcopy(overlay)  # validation edits people in place
+    for person in overlay["people"].values():
+        for h in person.get("plan_history", []):
+            h["from"] = date.fromisoformat(h["from"])
+    cfg["people"], cfg["group"] = overlay["people"], overlay.get("group")
+    cfg.setdefault("rules", {}).update(start=date.fromisoformat(overlay["start"]), timezone=overlay["timezone"])
+
+
+def load_config(text, overlay=None):
+    """Parse and validate scoring.toml text; per-person goals default from [goal]. `overlay`
+    ({people, group, start, timezone}) replaces the file's people, group, start and timezone."""
     try:
         cfg = tomllib.loads(text)
     except tomllib.TOMLDecodeError as e:
         raise ConfigError(f"invalid TOML: {e}") from e
+    if overlay is not None:
+        try:
+            _apply_overlay(cfg, overlay)
+        except (ValueError, KeyError, TypeError, AttributeError) as e:  # a bad date or shape in the settings
+            raise ConfigError(f"invalid people settings: {e!r}") from e
     if "types" not in cfg:  # a copy from before the type table: use the shipped one
         cfg["types"] = tomllib.loads(Path(__file__).with_name("scoring.toml").read_text(encoding="utf-8"))["types"]
     errs = []

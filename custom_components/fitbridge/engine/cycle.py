@@ -47,10 +47,10 @@ def fill_best_km(store, types):
 
 
 class ConfigHolder:
-    """scoring.toml, reloaded when its mtime changes; keeps the last good config when the new one is bad."""
+    """scoring.toml (plus the fixed people overlay), reloaded when its mtime changes; keeps the last good config when the new one is bad."""
 
-    def __init__(self, path: Path):
-        self.path, self.mtime, self.config, self.error = path, None, None, None
+    def __init__(self, path: Path, overlay: dict | None = None):
+        self.path, self.overlay, self.mtime, self.config, self.error = path, overlay, None, None, None
 
     def get(self):
         """(last good config or None, current error or None)."""
@@ -62,7 +62,7 @@ class ConfigHolder:
         if mtime != self.mtime:
             self.mtime = mtime
             try:
-                new = scoring_config.load_config(self.path.read_text(encoding="utf-8"))
+                new = scoring_config.load_config(self.path.read_text(encoding="utf-8"), self.overlay)
                 scoring.score({}, [], new, datetime.now(timezone.utc))  # a config that cannot score is broken too
                 self.config, self.error = new, None
             except Exception as e:
