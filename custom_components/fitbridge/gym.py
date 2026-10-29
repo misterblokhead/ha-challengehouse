@@ -79,3 +79,28 @@ async def async_invite(hass: HomeAssistant, url: str, token: str, note: str) -> 
 
 async def async_revoke(hass: HomeAssistant, url: str, token: str, code: str) -> None:
     await _admin(hass, "POST", url, "/api/admin/invites/revoke", token, {"code": code})
+
+
+async def async_withdraw(hass: HomeAssistant, url: str, token: str, person: str, code: str) -> None:
+    """Best-effort revoke of an invite nobody will use; the log names the person, never the code."""
+    try:
+        await async_revoke(hass, url, token, code)
+    except GymError:
+        _LOGGER.warning("Could not withdraw an unused openGym invite for %s; remove it in openGym's admin settings", person)
+
+
+async def async_invites(hass: HomeAssistant, url: str, token: str, notes: dict[str, str], stale: dict[str, str]) -> dict[str, str]:
+    """A new invite per person in notes (person -> note), then the stale open codes (person -> code) withdrawn; returns
+    person -> new code. On a GymError the codes made so far are withdrawn, the stale ones stay and it re-raises: no new
+    code is left live and nobody loses theirs."""
+    made = {}
+    try:
+        for person, note in notes.items():
+            made[person] = await async_invite(hass, url, token, note)
+    except GymError:
+        for person, code in made.items():
+            await async_withdraw(hass, url, token, person, code)
+        raise
+    for person, code in stale.items():
+        await async_withdraw(hass, url, token, person, code)
+    return made

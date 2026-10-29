@@ -330,13 +330,25 @@ async def test_gym_people_pick_their_opengym_user(hass, setup, aioclient_mock):
     assert e.options == {**PEOPLE_OPTIONS, OPT_OPENGYM_URL: GYM, OPT_OPENGYM_UIDS: {P0: "u2"}}
 
 
-async def test_gym_people_need_a_pairing_and_a_reachable_gym(hass, setup, aioclient_mock):
+async def test_gym_people_need_a_pairing(hass, setup):
     e = await setup()
     assert (await _open(hass, e, "gym_people"))["reason"] == "not_paired"
+
+
+async def test_gym_people_without_the_user_list_still_invite_and_keep_what_is_there(hass, setup, aioclient_mock):
+    aioclient_mock.get(f"{GYM}/api/admin/users", status=401)
     with patch.object(runner_mod.Runner, "_opengym", return_value=None):
-        hass.config_entries.async_update_entry(e, data={**e.data, "opengym_token": "tok"}, options={OPT_OPENGYM_URL: GYM})
-        aioclient_mock.get(f"{GYM}/api/admin/users", status=401)
-        assert (await _open(hass, e, "gym_people"))["reason"] == "cannot_connect"
+        e = await setup({OPT_OPENGYM_URL: GYM, OPT_OPENGYM_UIDS: {P0: "u1"}, OPT_INVITES: {P1: "OLD2"}}, {"opengym_token": "tok"})
+        before = dict(e.options)
+        result = await _open(hass, e, "gym_people")
+        assert result["type"] is FlowResultType.FORM
+        (first, a), (second, b) = ((str(k), sel) for k, sel in result["data_schema"].schema.items())
+        assert [o["value"] for o in a.config["options"]] == ["", "invite", "u1"]  # the linked account, though the list is not there
+        assert [o["value"] for o in b.config["options"]] == ["", "keep", "invite"]
+        result = await _configure(hass, result, {first: "u1", second: "keep"})
+        assert result["type"] is FlowResultType.CREATE_ENTRY
+        await hass.async_block_till_done(wait_background_tasks=True)
+    assert dict(e.options) == before
 
 
 async def _gym_people(hass, aioclient_mock, *names):
@@ -365,37 +377,19 @@ async def test_setup_one_gym_account_per_person(hass, enable_custom_integrations
     assert result["options"][OPT_INVITES] == {"person_1": "C0DE", "person_2": "C0DE"} and OPT_OPENGYM_UIDS not in result["options"]
 
 
-async def test_setup_failed_invite_keeps_earlier_codes_for_the_retry(hass, enable_custom_integrations, aioclient_mock):
+async def test_setup_failed_invite_reshows_the_picks_and_a_retry_makes_fresh_codes(hass, enable_custom_integrations, aioclient_mock):
     result, (first, second) = await _gym_people(hass, aioclient_mock, "Person 1", "Person 2")
-    with patch.object(gym, "async_invite", AsyncMock(side_effect=["C0DE", gym.GymError("cannot_connect")])) as invite:
+    with patch.object(gym, "async_invite", AsyncMock(side_effect=["C0DE", gym.GymError("cannot_connect")])) as invite, \
+            patch.object(gym, "async_revoke", AsyncMock()) as revoke:
         result = await hass.config_entries.flow.async_configure(result["flow_id"], {first: "invite", second: "invite"})
         assert result["type"] is FlowResultType.FORM and result["errors"] == {"base": "invite_failed"}
-        assert [c.args[3] for c in invite.call_args_list] == ["Person 1", "Person 2"]
-        invite.side_effect = ["D0DE"]
+        assert _field(result, first)[0].description == {"suggested_value": "invite"}  # the picks stay
+        assert [c.args[3] for c in revoke.call_args_list] == ["C0DE"]  # nothing from a failed try is left live
+        invite.side_effect = ["D0DE", "E0DE"]
         invite.reset_mock()
         result = await hass.config_entries.flow.async_configure(result["flow_id"], {first: "invite", second: "invite"})
-        assert [c.args[3] for c in invite.call_args_list] == ["Person 2"]  # Person 1 keeps the first code
-    assert result["options"][OPT_INVITES] == {"person_1": "C0DE", "person_2": "D0DE"}
-
-
-async def test_setup_a_kept_invite_is_revoked_when_the_person_gets_nobody(hass, enable_custom_integrations, aioclient_mock):
-    result, (first, second) = await _gym_people(hass, aioclient_mock, "Person 1", "Person 2")
-    with patch.object(gym, "async_invite", AsyncMock(side_effect=["C0DE", gym.GymError("cannot_connect")])),             patch.object(gym, "async_revoke", AsyncMock()) as revoke:
-        result = await hass.config_entries.flow.async_configure(result["flow_id"], {first: "invite", second: "invite"})
-        assert result["errors"] == {"base": "invite_failed"}
-        result = await hass.config_entries.flow.async_configure(result["flow_id"], {first: "", second: "u2"})
-        assert result["type"] is FlowResultType.CREATE_ENTRY
-        assert [c.args[3] for c in revoke.call_args_list] == ["C0DE"]
-    assert OPT_INVITES not in result["options"] and result["options"][OPT_OPENGYM_UIDS] == {"person_2": "u2"}
-
-
-async def test_setup_a_failed_revoke_is_logged_without_the_code(hass, enable_custom_integrations, aioclient_mock, caplog):
-    result, (first, second) = await _gym_people(hass, aioclient_mock, "Person 1", "Person 2")
-    with patch.object(gym, "async_invite", AsyncMock(side_effect=["C0DE", gym.GymError("cannot_connect")])),             patch.object(gym, "async_revoke", AsyncMock(side_effect=gym.GymError("cannot_connect"))):
-        await hass.config_entries.flow.async_configure(result["flow_id"], {first: "invite", second: "invite"})
-        result = await hass.config_entries.flow.async_configure(result["flow_id"], {first: "", second: "u2"})
-    assert result["type"] is FlowResultType.CREATE_ENTRY and OPT_INVITES not in result["options"]  # the failed code is not stored
-    assert "Could not withdraw an unused openGym invite for person_1" in caplog.text and "C0DE" not in caplog.text
+        assert [c.args[3] for c in invite.call_args_list] == ["Person 1", "Person 2"]
+    assert result["options"][OPT_INVITES] == {"person_1": "D0DE", "person_2": "E0DE"}
 
 
 async def _configure(hass, result, user_input):
@@ -524,6 +518,17 @@ async def test_gym_people_keep_leaves_the_invite(hass, setup, aioclient_mock):
         await hass.async_block_till_done(wait_background_tasks=True)
     revoke.assert_not_called()
     assert e.options[OPT_INVITES] == {P0: "OLD1"} and e.options[OPT_OPENGYM_UIDS] == {P1: "u2"}
+
+
+async def test_gym_people_keep_takes_a_link_made_while_the_form_was_open(hass, setup, aioclient_mock):
+    with patch.object(runner_mod.Runner, "_opengym", return_value=None), patch.object(gym, "async_revoke", AsyncMock()) as revoke:
+        e, result, (first, second) = await _gym_form(hass, setup, aioclient_mock, {OPT_INVITES: {P0: "OLD1"}})
+        hass.data[DOMAIN].runner._link({P0: "u1"}, {P0: "OLD1"})  # a cycle sees the invite used
+        result = await _configure(hass, result, {first: "keep", second: ""})
+        assert result["type"] is FlowResultType.CREATE_ENTRY
+        await hass.async_block_till_done(wait_background_tasks=True)
+    revoke.assert_not_called()
+    assert e.options[OPT_OPENGYM_UIDS] == {P0: "u1"} and OPT_INVITES not in e.options
 
 
 async def test_gym_people_one_account_per_person(hass, setup, aioclient_mock):

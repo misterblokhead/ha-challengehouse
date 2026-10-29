@@ -1,4 +1,3 @@
-import logging
 from pathlib import Path
 
 import voluptuous as vol
@@ -34,7 +33,6 @@ from .const import (
     WEBHOOKS,
 )
 
-_LOGGER = logging.getLogger(__name__)
 NEW_URLS = "new_urls"
 ADD = "+"  # the People step's pick for a new person; not an id (ids are ^[a-z0-9_]+$)
 KEEP = "keep"  # a plan or an open invite left as it is
@@ -52,12 +50,18 @@ def _choice(options: dict[str, str]) -> SelectSelector:
         mode=SelectSelectorMode.DROPDOWN, options=[{"value": v, "label": n} for v, n in options.items()]))
 
 
-async def _withdraw(hass: HomeAssistant, url: str, token: str, person: str, code: str) -> None:
-    """Best-effort revoke of an invite nobody will use; the log names the person, never the code."""
+async def _gym_users(hass: HomeAssistant, url: str, token: str) -> dict[str, str]:
+    """openGym's users as id -> name; none when the list cannot be read (inviting still works, linking can wait)."""
     try:
-        await gym.async_revoke(hass, url, token, code)
+        return {u["id"]: str(u.get("name") or u["id"]) for u in await gym.async_users(hass, url, token)}
     except gym.GymError:
-        _LOGGER.warning("Could not withdraw an unused openGym invite for %s; remove it in openGym's admin settings", person)
+        return {}
+
+
+def _gym_choice(users: dict[str, str], open_invite: bool) -> SelectSelector:
+    """A person's openGym pick: Nobody, Keep (only with an open invite), Invite or one of the users."""
+    return _choice({"": "Nobody", **({KEEP: "Keep the open invite"} if open_invite else {}),
+                    INVITE: "Invite again (the open code stops working)" if open_invite else "Invite", **users})
 
 
 def _pair_schema() -> vol.Schema:
@@ -85,7 +89,6 @@ class FitbridgeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._who: list[dict] = []  # per chosen user, in the order ticked: id, uid (HA user), name, then plan, phone, steps
         self._group = False
         self._url = self._token = None
-        self._invites: dict[str, str] = {}  # person -> invite code made so far, kept when a later invite fails
 
     async def async_step_user(self, user_input=None):
         if self._async_current_entries():
@@ -145,26 +148,18 @@ class FitbridgeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors = {}
         if user_input is not None:
             picks = {w["id"]: user_input.get(labels[w["id"]]) for w in self._who}
-            uids = {pid: pick for pid, pick in picks.items() if pick and pick != "invite"}
+            uids = {pid: pick for pid, pick in picks.items() if pick and pick != INVITE}
             if len(set(uids.values())) < len(uids):
                 errors["base"] = "duplicate_gym_user"  # before any invite is made
             else:
                 try:
-                    for w in self._who:
-                        pid = w["id"]
-                        if picks[pid] == "invite" and pid not in self._invites:  # kept from an earlier try
-                            self._invites[pid] = await gym.async_invite(self.hass, self._url, self._token, w["name"])
-                        elif picks[pid] != "invite" and pid in self._invites:  # changed their mind: do not leave a live code
-                            await _withdraw(self.hass, self._url, self._token, pid, self._invites.pop(pid))  # not kept: it would end up in the options
+                    invites = await gym.async_invites(self.hass, self._url, self._token,
+                                                      {w["id"]: w["name"] for w in self._who if picks[w["id"]] == INVITE}, {})
                 except gym.GymError:
                     errors["base"] = "invite_failed"
                 else:
-                    return await self._create(uids, self._invites)
-        try:
-            users = await gym.async_users(self.hass, self._url, self._token)
-        except gym.GymError:
-            users = []  # linking to an existing account can wait for Configure
-        select = _choice({"": "Nobody", "invite": "Invite", **{u["id"]: str(u.get("name") or u["id"]) for u in users}})
+                    return await self._create(uids, invites)
+        select = _gym_choice(await _gym_users(self.hass, self._url, self._token), False)
         return self.async_show_form(step_id="gym_people", errors=errors, data_schema=self.add_suggested_values_to_schema(
             vol.Schema({vol.Optional(label, default=""): select for label in labels.values()}), user_input or {}))
 
@@ -313,42 +308,31 @@ class FitbridgeOptionsFlow(config_entries.OptionsFlowWithReload):
         if not url or not token:
             return self.async_abort(reason="not_paired")
         names = await self._names()
-        labels, open_invites, errors = _labels(names), options.get(OPT_INVITES, {}), {}
+        labels, open_invites, old, errors = _labels(names), options.get(OPT_INVITES, {}), options.get(OPT_OPENGYM_UIDS, {}), {}
         if user_input is not None:
             picks = {p: user_input.get(label) for p, label in labels.items()}
             uids = {p: pick for p, pick in picks.items() if pick and pick not in (INVITE, KEEP)}
+            kept = {p for p in open_invites.keys() | old.keys() if picks.get(p, KEEP) == KEEP}  # what they have now stays
             if len(set(uids.values())) < len(uids):
                 errors["base"] = "duplicate_gym_user"  # before any invite is made or withdrawn
             else:
-                made = {}
                 try:
-                    for p, pick in picks.items():
-                        if pick == INVITE:
-                            made[p] = await gym.async_invite(self.hass, url, token, names[p])
+                    made = await gym.async_invites(self.hass, url, token, {p: names[p] for p, pick in picks.items() if pick == INVITE},
+                                                   {p: c for p, c in open_invites.items() if p not in kept})  # renewed or dropped
                 except gym.GymError:
-                    errors["base"] = "invite_failed"
-                    for p, code in made.items():  # the options stay as they were: nothing old is revoked, no new code is left live
-                        await _withdraw(self.hass, url, token, p, code)
+                    errors["base"] = "invite_failed"  # the options stay as they were
                 else:
-                    invites = {p: c for p, c in open_invites.items() if picks.get(p, KEEP) == KEEP}
-                    for p, code in open_invites.items():  # renewed, or no longer wanted: only now that every new invite exists
-                        if picks.get(p, KEEP) != KEEP:
-                            await _withdraw(self.hass, url, token, p, code)
-                    invites |= made
+                    options = self.config_entry.options  # as they are now: a cycle may have linked a kept invite meanwhile
+                    uids |= {p: u for p, u in options.get(OPT_OPENGYM_UIDS, {}).items() if p in kept and u not in uids.values()}
+                    invites = {p: c for p, c in options.get(OPT_INVITES, {}).items() if p in kept} | made
                     data = {**options, OPT_OPENGYM_UIDS: uids}
                     data.pop(OPT_INVITES, None)
                     return self.async_create_entry(data={**data, **({OPT_INVITES: invites} if invites else {})})
-        try:
-            users = await gym.async_users(self.hass, url, token)
-        except gym.GymError:
-            return self.async_abort(reason="cannot_connect")
-        old, theirs = options.get(OPT_OPENGYM_UIDS, {}), {u["id"]: str(u.get("name") or u["id"]) for u in users}
-        fields = {}
+        theirs, fields = await _gym_users(self.hass, url, token), {}
         for p, label in labels.items():
-            offered = {"": "Nobody", **({KEEP: "Keep the open invite"} if p in open_invites else {}),
-                       INVITE: "Invite again (the open code stops working)" if p in open_invites else "Invite", **theirs}
-            default = KEEP if p in open_invites else old.get(p) if old.get(p) in theirs else ""
-            fields[vol.Optional(label, default=default)] = _choice(offered)
+            users = theirs or ({old[p]: "Current openGym account"} if p in old else {})  # no list: an unchanged form changes nothing
+            default = KEEP if p in open_invites else old.get(p) if old.get(p) in users else ""
+            fields[vol.Optional(label, default=default)] = _gym_choice(users, p in open_invites)
         return self.async_show_form(step_id="gym_people", errors=errors, data_schema=self.add_suggested_values_to_schema(
             vol.Schema(fields), user_input or {}))
 

@@ -1,3 +1,5 @@
+from unittest.mock import AsyncMock, patch
+
 import aiohttp
 import pytest
 
@@ -51,3 +53,27 @@ async def test_gym_errors(hass, aioclient_mock, caplog):
                 await call
             assert err.value.reason == "cannot_connect"
     assert "SECRET1" not in caplog.text and "tok-secret" not in caplog.text and "C0DE" not in caplog.text
+
+
+async def test_invites_withdraw_the_stale_codes_once_every_new_one_exists(hass):
+    calls = []
+
+    async def invite(hass_, url, token, note):
+        calls.append(("invite", note))
+        return f"NEW-{note[-1]}"
+
+    async def revoke(hass_, url, token, code):
+        calls.append(("revoke", code))
+    with patch.object(gym, "async_invite", invite), patch.object(gym, "async_revoke", revoke):
+        made = await gym.async_invites(hass, GYM, "tok", {"p1": "Person 1", "p2": "Person 2"}, {"p1": "OLD1", "p3": "OLD3"})
+    assert made == {"p1": "NEW-1", "p2": "NEW-2"}
+    assert calls == [("invite", "Person 1"), ("invite", "Person 2"), ("revoke", "OLD1"), ("revoke", "OLD3")]
+
+
+async def test_a_failed_invite_withdraws_the_new_codes_and_keeps_the_old(hass, caplog):
+    with patch.object(gym, "async_invite", AsyncMock(side_effect=["NEW1", gym.GymError("cannot_connect")])), \
+            patch.object(gym, "async_revoke", AsyncMock(side_effect=gym.GymError("cannot_connect"))) as revoke:
+        with pytest.raises(gym.GymError):
+            await gym.async_invites(hass, GYM, "tok", {"p1": "Person 1", "p2": "Person 2"}, {"p1": "OLD1"})
+    assert [c.args[3] for c in revoke.call_args_list] == ["NEW1"]  # only the code just made; OLD1 is still p1's
+    assert "Could not withdraw an unused openGym invite for p1" in caplog.text and "NEW1" not in caplog.text
