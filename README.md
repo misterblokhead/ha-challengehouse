@@ -12,6 +12,10 @@ household is hard-coded.
 
 ## Install
 
+[![Open your Home Assistant instance and open this repository in HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=misterblokhead&repository=ha-challengehouse&category=integration)
+
+Or by hand:
+
 **HACS:** HACS -> the three-dot menu -> Custom repositories -> add `https://github.com/misterblokhead/ha-challengehouse`,
 type **Integration**. Install ChallengeHouse, then restart Home Assistant.
 
