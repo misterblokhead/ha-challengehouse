@@ -574,6 +574,28 @@ class PlanCheckTests(unittest.TestCase):
         r = row(ps["person2"], ws[4])
         self.assertEqual((r["plan"], r["caught_up"], r["check"]["label"], ps["person2"]["plan"]["completed"]), ("W1D1", False, "W1D1", 1))
 
+    def test_plan_decision_counts_for_the_own_day(self):
+        ws = [run("person1", 0), run("person1", 2), run("person1", 4),
+              run("person2", 4, mm=3, blocks=BIKE, review={"decision": "plan", "type_match": None})]
+        p2 = people(ws, 5)["person2"]
+        r = row(p2, ws[3])
+        self.assertEqual((r["plan"], r["caught_up"], r["check"]["label"], r["check"]["state"], p2["plan"]["completed"]),
+                         ("W1D1", False, "W1D1", "review", 1))
+        del ws[3]["review"]                                           # undecided: the review is on the own day too
+        r = row(people(ws, 5)["person2"], ws[3])
+        self.assertEqual((r["plan"], r["check"]["label"], r["check"]["state"]), (None, "W1D1", "review"))
+
+    def test_catch_up_across_a_week(self):
+        w2 = blocks(synth([(300, 5.5)] + 6 * [(90, 8.3), (120, 5.5)] + [(300, 5)]))
+        ws = [run("person1", d) for d in (0, 2, 4)] + [run("person2", 0, hh=10, blocks=MATCH), run("person1", 6),
+                                                         run("person2", 6, mm=3, blocks=w2)]
+        ps = people(ws, 7)
+        p2, r = ps["person2"], row(ps["person2"], ws[5])
+        self.assertEqual(row(ps["person1"], ws[4])["plan"], "W2D1")
+        self.assertEqual((r["plan"], r["caught_up"], r["check"]["state"], p2["plan"]["completed"], p2["plan"]["state"]),
+                         ("W2D1", True, "match", 4, "W2D2"))
+        self.assertEqual({u["id"]: u["unlocked_at"] for u in p2["badges"]["unlocked"]}["plan_week_1"], "2026-11-01")
+
     def test_no_catch_up_solo(self):
         ws = [run("person1", d) for d in (0, 2, 4)] + [run("person2", 4, hh=10, blocks=MATCH)]
         r = row(people(ws, 5)["person2"], ws[3])

@@ -185,10 +185,13 @@ def _meets(w, session):
     return True
 
 
+PASS = ("match", "indoor", "none")                 # "none": no readable track, counted by duration
+
+
 def _passes(w, c):
-    """The owner's decision decides; without one the check does ("none": no readable track, counted by duration)."""
+    """The owner's decision decides; without one the check does."""
     r = w.get("review")
-    return r["decision"] == "plan" if r else c["state"] in ("match", "indoor", "none")
+    return r["decision"] == "plan" if r else c["state"] in PASS
 
 
 def plan_progress(cleaned, cfg, now=None):
@@ -197,7 +200,7 @@ def plan_progress(cleaned, cfg, now=None):
     `cleaned`: clean() output, joint-marked; `now`: runs after its week are left out, as score_person leaves them."""
     tz = ZoneInfo(cfg["rules"]["timezone"])
     today = now and local_date(now, tz)
-    last = today and today + timedelta(days=6 - today.weekday())
+    last = today and today + timedelta(days=6 - today.weekday())  # keep in step with score_person's `while monday <= this_monday`
     hist = {p: cfg["people"][p]["plan_history"] for p in cleaned}
     sessions = {p: [plan_sessions(cfg, h["plan"]) if h["plan"] else [] for h in hist[p]] for p in cleaned}
     out = {p: {"done": [0] * len(hist[p]), "by_key": {}, "checks": {}, "pending": 0} for p in cleaned}
@@ -229,7 +232,7 @@ def plan_progress(cleaned, cfg, now=None):
             if not _meets(w, ss[j]):
                 continue
             c = pp["checks"][w["key"]] = dict(check(w.get("blocks"), ss[j]), label=f"W{ss[j]['week']}D{ss[j]['day']}")
-            if _passes(w, c):
+            if (j == done[i] or c["state"] in PASS) and _passes(w, c):  # a decision is about the own day: never a catch-up on it alone
                 break
         else:
             if w["key"] in pp["checks"] and not w.get("review"):
