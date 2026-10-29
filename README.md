@@ -1,49 +1,76 @@
-# ha-fitbridge
+# ChallengeHouse
 
-Self-hosted fitness tracking and a training game for a household, wired into Home Assistant.
+A fitness game for a household, inside Home Assistant.
 
-fitbridge is a Home Assistant integration that:
+ChallengeHouse (integration domain `fitbridge`) collects everyone's workouts and turns them into a game: XP and levels,
+weekly goals, week streaks, badges, personal records and a Couch to 5K plan. Two people can play as a couple or group,
+with a shared weekly goal in one of three modes (each their own goal, workouts together, or team points). It keeps track
+of running shoes and shows each workout in detail, with a map of the route, graphs, heart-rate zones and splits.
 
-- **collects workouts** through per-person HA webhooks: GPX files (e.g. OpenTracks, posted by an Automate/Tasker flow) and Health Exporter & Shortcuts exports (iPhone/Apple Watch), or from a watched folder;
-- **reads gym sessions** from a self-hosted openGym instance (optional, any address HA can reach);
-- **scores everything** from a TOML rule file: weekly goal, XP and levels, week streaks, a Couch to 5K plan, joint workouts, badges, records, and which workout types count;
-- **shows it** on a Fitness page in the sidebar (activity list, workout details with map and graphs, goals, shoes) and as sensors and events for automations.
+One person on their own works too. People, goals, plans, XP values and badges all live in one rule file; nothing about a
+household is hard-coded.
 
-People, the optional two-person group, plans, XP values and badges all live in `scoring.toml`; nothing about a household is hard-coded. One person on their own works too.
+## Install
 
-## Layout
+**HACS:** HACS -> the three-dot menu -> Custom repositories -> add `https://github.com/misterblokhead/ha-fitbridge`,
+type **Integration**. Install ChallengeHouse, then restart Home Assistant.
 
-| Path | What |
-|---|---|
-| `custom_components/fitbridge/engine/{store,ingest,manual,cycle}.py` | SQLite store; GPX and Health Exporter ingestion; manual remove/restore/log; the scoring cycle (sources, caches, what to announce) |
-| `custom_components/fitbridge/engine/scoring.py` | Pure scoring rules (no I/O) |
-| `custom_components/fitbridge/engine/scoring_config.py`, `scoring.toml` | Rule file loader/validator and the default rules |
-| `custom_components/fitbridge/engine/{entities,opengym,records}.py` | Sensor and event data for HA, openGym client, record maths (best sets, fastest 1 km) |
-| `lxc-final` (git tag) | The last commit with the standalone LXC service and its `deploy.sh`, `fitbridge.service`, `env.example`, `opengym-pair.sh` |
-| `custom_components/fitbridge/` | Home Assistant integration: the Fitness page in the sidebar, its per-user API and Remove/Restore; `frontend/` is the built page (committed) |
-| `web/` | Source of the Fitness page (Svelte + Vite); builds into `custom_components/fitbridge/frontend/` |
-| `tests/` | Integration tests (pytest-homeassistant-custom-component) |
-| `specs/` | Scoring design and implementation plan |
-| `mockups/` | Dashboard mockup |
+**By hand:** copy `custom_components/fitbridge` into your `/config/custom_components/` folder and restart Home Assistant.
 
-## Setup (outline)
+Then go to Settings -> Devices & services -> Add integration and add **ChallengeHouse**.
 
-1. Copy `custom_components/fitbridge` into HA's `custom_components/` (or add this repository to HACS as a custom repository, type Integration), restart HA and add the "Fitness" integration.
-2. Edit `/config/fitbridge/scoring.toml` (people, group, plans; written from the default on first start and never overwritten).
-3. In the integration's options: each HA user's person, each person's webhook URL (post GPX or Health Exporter exports to it) or watch folder, step sensors, and optionally openGym (address + pairing code).
+## First setup
 
-A broken `scoring.toml` keeps the last good one; the error is logged and shown on the Fitness page. The older standalone LXC service is kept at the `lxc-final` git tag.
+1. **The rule file.** On first start the integration writes `/config/fitbridge/scoring.toml` from its default. Edit it:
+   - `[rules]`: your `timezone`, and the `start` date from which workouts count;
+   - `[people.<id>]`: one table per person, with a display `name` (the id, e.g. `person1`, is what entity ids and
+     webhooks go by);
+   - `[group]` (optional): a group name and its two `members`;
+   - plans, the weekly goal, XP values, which workout types count, and badges.
 
-## Changing the page
+   Your copy is never overwritten. A broken file keeps the last good one; the error is logged and shown on the page.
 
-Edit `web/`, then `cd web && npm run build` and commit the rebuilt `custom_components/fitbridge/frontend/` with it (HA serves the built files; there is no build step on install).
+2. **The integration's options** (Settings -> Devices & services -> ChallengeHouse -> Configure):
+   - **Viewers:** which person each Home Assistant user is ("Nobody" gives a read-only view), then each person's step
+     sensor (for example a phone's daily steps sensor);
+   - **Inputs:** each person's webhook URL (shown here; you can replace it with a new one) and an optional watch folder
+     the integration scans for new files;
+   - **openGym** (optional): the address of an openGym instance Home Assistant can reach and a pairing code from it;
+     then, under **People**, which openGym user each person is.
 
-## Tests
+## Inputs
 
-```bash
-python -m pytest tests/engine -q            # the engine (plain Python, no HA fixtures; run it in the HA test venv below)
-cd web && npm test                          # the page's pure logic (node:test)
-python -m pytest tests -q                   # the integration: Linux or WSL, with tests/requirements.txt installed
-```
+- **Apple Watch / iPhone:** the Health Exporter & Shortcuts app posts its workout exports (ZIP or JSON) to the person's
+  webhook URL.
+- **Android:** any app that saves GPX files (for example OpenTracks), plus an automation app (Automate, Tasker) that posts
+  the file to the person's webhook URL. A watch folder works as well.
+- **By hand:** the `fitbridge.log_workout` action logs a workout (run, walk, gym or home) without a file.
+- **Gym sessions** come from openGym, once it is paired.
+- **Pause days:** events in `calendar.training_pause` pause a person's week. The event title is the person's name, or for
+  group members also "both" or the group's name.
 
-Synthetic data only. Python 3.13+.
+## What you get
+
+- **The ChallengeHouse page** in the sidebar: each person's level, week, streak and steps, the couple's week, an activity
+  list, workout details (map, graphs, heart-rate zones, splits, gym sets), plan progress, badges, records, weekly goals
+  and shoes. Each user edits their own person; an admin who is mapped to a person can edit everyone.
+- **Sensors** per person: `sensor.fit_<person>_xp`, `_week`, `_streak_weeks`, `_plan`, `_badges`, `_pbs` and `_recent`;
+  per group: `sensor.fit_<group>_streak_weeks`, `_week` and `_month`.
+- **Events** for automations: `event.fit_badge_unlocked`, `event.fit_workout_scored` and `event.fit_record_set`.
+- **Actions:** `fitbridge.log_workout`, `fitbridge.remove_workout` and `fitbridge.restore_workout`.
+
+## Privacy
+
+Everything stays in Home Assistant: workouts are stored in `/config/fitbridge/` (part of Home Assistant's backups), and the
+only outside service the integration talks to is the openGym instance you pair it with. The route maps load their tiles
+through Home Assistant's own map tile proxy, so the page never contacts a map server itself.
+
+## Development
+
+- Tests: `python -m pytest tests -q` with `tests/requirements.txt` installed (pytest-homeassistant-custom-component; Linux
+  or WSL). The page's logic: `cd web && npm test`.
+- The page lives in `web/` (Svelte + Vite). After a change, run `cd web && npm ci && npm run build` and commit the rebuilt
+  `custom_components/fitbridge/frontend/` with it; Home Assistant serves the built files, there is no build step on
+  install.
+
+Licence: MIT, see [LICENSE](LICENSE).
