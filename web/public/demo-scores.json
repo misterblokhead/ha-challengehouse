@@ -491,7 +491,7 @@
           "minutes": 35,
           "km": 4.6,
           "avg_hr": 158,
-          "plan": "W1D1",
+          "plan": null,
           "joint": false,
           "excluded": false,
           "url": "https://endurain.example/activity/98",

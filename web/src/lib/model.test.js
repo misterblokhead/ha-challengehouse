@@ -197,6 +197,7 @@ test("checkLine: a match, a review, an indoor run", () => {
   assert.equal(checkLine({ ...c, state: "review", found: 5, run_s: 300 }), "5 of 8 run blocks · 5 of 8 min running · doesn't match W1D2");
   assert.equal(checkLine({ ...c, state: "indoor", found: 0, run_s: 0 }, 6), "Indoor: 6.0 km/h average");
   assert.equal(checkLine({ ...c, state: "indoor", found: 0, run_s: 0 }), "Indoor run"); // no distance to average
+  assert.equal(checkLine({ ...c, state: "none", found: 0, run_s: 0 }), "No track to check · counts by duration");
 });
 
 test("layout: the viewer's own tile first, the rest after", () => {

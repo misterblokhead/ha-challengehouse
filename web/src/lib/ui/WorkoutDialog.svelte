@@ -10,7 +10,7 @@
   // who may edit this person. Leaflet and uPlot load on the first open (loadViz); if that fails the rest stays and the map says so.
   // feed: the person's payload feed (a row's live excluded); shoes: the owner's shoe rows when the viewer may move runs, else null.
   // reviewTypes: the payload's {source: [{match, name}]} for a run that is not a run ("Not a run…").
-let { person, feed, viewer, shoes = null, runShoes, reviewTypes = {} } = $props();
+  let { person, feed, viewer, shoes = null, runShoes, reviewTypes = {} } = $props();
   const uid = $props.id();
   const loadViz = () => import("../viz.js");
   let modal;
@@ -76,7 +76,7 @@ let { person, feed, viewer, shoes = null, runShoes, reviewTypes = {} } = $props(
   const decide = (decision, type_match = null, name = "") => reviewRun(person, snap.key, decision, type_match, name);
   async function pickType(e) {
     const m = e.currentTarget.value;
-    await decide("type", m, types.find((t) => t.match === m)?.name);
+    await decide("type", m, types.find((t) => t.match === m)?.name ?? m);
   }
   const label = { remove: "Remove", restore: "Restore", delete: "Delete" };
   function action() {
@@ -114,7 +114,7 @@ let { person, feed, viewer, shoes = null, runShoes, reviewTypes = {} } = $props(
     {#if check}
       <h3>Programme</h3>
       <p class="check" class:warn={check.state === "review" && !review}>{checkLine(check, kmh)}</p>
-      {#if acts.remove !== null}
+      {#if acts.remove !== null && (check.state === "review" || review)}
         <div class="acts review">
           <button type="button" class="btn" class:on={review?.decision === "plan"} aria-pressed={review?.decision === "plan"} onclick={() => decide("plan", null, check.label)}>Counts for the plan day</button>
           <button type="button" class="btn" class:on={review?.decision === "run"} aria-pressed={review?.decision === "run"} onclick={() => decide("run")}>A run, not the programme</button>
@@ -124,6 +124,7 @@ let { person, feed, viewer, shoes = null, runShoes, reviewTypes = {} } = $props(
           {#if choosing || review?.decision === "type"}
             <select aria-label="Change the type to" value={review?.decision === "type" ? review.type_match : ""} onchange={pickType}>
               <option value="" disabled>Choose a type</option>
+              {#if review?.type_match && !types.some((t) => t.match === review.type_match)}<option value={review.type_match}>{review.type_match}</option>{/if}
               {#each types as t (t.match)}<option value={t.match}>{t.name}</option>{/each}
             </select>
           {/if}

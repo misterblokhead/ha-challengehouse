@@ -126,6 +126,7 @@ export function programmeText(plan) {
 // The plan check of a run in the pop-up: "8 of 8 run blocks · 9.5 of 8 min running · matches W1D2". `kmh`: the run's average speed, which
 // an indoor run has no blocks to show instead (the feed row's km over its minutes).
 export function checkLine(c, kmh = null) {
+  if (c.state === "none") return "No track to check · counts by duration";
   if (c.state === "indoor") return kmh == null ? "Indoor run" : `Indoor: ${kmh.toFixed(1)} km/h average`;
   const fit = c.state === "match" ? "matches" : "doesn't match";
   return `${c.found} of ${c.planned} run blocks · ${half(c.run_s)} of ${mins(c.planned_run_s)} running · ${fit} ${c.label}`;

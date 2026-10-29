@@ -2597,6 +2597,7 @@ function xa(e) {
 	].filter(Boolean).join(" · ");
 }
 function Sa(e, t = null) {
+	if (e.state === "none") return "No track to check · counts by duration";
 	if (e.state === "indoor") return t == null ? "Indoor run" : `Indoor: ${t.toFixed(1)} km/h average`;
 	let n = e.state === "match" ? "matches" : "doesn't match";
 	return `${e.found} of ${e.planned} run blocks · ${ya(e.run_s)} of ${ba(e.planned_run_s)} running · ${n} ${e.label}`;
