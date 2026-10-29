@@ -7,7 +7,7 @@ weekly goals, week streaks, badges, personal records and a Couch to 5K plan. Two
 with a shared weekly goal in one of three modes (each their own goal, workouts together, or team points). It keeps track
 of running shoes and shows each workout in detail, with a map of the route, graphs, heart-rate zones and splits.
 
-One person on their own works too. People, goals, plans, XP values and badges all live in one rule file; nothing about a
+One person on their own works too. Goals, plans, XP values and badges are rules you can change; nothing about a
 household is hard-coded.
 
 ## Install
@@ -17,33 +17,75 @@ type **Integration**. Install ChallengeHouse, then restart Home Assistant.
 
 **By hand:** copy `custom_components/fitbridge` into your `/config/custom_components/` folder and restart Home Assistant.
 
-Then go to Settings -> Devices & services -> Add integration and add **ChallengeHouse**.
-
 ## First setup
 
-1. **The rule file.** On first start the integration writes `/config/fitbridge/scoring.toml` from its default. Edit it:
-   - `[rules]`: your `timezone`, and the `start` date from which workouts count;
-   - `[people.<id>]`: one table per person, with a display `name` (the id, e.g. `person1`, is what entity ids and
-     webhooks go by);
-   - `[group]` (optional): a group name and its two `members`;
-   - plans, the weekly goal, XP values, which workout types count, and badges.
+Go to Settings -> Devices & services -> Add integration and add **ChallengeHouse**. Nothing needs editing by hand.
+The setup screens ask:
 
-   Your copy is never overwritten. A broken file keeps the last good one; the error is logged and shown on the page.
+1. **Who takes part?** Tick the Home Assistant users who play. Each becomes a person with their user's name.
+2. **For each person:** a plan (Couch to 5K from today, or none), their phone (iPhone or Android) and their step sensor.
+   When the person has the Home Assistant Companion app, its step sensor is filled in for you.
+3. **A group**, when exactly two people take part: they play as a couple with a shared weekly goal. You can switch it off.
+4. **openGym** (optional): the address of an openGym instance and a pairing code, then per person an existing openGym
+   user, an invite, or nobody. See [openGym](#opengym-gym-sessions) below; skip it if nobody trains in a gym.
 
-2. **The integration's options** (Settings -> Devices & services -> ChallengeHouse -> Configure):
-   - **Viewers:** which person each Home Assistant user is ("Nobody" gives a read-only view), then each person's step
-     sensor (for example a phone's daily steps sensor);
-   - **Inputs:** each person's webhook URL (shown here; you can replace it with a new one) and an optional watch folder
-     the integration scans for new files;
-   - **openGym** (optional): the address of an openGym instance Home Assistant can reach and a pairing code from it;
-     then, under **People**, which openGym user each person is.
+Then open the **ChallengeHouse** page in the sidebar. Each person's **Fitness** page has a **Connect your phone** card
+(visible only to that person and to admins) with their private webhook URL and the steps for their phone. It reads
+"Waiting for the first workout" until a workout arrives, then "Connected, last workout received ...".
+
+Home Assistant needs an external URL (Settings -> System -> Network) for phones to reach the webhook away from home.
+Without one the address only works on your home network, and the card says so. Nabu Casa's remote UI URL works;
+Nabu Casa cloudhooks are not used because their relay breaks ZIP uploads.
+
+**Changing things later:** Settings -> Devices & services -> ChallengeHouse -> Configure:
+
+- **People:** add a person from a Home Assistant user, or edit a name, plan (changing it starts the new plan today) or
+  phone. People are never deleted: take away their viewer link and their history stays.
+- **Who is who and step sensors:** which person each Home Assistant user is ("Nobody" gives a read-only view) and each
+  person's step sensor.
+- **Webhooks and watch folders:** show or replace a person's webhook URL, and set a folder the integration scans for new
+  files.
+- **Pair with openGym** and **openGym people:** see below.
+
+The time zone is Home Assistant's own.
+
+### The rule file (optional)
+
+On first start the integration writes `/config/fitbridge/scoring.toml` from its default. You never have to touch it. It
+holds only the advanced rules: which workout types count, goal defaults, XP values, plans and badges. People, the group,
+the start date and the time zone are not in it. Your copy is never overwritten; a broken file keeps the last good one,
+and the error is logged and shown on the page.
+
+## openGym (gym sessions)
+
+[openGym](https://github.com/duartesantos8/opengym) is a small self-hosted gym log. ChallengeHouse reads its sessions;
+without it, gym tracking is simply off. Home Assistant needs to reach it, and each person signs up with a passkey on
+their own phone.
+
+- **HTTPS is required.** Passkeys only work over HTTPS, so openGym needs a reverse proxy with a certificate.
+- **Never change its address later.** Passkeys are bound to the hostname (`RP_ID`); changing it stops every passkey from
+  working.
+- **Run it** with the files in [`opengym/`](opengym): copy `.env.example` to `.env`, set `RP_ID` and `ORIGIN` to your
+  address, then `docker compose up -d`. The images are pinned to the version ChallengeHouse is tested with. The web
+  container listens on `127.0.0.1:8092`; point your reverse proxy at it.
+- **Pair it:** open openGym and create your account (the first account is the admin). Then Settings -> Account -> Pair
+  the mobile app, and paste the code in ChallengeHouse (setup, or Configure -> Pair with openGym).
+- **Add people:** link someone who already has an openGym account, or choose **Invite** for someone who does not. Their
+  Connect card then shows the invite code: they open openGym, tap Sign up, type the code (it cannot be passed in the
+  link), and add openGym to their home screen. Once they have signed up, ChallengeHouse links them automatically.
+
+There is also a third-party Home Assistant app for openGym,
+[mzspicoli/opengym-homeassistant](https://github.com/mzspicoli/opengym-homeassistant). It is experimental and not
+endorsed or tested by this project.
 
 ## Inputs
 
-- **Apple Watch / iPhone:** the Health Exporter & Shortcuts app posts its workout exports (ZIP or JSON) to the person's
-  webhook URL.
-- **Android:** any app that saves GPX files (for example OpenTracks), plus an automation app (Automate, Tasker) that posts
-  the file to the person's webhook URL. A watch folder works as well.
+The Connect card shows these steps for each person's phone; the short version:
+
+- **iPhone / Apple Watch:** the Health Exporter & Shortcuts app posts its workout exports (ZIP or JSON) to the person's
+  webhook URL, from a shortcut that two automations run (a social app is opened; an Apple Watch workout ends).
+- **Android:** OpenTracks (or any app that saves GPX files) plus Automate, which posts the file to the webhook URL. The
+  flow file and how to import it are in [`phone/`](phone). A watch folder works as well.
 - **By hand:** the `fitbridge.log_workout` action logs a workout (run, walk, gym or home) without a file.
 - **Gym sessions** come from openGym, once it is paired.
 - **Pause days:** events in `calendar.training_pause` pause a person's week. The event title is the person's name, or for
@@ -78,7 +120,7 @@ Researched, not built. Notes for anyone who wants to add one:
 ## Privacy
 
 Everything stays in Home Assistant: workouts are stored in `/config/fitbridge/` (part of Home Assistant's backups), and the
-only outside service the integration talks to is the openGym instance you pair it with. The route maps load their tiles
+only outside service the integration talks to is the openGym instance you pair it with (if any). The route maps load their tiles
 through Home Assistant's own map tile proxy, so the page never contacts a map server itself.
 
 ## Development

@@ -6,3 +6,7 @@ tests/.venv/
 web/node_modules/
 *.local.md
 *.local/
+
+# openGym
+opengym/.env
+opengym/data/
