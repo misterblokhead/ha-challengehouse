@@ -5,6 +5,7 @@ import logging
 import secrets
 import shutil
 import time
+import tomllib
 from datetime import timedelta
 from pathlib import Path
 
@@ -16,6 +17,7 @@ from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.start import async_at_started
 from homeassistant.util import dt as dt_util
 
+from . import people
 from .const import DATA_DIR, DOMAIN, OPENGYM_TOKEN, OPT_FOLDERS, OPT_OPENGYM_UIDS, OPT_OPENGYM_URL, SIGNAL_SCORES
 from .core import find_workout
 from .engine import manual
@@ -30,6 +32,14 @@ SCAN_EVERY = timedelta(minutes=1)
 PAUSE_CALENDAR = "calendar.training_pause"
 ISSUE_TOKEN = "opengym_token"
 DEFAULT_CONFIG = Path(__file__).parent / "engine" / "scoring.toml"
+
+
+def _has_people(config: Path) -> bool:
+    try:
+        raw = tomllib.loads(config.read_text(encoding="utf-8"))
+    except (OSError, ValueError):  # the holder reports an unreadable file
+        return False
+    return "people" in raw or "group" in raw
 
 
 class Runner:
@@ -82,7 +92,8 @@ class Runner:
             self._scoring -= 1
 
     async def async_people(self) -> dict:
-        """scoring.toml's people (its last good config): webhooks, watch folders and openGym users go by them."""
+        """The people (the entry's options, or scoring.toml's until they are migrated; the last good config): webhooks, watch
+        folders and openGym users go by them."""
         config, _ = await self.hass.async_add_executor_job(self.holder.get)  # racing a cycle's get() only loads it twice
         return config["people"] if config else {}
 
@@ -228,7 +239,11 @@ class Runner:
         config = self.dir / "scoring.toml"
         if not config.exists():  # the user's copy is never overwritten
             shutil.copyfile(DEFAULT_CONFIG, config)
-        self.holder = ConfigHolder(config)
+        overlay = people.overlay(self.entry.options, self.hass.config.time_zone)
+        if overlay and _has_people(config):
+            _LOGGER.info("People, group and start date come from Settings -> Devices & services -> ChallengeHouse -> Configure; "
+                         "those in scoring.toml are ignored")
+        self.holder = ConfigHolder(config, overlay)
         return Store(self.dir / "fitbridge.db")
 
     def _cycle(self, og, inputs):

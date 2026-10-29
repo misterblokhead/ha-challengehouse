@@ -75,17 +75,8 @@ min_days = 4
 [plan]
 max_sessions_per_day = 1
 
-[people.person1]
-name = "Person 1"
-plan_history = [{ plan = "c25k", from = 2026-10-26 }]
-
-[people.person2]
-name = "Person 2"
-plan_history = [{ plan = "c25k", from = 2026-10-26 }]
-
-[group]
-name = "couple"
-members = ["person1", "person2"]
+# People, the group, the start date and the time zone come from the integration's settings
+# (Settings -> Devices & services -> ChallengeHouse -> Configure); [rules] start and timezone here are overridden.
 
 # NHS Couch to 5K. Each session starts with a 5-minute warm-up walk. `times` repeats the
 # interval list; `repeat = 3` on a week stands for 3 identical sessions.

@@ -5,9 +5,10 @@ import urllib.error
 
 from custom_components.fitbridge.engine.opengym import OpenGym, OpenGymAuthError, fetch_all, person_for, to_workout
 from custom_components.fitbridge.engine.scoring_config import load_config
+from . import TWO
 from .test_config import DEFAULT
 
-PEOPLE = tuple(load_config(DEFAULT)["people"])
+PEOPLE = tuple(load_config(DEFAULT, TWO)["people"])
 P0, P1 = PEOPLE[0], PEOPLE[-1]
 
 

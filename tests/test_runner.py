@@ -1,6 +1,7 @@
 """The runner: fitbridge's scoring cycle inside HA (synthetic data only)."""
 import asyncio
 import dataclasses
+import logging
 import sqlite3
 import threading
 from datetime import timedelta
@@ -8,6 +9,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+from engine.test_config import LEGACY
 from homeassistant.core import SupportsResponse, callback
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
@@ -17,7 +19,9 @@ from pytest_homeassistant_custom_component.common import async_fire_time_changed
 from custom_components.fitbridge import runner as runner_mod
 from custom_components.fitbridge.const import (
     DOMAIN,
+    OPT_GROUP,
     OPT_OPENGYM_URL,
+    OPT_PEOPLE,
     OPT_VIEWERS,
     SIGNAL_SCORES,
 )
@@ -253,7 +257,7 @@ async def test_a_rejected_token_raises_one_repair_issue_until_the_gym_answers(ha
 async def test_an_older_entry_loses_the_shadow_and_shoes_options(hass, setup, minor_version):
     old = {OPT_VIEWERS: {"u1": "p1"}, "shadow": True, "shoes": {"p1": {"sensor.trail": 700}}}
     e = await setup(old, minor_version=minor_version)
-    assert e.minor_version == 3 and e.options == {OPT_VIEWERS: {"u1": "p1"}}
+    assert e.minor_version == 4 and e.options == {OPT_VIEWERS: {"u1": "p1"}}
 
 
 async def test_scoring_toml_is_copied_once_and_the_store_closes_on_unload(hass, setup):
@@ -268,3 +272,14 @@ async def test_scoring_toml_is_copied_once_and_the_store_closes_on_unload(hass, 
     assert path.read_text(encoding="utf-8").startswith("# my own")  # never overwritten
     with pytest.raises(sqlite3.ProgrammingError):
         store.kv_get("x")  # the old store was closed
+
+
+async def test_runner_uses_options_people(hass, setup, caplog):
+    caplog.set_level(logging.INFO)
+    path = Path(hass.config.path("fitbridge", "scoring.toml"))
+    path.parent.mkdir()
+    path.write_text(LEGACY, encoding="utf-8")  # person1 and person2 in the file
+    await setup({OPT_PEOPLE: {"mine": {"name": "Mine", "plan_history": []}}, OPT_GROUP: None})
+    assert set(await _runner(hass).async_people()) == {"mine"}
+    assert _runner(hass).scores["people"].keys() == {"mine"}
+    assert len([r for r in caplog.records if "Configure" in r.message]) == 1

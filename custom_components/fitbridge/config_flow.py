@@ -43,7 +43,7 @@ def _labels(names: dict[str, str], tag=lambda k: k) -> dict[str, str]:
 
 class FitbridgeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
-    MINOR_VERSION = 3  # 3: options without shadow and shoes (async_migrate_entry)
+    MINOR_VERSION = 4  # 3: options without shadow and shoes; 4: people, group and start in the options (async_migrate_entry)
 
     async def async_step_user(self, user_input=None):
         if self._async_current_entries():

@@ -1,32 +1,22 @@
 import json
+import tomllib
 import unittest
 from datetime import date
 from pathlib import Path
 
 from custom_components.fitbridge.engine.scoring_config import COUNTERS, ConfigError, load_config, parse_settings, parse_steps, pause_titles, plan_sessions
 
-from . import overlay
+from . import LEGACY_PEOPLE, ONE, TWO, overlay
 
 DEFAULT = (Path(__file__).parents[2] / "custom_components" / "fitbridge" / "engine" / "scoring.toml").read_text()
 
 
-def _drop_tables(text, *headers):
-    """Remove the named [tables] (header line through the next line starting with '[')."""
-    out, skipping = [], False
-    for line in text.splitlines(keepends=True):
-        if line.startswith("["):
-            skipping = line.strip() in headers
-        if not skipping:
-            out.append(line)
-    return "".join(out)
-
-
-ONE_PERSON = _drop_tables(DEFAULT, "[people.person2]", "[group]")
+LEGACY = DEFAULT + LEGACY_PEOPLE  # a copy that still has its own people: the TOML's checks keep applying
 
 
 class ConfigTests(unittest.TestCase):
     def test_default_loads_and_c25k_totals(self):
-        cfg = load_config(DEFAULT)
+        cfg = load_config(DEFAULT, TWO)
         s = plan_sessions(cfg, "c25k")
         self.assertEqual(len(s), 27)
         self.assertEqual((s[0]["week"], s[0]["day"], s[0]["total_s"]), (1, 1, 1500))
@@ -36,46 +26,46 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(cfg["people"]["person1"]["goal"], {"runs": 2, "workouts": 2, "active_days": 0, "steps": 10000})
 
     def test_goal_defaults_and_gym_alias(self):
-        cfg = load_config(DEFAULT.replace("workouts = 2", "gym = 1"))
+        cfg = load_config(DEFAULT.replace("workouts = 2", "gym = 1"), TWO)
         self.assertEqual(cfg["people"]["person1"]["goal"], {"runs": 2, "workouts": 1, "active_days": 0, "steps": 10000})
-        cfg = load_config(DEFAULT.replace("active_days = 0\nsteps = 10000\n", ""))
+        cfg = load_config(DEFAULT.replace("active_days = 0\nsteps = 10000\n", ""), TWO)
         self.assertEqual(cfg["people"]["person1"]["goal"], {"runs": 2, "workouts": 2, "active_days": 0, "steps": 10000})
         with self.assertRaisesRegex(ConfigError, "not both"):
-            load_config(DEFAULT.replace("workouts = 2", "workouts = 2\ngym = 2"))
+            load_config(DEFAULT.replace("workouts = 2", "workouts = 2\ngym = 2"), TWO)
 
     def test_goal_zero_allowed_negative_not(self):
-        load_config(DEFAULT.replace("runs = 2\nworkouts = 2", "runs = 0\nworkouts = 0"))
+        load_config(DEFAULT.replace("runs = 2\nworkouts = 2", "runs = 0\nworkouts = 0"), TWO)
         for bad in ("runs = -1\nworkouts = 2", "runs = 2\nworkouts = 2.5", "runs = 2\nworkouts = 2\nsteps = 1000"):
             with self.subTest(bad=bad), self.assertRaises(ConfigError):
-                load_config(DEFAULT.replace("runs = 2\nworkouts = 2", bad))
+                load_config(DEFAULT.replace("runs = 2\nworkouts = 2", bad), TWO)
 
     def test_home_minimum_and_xp_required(self):  # min_home_min and xp.active_day are POSITIVE keys
         with self.assertRaisesRegex(ConfigError, "min_home_min"):
-            load_config(DEFAULT.replace("min_home_min = 15\n", ""))
+            load_config(DEFAULT.replace("min_home_min = 15\n", ""), TWO)
         with self.assertRaisesRegex(ConfigError, "xp.active_day"):
-            load_config(DEFAULT.replace("active_day = 15\n", ""))
+            load_config(DEFAULT.replace("active_day = 15\n", ""), TWO)
 
     def test_home_and_active_day_badges_load(self):
-        ids = {b["id"] for b in load_config(DEFAULT)["badges"]}
+        ids = {b["id"] for b in load_config(DEFAULT, TWO)["badges"]}
         self.assertLessEqual({"home", "active_days"}, ids)
 
     def test_every_badge_uses_a_known_counter(self):
-        for b in load_config(DEFAULT)["badges"]:
+        for b in load_config(DEFAULT, TWO)["badges"]:
             self.assertIn(b["counter"], COUNTERS)
 
     def test_invalid_configs_are_rejected_with_reasons(self):
         for broken, reason in [
-            (DEFAULT.replace("runs = 2", "runs = -1"), "goal.runs"),
-            (DEFAULT.replace('type = "duration"', 'type = "pace"', 1), "target type"),
-            (DEFAULT.replace('counter = "runs"', 'counter = "nope"', 1), "unknown counter"),
-            (DEFAULT.replace("[1, 5, 10, 25, 50, 100]", "[5, 1]", 1), "ascending"),
-            (DEFAULT.replace('plan = "c25k"', 'plan = "missing"', 1), "unknown plan"),
-            (DEFAULT.replace("Europe/Amsterdam", "Nope/Nope"), "timezone"),
-            (DEFAULT.replace("start = 2026-10-26", "start = 2026-10-26T00:00:00"), "rules.start"),
-            (DEFAULT.replace("from = 2026-10-26", "from = 2026-10-26T00:00:00", 1), "plan_history"),
-            (DEFAULT.replace("merge_gap_min = 30", "merge_gap_min = inf"), "rules.merge_gap_min"),
-            (DEFAULT.replace("per_min = { run = 1", "per_min = { run = nan"), "xp.per_min.run"),
-            (DEFAULT.replace("[1, 5, 10, 25, 50, 100]", "[1, 1" + "0" * 400 + "]", 1), "thresholds"),
+            (LEGACY.replace("runs = 2", "runs = -1"), "goal.runs"),
+            (LEGACY.replace('type = "duration"', 'type = "pace"', 1), "target type"),
+            (LEGACY.replace('counter = "runs"', 'counter = "nope"', 1), "unknown counter"),
+            (LEGACY.replace("[1, 5, 10, 25, 50, 100]", "[5, 1]", 1), "ascending"),
+            (LEGACY.replace('plan = "c25k"', 'plan = "missing"', 1), "unknown plan"),
+            (LEGACY.replace("Europe/Amsterdam", "Nope/Nope"), "timezone"),
+            (LEGACY.replace("start = 2026-10-26", "start = 2026-10-26T00:00:00"), "rules.start"),
+            (LEGACY.replace("from = 2026-10-26", "from = 2026-10-26T00:00:00", 1), "plan_history"),
+            (LEGACY.replace("merge_gap_min = 30", "merge_gap_min = inf"), "rules.merge_gap_min"),
+            (LEGACY.replace("per_min = { run = 1", "per_min = { run = nan"), "xp.per_min.run"),
+            (LEGACY.replace("[1, 5, 10, 25, 50, 100]", "[1, 1" + "0" * 400 + "]", 1), "thresholds"),
             ("not = [toml", "TOML"),
         ]:
             with self.subTest(reason=reason):
@@ -84,36 +74,41 @@ class ConfigTests(unittest.TestCase):
                 self.assertIn(reason, str(e.exception))
 
     def test_malformed_entries_raise_config_error(self):
-        head, rest = DEFAULT.split("[people.person1]")
-        tail = rest[rest.index("# NHS"):]
         for broken in [
-            head + "[people]\nperson1 = 5\n\n" + tail,                                   # scalar person
-            DEFAULT.replace('[{ plan = "c25k", from = 2026-10-26 }]', "[5]", 1),      # scalar plan_history entry
-            DEFAULT.replace('[["run", 60], ["walk", 90]]', "5", 1),                   # scalar intervals
+            DEFAULT + "[people]\nperson1 = 5\n",                                     # scalar person
+            LEGACY.replace('[{ plan = "c25k", from = 2026-10-26 }]', "[5]", 1),      # scalar plan_history entry
+            LEGACY.replace('[["run", 60], ["walk", 90]]', "5", 1),                   # scalar intervals
         ]:
             with self.assertRaises(ConfigError):
                 load_config(broken)
 
     def test_group_optional_and_pause_titles(self):
-        cfg = load_config(DEFAULT)
+        cfg = load_config(DEFAULT, TWO)
         self.assertEqual(cfg["group"]["members"], ["person1", "person2"])
         self.assertEqual(pause_titles(cfg, "person1"), {"person 1", "both", "couple"})
-        solo = load_config(ONE_PERSON)
+        solo = load_config(DEFAULT, ONE)
         self.assertIsNone(solo["group"])
         self.assertEqual(pause_titles(solo, "person1"), {"person 1"})
 
     def test_bad_people_and_group_rejected(self):
         for broken, reason in [
-            (DEFAULT.replace('members = ["person1", "person2"]', 'members = ["person1", "bob"]'), "group"),
-            (DEFAULT.replace('members = ["person1", "person2"]', 'members = ["person1", "person1"]'), "group"),
-            (DEFAULT.replace('name = "couple"', 'name = "person1"'), "group"),
-            (DEFAULT.replace('name = "Person 1"', ''), "name"),
-            (DEFAULT.replace("[people.person1]", "[people.Person1]").replace('"person1"', '"Person1"'), "id"),
+            (LEGACY.replace('members = ["person1", "person2"]', 'members = ["person1", "bob"]'), "group"),
+            (LEGACY.replace('members = ["person1", "person2"]', 'members = ["person1", "person1"]'), "group"),
+            (LEGACY.replace('name = "couple"', 'name = "person1"'), "group"),
+            (LEGACY.replace('name = "Person 1"', ''), "name"),
+            (LEGACY.replace("[people.person1]", "[people.Person1]").replace('"person1"', '"Person1"'), "id"),
         ]:
             with self.subTest(reason=reason):
                 with self.assertRaises(ConfigError) as e:
                     load_config(broken)
                 self.assertIn(reason, str(e.exception))
+
+    def test_default_toml_has_no_people(self):
+        raw = tomllib.loads(DEFAULT)
+        self.assertNotIn("people", raw)
+        self.assertNotIn("group", raw)
+        with self.assertRaisesRegex(ConfigError, r"missing table \[people\]"):
+            load_config(DEFAULT)
 
     def test_overlay_replaces_people_group_start_and_timezone(self):
         cfg = load_config(DEFAULT, overlay(("person1",), start="2026-11-01", timezone="Europe/London"))

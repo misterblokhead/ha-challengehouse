@@ -1,5 +1,8 @@
 """Fitness page: runs fitbridge's scoring (runner.py), shows it as sensors and events and serves it to a sidebar panel."""
+import logging
+import tomllib
 from dataclasses import dataclass, field
+from pathlib import Path
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
@@ -9,12 +12,13 @@ from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.storage import Store
 
-from . import settings, webhooks
-from .const import DOMAIN
+from . import people, settings, webhooks
+from .const import DATA_DIR, DOMAIN, OPT_PEOPLE
 from .panel import async_register_http, async_register_panel, remove_panel
 from .runner import Runner
 from .steps import StepsCollector
 
+_LOGGER = logging.getLogger(__name__)
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 PLATFORMS = [Platform.SENSOR, Platform.EVENT]
 _WORKOUT = {vol.Required("person"): cv.string, vol.Required("key"): cv.string}
@@ -57,12 +61,33 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     return True
 
 
+def _old_settings(path: Path) -> tuple[dict | None, str | None]:
+    """The people, group and start in scoring.toml and its rules.timezone; (None, None) when there is no file."""
+    try:
+        text = path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        return None, None
+    return people.from_toml(text), tomllib.loads(text).get("rules", {}).get("timezone")
+
+
 async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if entry.version > 1:
         return False
     if entry.minor_version < 3:  # 3: the switch is done; shadow mode and the Endurain shoes (options "shadow", "shoes") are gone
         options = {k: v for k, v in entry.options.items() if k not in ("shadow", "shoes")}
         hass.config_entries.async_update_entry(entry, options=options, minor_version=3)
+    if entry.minor_version < 4:  # 4: people, group and start moved from scoring.toml into the options
+        try:
+            old, timezone = await hass.async_add_executor_job(_old_settings, Path(hass.config.path(DATA_DIR, "scoring.toml")))
+        except Exception as err:  # the entry keeps scoring from the file; the next start tries again
+            _LOGGER.warning("Could not read the people from scoring.toml (%s); they stay there for now", type(err).__name__)
+            return True
+        options = dict(entry.options)
+        if old and OPT_PEOPLE not in options:  # copied once: what Configure holds is never overwritten by the file
+            options |= {k: v for k, v in old.items() if v is not None}
+            if timezone != hass.config.time_zone:
+                _LOGGER.warning("scoring.toml has timezone %s, Home Assistant has %s: Home Assistant's is used", timezone, hass.config.time_zone)
+        hass.config_entries.async_update_entry(entry, options=options, minor_version=4)
     return True
 
 

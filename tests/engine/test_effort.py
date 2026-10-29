@@ -3,10 +3,11 @@ from datetime import date
 
 from custom_components.fitbridge.engine.scoring import max_hr, score
 from custom_components.fitbridge.engine.scoring_config import ConfigError, load_config, parse_settings
-from .test_config import DEFAULT, ONE_PERSON
+from . import overlay
+from .test_config import DEFAULT
 from .test_scoring import NOW, wk
 
-CFG = load_config(ONE_PERSON.replace("[people.person1]", "[people.p1]"))  # a synthetic id
+CFG = load_config(DEFAULT, overlay(("p1",)))  # a synthetic id
 TODAY = date(2026, 10, 28)
 BORN = TODAY.year - 40  # 40 years old: 208 - 0.7 x 40 = 180
 PEOPLE = ("p1", "p2")
@@ -89,11 +90,11 @@ class EffortTests(unittest.TestCase):
 class ConfigTests(unittest.TestCase):
     def test_defaults_when_absent(self):
         text = "".join(l for l in DEFAULT.splitlines(keepends=True) if not l.startswith(("effort_hr_pct", "max_hr_fit_pct")))
-        rules = load_config(text)["rules"]
+        rules = load_config(text, overlay(("p1",)))["rules"]
         self.assertEqual((rules["effort_hr_pct"], rules["max_hr_fit_pct"]), (60, 70))
-        self.assertEqual(load_config(DEFAULT.replace("effort_hr_pct = 60", "effort_hr_pct = 50"))["rules"]["effort_hr_pct"], 50)
+        self.assertEqual(load_config(DEFAULT.replace("effort_hr_pct = 60", "effort_hr_pct = 50"), overlay(("p1",)))["rules"]["effort_hr_pct"], 50)
         with self.assertRaisesRegex(ConfigError, "max_hr_fit_pct"):
-            load_config(DEFAULT.replace("max_hr_fit_pct = 70", 'max_hr_fit_pct = "x"'))
+            load_config(DEFAULT.replace("max_hr_fit_pct = 70", 'max_hr_fit_pct = "x"'), overlay(("p1",)))
 
     def test_profiles_validation(self):
         ok = parse_settings({"history": [], "profiles": {"p1": {"birth_year": BORN}, "ghost": {"birth_year": BORN + 4}}}, PEOPLE)

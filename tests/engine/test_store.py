@@ -5,10 +5,11 @@ from pathlib import Path
 
 from custom_components.fitbridge.engine.scoring_config import load_config
 from custom_components.fitbridge.engine.store import Store
+from . import TWO
 from .test_config import DEFAULT
 from .test_ingest import counts
 
-PEOPLE = tuple(load_config(DEFAULT)["people"])
+PEOPLE = tuple(load_config(DEFAULT, TWO)["people"])
 P0, P1 = PEOPLE[0], PEOPLE[-1]
 
 

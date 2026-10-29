@@ -12,10 +12,11 @@ from unittest.mock import patch
 from custom_components.fitbridge.engine import ingest
 from custom_components.fitbridge.engine.scoring_config import load_config
 from custom_components.fitbridge.engine.store import Store
+from . import TWO
 from .test_config import DEFAULT
 
-PEOPLE = tuple(load_config(DEFAULT)["people"])
-TYPES = load_config(DEFAULT)["types"]
+PEOPLE = tuple(load_config(DEFAULT, TWO)["people"])
+TYPES = load_config(DEFAULT, TWO)["types"]
 P0, P1 = PEOPLE[0], PEOPLE[-1]
 
 # Same shape as the real empty indoor OpenTracks export of 2026-10-25 (no fix -> empty trkseg)

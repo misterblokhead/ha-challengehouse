@@ -2,7 +2,7 @@ import asyncio
 from unittest.mock import patch
 
 import aiohttp
-from conftest import SCORES
+from conftest import PEOPLE_OPTIONS, SCORES
 from engine.test_ingest import P0, P1
 from homeassistant import config_entries
 from homeassistant.data_entry_flow import FlowResultType
@@ -36,7 +36,7 @@ async def test_one_empty_step_creates_the_only_entry(hass, enable_custom_integra
     result = await hass.config_entries.flow.async_configure(result["flow_id"], {})
     assert result["type"] is FlowResultType.CREATE_ENTRY and result["data"] == {}
     assert result["result"].unique_id == DOMAIN
-    assert result["result"].options == {} and result["result"].minor_version == 3
+    assert result["result"].options == {} and result["result"].minor_version == 4
     await hass.async_block_till_done()
     again = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
     assert again["type"] is FlowResultType.ABORT and again["reason"] == "single_instance_allowed"
@@ -95,7 +95,7 @@ async def test_inputs_show_each_persons_url_and_take_existing_folders_only(hass,
         assert result["type"] is FlowResultType.FORM and result["errors"] == {first: "folder_missing"}
     result = await hass.config_entries.options.async_configure(result["flow_id"], {first: str(tmp_path), second: " "})
     assert result["type"] is FlowResultType.CREATE_ENTRY
-    assert e.options == {OPT_VIEWERS: {"u1": P0}, OPT_FOLDERS: {P0: str(tmp_path)}}
+    assert e.options == {**PEOPLE_OPTIONS, OPT_VIEWERS: {"u1": P0}, OPT_FOLDERS: {P0: str(tmp_path)}}
     await hass.async_block_till_done(wait_background_tasks=True)
     assert hass.data[DOMAIN].runner.folders == {P0: tmp_path}  # reloaded with it
 
@@ -125,7 +125,7 @@ async def test_opengym_pairing_stores_the_token_and_clears_the_issue(hass, setup
         await hass.async_block_till_done(wait_background_tasks=True)
     assert aioclient_mock.mock_calls[0][2] == {"code": "AB12cd"}
     assert e.data["opengym_token"] == "tok-new" and WEBHOOKS in e.data
-    assert e.options == {OPT_STEPS: {P0: "sensor.steps"}, OPT_OPENGYM_URL: GYM}
+    assert e.options == {**PEOPLE_OPTIONS, OPT_STEPS: {P0: "sensor.steps"}, OPT_OPENGYM_URL: GYM}
     assert ir.async_get(hass).async_get_issue(DOMAIN, "opengym_token") is None
     assert "tok-" not in caplog.text and "AB12cd" not in caplog.text
 
@@ -178,7 +178,7 @@ async def test_people_pick_their_opengym_user(hass, setup, aioclient_mock):
         result = await hass.config_entries.options.async_configure(result["flow_id"], {first: "u2", second: ""})
         assert result["type"] is FlowResultType.CREATE_ENTRY
         await hass.async_block_till_done(wait_background_tasks=True)
-    assert e.options == {OPT_OPENGYM_URL: GYM, OPT_OPENGYM_UIDS: {P0: "u2"}}
+    assert e.options == {**PEOPLE_OPTIONS, OPT_OPENGYM_URL: GYM, OPT_OPENGYM_UIDS: {P0: "u2"}}
 
 
 async def test_people_need_a_pairing_and_a_reachable_gym(hass, setup, aioclient_mock):

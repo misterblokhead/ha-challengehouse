@@ -8,11 +8,12 @@ from custom_components.fitbridge.engine import cycle, shoes, store as store_mod
 from custom_components.fitbridge.engine.ingest import db_workouts
 from custom_components.fitbridge.engine.scoring_config import load_config
 from custom_components.fitbridge.engine.store import Store
+from . import TWO
 from .test_config import DEFAULT
 from .test_cycle import NOW
 
-PEOPLE = tuple(load_config(DEFAULT)["people"])
-TYPES = load_config(DEFAULT)["types"]
+PEOPLE = tuple(load_config(DEFAULT, TWO)["people"])
+TYPES = load_config(DEFAULT, TWO)["types"]
 P0, P1 = PEOPLE[0], PEOPLE[-1]
 
 
@@ -182,7 +183,7 @@ class ShoeCycleTests(unittest.TestCase):
         root = Path(self.tmp.name)
         (root / "scoring.toml").write_text(DEFAULT, encoding="utf-8")
         self.store = Store(root / "db.sqlite")
-        self.holder = cycle.ConfigHolder(root / "scoring.toml")
+        self.holder = cycle.ConfigHolder(root / "scoring.toml", TWO)
 
     def tearDown(self):
         self.store.db.close()

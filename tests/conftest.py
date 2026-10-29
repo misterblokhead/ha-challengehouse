@@ -3,7 +3,12 @@ from pathlib import Path
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.fitbridge.const import DOMAIN
+from engine import COUPLE, overlay
+
+from custom_components.fitbridge.const import DOMAIN, OPT_GROUP, OPT_PEOPLE, OPT_START
+
+_OVERLAY = overlay(group=COUPLE)
+PEOPLE_OPTIONS = {OPT_PEOPLE: _OVERLAY["people"], OPT_GROUP: COUPLE, OPT_START: _OVERLAY["start"]}  # person1, person2, a couple
 
 SCORES = {"people": {
     "p1": {"name": "Alex", "feed": [{"key": "k1"}, {"key": "manual:a/b", "excluded": True}]},
@@ -23,7 +28,7 @@ async def entry(enable_custom_integrations, hass):
     config = Path(hass.config.path("fitbridge", "scoring.toml"))
     config.parent.mkdir()
     config.write_text("not [toml", encoding="utf-8")
-    e = MockConfigEntry(domain="fitbridge", unique_id="fitbridge", title="Fitness", minor_version=3)
+    e = MockConfigEntry(domain="fitbridge", unique_id="fitbridge", title="Fitness", minor_version=4)
     e.add_to_hass(hass)
     assert await hass.config_entries.async_setup(e.entry_id)
     await hass.async_block_till_done(wait_background_tasks=True)
@@ -44,9 +49,10 @@ async def setup(hass, enable_custom_integrations):
     """Set up an entry and wait for its first cycle; unloaded afterwards."""
     entries = []
 
-    async def _setup(options={}, data=None, minor_version=3):
+    async def _setup(options={}, data=None, minor_version=4):
+        """From minor 4 on the entry carries person1 and person2 (the shipped scoring.toml has nobody)."""
         e = MockConfigEntry(domain=DOMAIN, unique_id=DOMAIN, title="Fitness", minor_version=minor_version,
-                            options=options, data=data or {})
+                            options={**PEOPLE_OPTIONS, **options} if minor_version >= 4 else options, data=data or {})
         e.add_to_hass(hass)
         entries.append(e)
         assert await hass.config_entries.async_setup(e.entry_id)

@@ -7,10 +7,11 @@ from custom_components.fitbridge.engine import ingest
 from custom_components.fitbridge.engine.scoring_config import ConfigError, load_config
 from custom_components.fitbridge.engine.store import Store
 from custom_components.fitbridge.engine.scoring import score
+from . import TWO
 from .test_config import DEFAULT
 from .test_scoring import NOW, wk
 
-CONFIG = load_config(DEFAULT)
+CONFIG = load_config(DEFAULT, TWO)
 TYPES = CONFIG["types"]
 PEOPLE = tuple(CONFIG["people"])
 P0 = PEOPLE[0]
@@ -96,18 +97,18 @@ class TableTests(unittest.TestCase):
             ("source not a list", DEFAULT.replace("opentracks = [", "opentracks = 3\nunused = [")),
         ]:
             with self.subTest(what), self.assertRaises(ConfigError):
-                load_config(broken)
+                load_config(broken, TWO)
 
     def test_missing_types_uses_shipped_table(self):
         before, rest = DEFAULT.split("# Which workout types count.", 1)  # a config from before the table existed
         old = before + rest[rest.index("[goal]"):]
         self.assertNotIn("[types]", old)
-        cfg = load_config(old)
+        cfg = load_config(old, TWO)
         self.assertEqual(cfg["types"], TYPES)
         self.assertEqual(ingest.classify("health_exporter", "yoga", 0, cfg["types"])["name"], "Yoga")
 
     def test_min_min_defaults_from_the_rules(self):
-        cfg = load_config(DEFAULT.replace("min_home_min = 15", "min_home_min = 25"))
+        cfg = load_config(DEFAULT.replace("min_home_min = 15", "min_home_min = 25"), TWO)
         c = ingest.classify("health_exporter", "yoga", 0, cfg["types"])  # the shipped yoga entry sets no min_min
         yoga = wk(P0, c["kind"], 0, 18, 0, 20, min_min=c["min_min"], effort=c["effort"])
         self.assertEqual(score({P0: [yoga]}, [], cfg, NOW(1))["people"][P0]["feed"][0]["reason"], "short")  # 20 < 25

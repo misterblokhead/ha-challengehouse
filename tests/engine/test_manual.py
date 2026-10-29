@@ -10,10 +10,11 @@ from custom_components.fitbridge.engine import manual
 from custom_components.fitbridge.engine.ingest import db_workouts
 from custom_components.fitbridge.engine.scoring_config import load_config
 from custom_components.fitbridge.engine.store import Store
+from . import TWO
 from .test_config import DEFAULT
 
-PEOPLE = tuple(load_config(DEFAULT)["people"])
-TYPES = load_config(DEFAULT)["types"]
+PEOPLE = tuple(load_config(DEFAULT, TWO)["people"])
+TYPES = load_config(DEFAULT, TWO)["types"]
 P0 = PEOPLE[0]
 NOW = datetime(2026, 10, 28, 12, 0, tzinfo=timezone.utc)
 GOOD = {"action": "add", "person": P0, "kind": "run", "start": "2026-10-28T07:00:00+01:00", "minutes": 30}

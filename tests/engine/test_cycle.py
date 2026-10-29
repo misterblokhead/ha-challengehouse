@@ -11,13 +11,13 @@ from unittest import mock
 from custom_components.fitbridge.engine import cycle, ingest, opengym
 from custom_components.fitbridge.engine.scoring_config import load_config
 from custom_components.fitbridge.engine.store import Store
-from . import overlay
+from . import LEGACY_PEOPLE, TWO, overlay
 from .test_config import DEFAULT
 from .test_ingest import gpx_with_points, hex_workout, hex_zip
 from .test_opengym import fake
 from .test_records import seg, track
 
-PEOPLE = tuple(load_config(DEFAULT)["people"])
+PEOPLE = tuple(load_config(DEFAULT, TWO)["people"])
 P0, P1 = PEOPLE[0], PEOPLE[-1]
 NOW = datetime(2026, 10, 28, 12, 0, tzinfo=timezone.utc)
 GYM_UID = "uid-0"
@@ -54,7 +54,7 @@ class ScoringCycleTests(unittest.TestCase):
         self.toml_path.write_text(DEFAULT, encoding="utf-8")
         self.archive = root / "archive"
         self.store = Store(root / "db.sqlite")
-        self.holder = cycle.ConfigHolder(self.toml_path)
+        self.holder = cycle.ConfigHolder(self.toml_path, TWO)
         self.badges, self.workouts, self.records = [], [], []
 
     def tearDown(self):
@@ -127,7 +127,7 @@ class ScoringCycleTests(unittest.TestCase):
         self.assertIsNone(res["gym_data_as_of"])
 
     def test_pauses_cached_when_missing(self):
-        name = load_config(DEFAULT)["people"][P0]["name"]
+        name = load_config(DEFAULT, TWO)["people"][P0]["name"]
         self.run_cycle(pauses=[{"summary": name, "start": "2026-10-26", "end": "2026-11-02"}])
         with self.assertLogs("custom_components.fitbridge", "WARNING"):
             res = self.scores(pauses=None)
@@ -135,7 +135,7 @@ class ScoringCycleTests(unittest.TestCase):
         self.assertIsNotNone(res["pauses_as_of"])
 
     def test_bad_pause_payload_keeps_good_cache(self):
-        name = load_config(DEFAULT)["people"][P0]["name"]
+        name = load_config(DEFAULT, TWO)["people"][P0]["name"]
         self.run_cycle(pauses=[{"summary": name, "start": "2026-10-26", "end": "2026-11-02"}])
         for bad in ([{"summary": name, "start": "not a date", "end": "2026-11-02"}],
                     [{"summary": 5, "start": "2026-10-26", "end": "2026-11-02"}],
@@ -315,17 +315,19 @@ class ScoringCycleTests(unittest.TestCase):
         self.assertIn("TOML", err)
 
     def test_config_that_cannot_score_keeps_last_good(self):
-        good, _ = self.holder.get()
+        self.toml_path.write_text(DEFAULT + LEGACY_PEOPLE, encoding="utf-8")  # the start and `from` checks are on the TOML's own people
+        holder = cycle.ConfigHolder(self.toml_path)
+        good, _ = holder.get()
         for i, (old, new) in enumerate([('title = "{t} runs"', 'title = "{n} runs"'),
                                         ("start = 2026-10-26", "start = 2026-10-26T00:00:00"),
                                         ("from = 2026-10-26", "from = 2026-10-26T00:00:00"),
                                         ("merge_gap_min = 30", "merge_gap_min = inf"),
                                         ("per_min = { run = 1", "per_min = { run = nan")]):
             with self.subTest(new=new):
-                self.toml_path.write_text(DEFAULT.replace(old, new, 1), encoding="utf-8")
+                self.toml_path.write_text((DEFAULT + LEGACY_PEOPLE).replace(old, new, 1), encoding="utf-8")
                 os.utime(self.toml_path, (time.time() + 10 + i, time.time() + 10 + i))
                 with self.assertLogs("custom_components.fitbridge", "ERROR"):
-                    conf, err = self.holder.get()
+                    conf, err = holder.get()
                 self.assertIs(conf, good)
                 self.assertIsNotNone(err)
 

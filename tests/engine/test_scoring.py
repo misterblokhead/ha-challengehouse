@@ -4,12 +4,12 @@ from zoneinfo import ZoneInfo
 
 from custom_components.fitbridge.engine.scoring import clean, local_date, mark_joint, pause_days, score, score_person, week_couple, week_goal
 from custom_components.fitbridge.engine.scoring_config import COUNTERS, load_config
-from . import overlay
-from .test_config import DEFAULT, ONE_PERSON
+from . import ONE, TWO, overlay
+from .test_config import DEFAULT
 
 TZ = ZoneInfo("Europe/Amsterdam")
-CFG = load_config(DEFAULT)
-SOLO = load_config(ONE_PERSON)
+CFG = load_config(DEFAULT, TWO)
+SOLO = load_config(DEFAULT, ONE)
 _n = 0
 
 
@@ -243,7 +243,7 @@ class ScoringTests(unittest.TestCase):
     def test_distance_and_none_targets_and_plan_switch(self):
         cfg = load_config(DEFAULT + '\n[plans.free]\nname="Free"\n[[plans.free.weeks]]\nrepeat=1\n'
                           'sessions=[{warmup_s=0, target={type="none"}}]\n[[plans.free.weeks]]\nrepeat=1\n'
-                          'sessions=[{warmup_s=0, target={type="distance", km=5, fraction=0.9}}]\n')
+                          'sessions=[{warmup_s=0, target={type="distance", km=5, fraction=0.9}}]\n', TWO)
         cfg["people"]["person1"]["plan_history"].append({"plan": "free", "from": date(2026, 10, 28)})
         ws = clean([wk("person1", "run", 2, 18, 0, 5, km=1), wk("person1", "run", 4, 18, 0, 30, km=4.4)], cfg)
         r = score_person(ws, set(), cfg, "person1", NOW(5))
