@@ -49,6 +49,22 @@ Then go to Settings -> Devices & services -> Add integration and add **Challenge
 - **Pause days:** events in `calendar.training_pause` pause a person's week. The event title is the person's name, or for
   group members also "both" or the group's name.
 
+### Other sources (not supported yet)
+
+Researched, not built. Notes for anyone who wants to add one:
+
+- **Galaxy Watch / Samsung Health:** Samsung Health shares workouts, distance, calories and heart rate with Android's
+  Health Connect, but no other app can read a workout's GPS route in the background there, and the Health Connect
+  webhook apps found so far do not send routes at all. A Health Connect input would therefore give workouts without a
+  map. For routes today, record with OpenTracks (Android input above) and pair the watch as a Bluetooth heart-rate
+  sensor (a watch app that broadcasts heart rate over Bluetooth), so the GPX carries both.
+- **Google Health (Fitbit / Pixel Watch):** the Google Health API can export a workout's GPS route, so Fitbit and Pixel
+  Watch owners could be supported by polling it. Workouts that only came in from Samsung Health through Health Connect
+  arrive there without a route. Each user would need their own Google Cloud OAuth client, published, and would see
+  Google's "unverified app" warning; whether the location scope is allowed that way is untested.
+- **Strava:** Samsung Health can share workouts with Strava, and Strava's API returns GPS streams, so polling Strava is
+  another possible route source (a Strava account and API app per user).
+
 ## What you get
 
 - **The ChallengeHouse page** in the sidebar: each person's level, week, streak and steps, the couple's week, an activity
