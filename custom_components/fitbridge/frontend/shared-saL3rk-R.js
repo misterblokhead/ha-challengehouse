@@ -2787,7 +2787,7 @@ var Va = (e) => `${e.w} ${e.unit} × ${e.r}`, Ha = [
 		steps: [
 			"Install OpenTracks from F-Droid and turn on instant GPX export.",
 			"Install Automate and import the flow file from the repo's phone/ folder.",
-			"Paste your address when it asks."
+			"In the flow, open the HTTP request block and paste your address as its URL, then start the flow."
 		]
 	}
 }, Za = (e) => Xa[e] ?? {
