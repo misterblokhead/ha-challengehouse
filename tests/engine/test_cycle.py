@@ -61,10 +61,10 @@ class ScoringCycleTests(unittest.TestCase):
         self.store.db.close()
         self.tmp.cleanup()
 
-    def run_cycle(self, og=None, now=NOW, commit=True, pauses=[], steps=None, settings=None):  # noqa: B006 (never mutated)
+    def run_cycle(self, og=None, now=NOW, commit=True, pauses=[], steps=None, settings=None, invites=None):  # noqa: B006 (never mutated)
         """One cycle; commit=True stands in for a successful announce."""
         c = cycle.score_cycle(self.store, self.holder, og,
-                              cycle.Inputs(pauses, steps, settings, {P0: GYM_UID}),
+                              cycle.Inputs(pauses, steps, settings, {P0: GYM_UID}, invites or {}),
                               now)
         if commit:
             self.badges += c.badges
@@ -108,6 +108,16 @@ class ScoringCycleTests(unittest.TestCase):
         with self.assertLogs("custom_components.fitbridge", "WARNING"):
             c = self.run_cycle(FakeOpenGym(raise_=opengym.OpenGymAuthError("rejected")))
         self.assertEqual(c.gym_error, "OpenGymAuthError")
+
+    def test_cycle_links_only_when_fresh(self):
+        og = FakeOpenGym([GYM])
+        og.users = lambda: [{"id": GYM_UID}, {"id": "uid-1", "invitedBy": "AB"}]
+        c = self.run_cycle(og, invites={P1: "AB"})
+        self.assertEqual(c.gym_links, {P1: "uid-1"})
+        self.assertNotIn("uid-1", self.store.kv_get("gym_cache"))  # the cache holds workouts, never links
+        og.renew_token = lambda: (_ for _ in ()).throw(OSError())
+        with self.assertLogs("custom_components.fitbridge", "WARNING"):
+            self.assertEqual(self.run_cycle(og, invites={P1: "AB"}).gym_links, {})  # the cache was served
 
     def test_gym_items_have_no_url(self):
         res = self.scores(FakeOpenGym([GYM]))

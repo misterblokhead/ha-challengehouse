@@ -2,7 +2,7 @@
 import json
 import logging
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -19,6 +19,7 @@ class Inputs:
     steps: dict[str, dict[str, int]]     # {person: {"YYYY-MM-DD": steps}} as the steps collector keeps them; None: nothing yet
     settings: dict | None                # {"history": [...]} as the settings store keeps it; None: nothing saved yet
     opengym_uids: dict[str, str]         # person -> openGym uid
+    opengym_invites: dict[str, str] = field(default_factory=dict)  # person -> invite code not used yet
 
 
 @dataclass
@@ -29,6 +30,7 @@ class Cycle:
     records: list[tuple[str, dict]]      # (person, record event) to announce
     commit: Callable[[], None]           # records the above as announced; call it after announcing
     gym_error: str | None = None         # class name of this cycle's openGym failure (the cache was used), or None
+    gym_links: dict[str, str] = field(default_factory=dict)  # person -> uid of the account an invite linked; fresh fetches only
 
 
 def fill_best_km(store, types):
@@ -123,9 +125,12 @@ def exercise_catalog_cached(og, store, now):
         return old
 
 
-def _gym(og, uids, people):
+def _gym(og, inputs, people, links):
+    """The workouts to cache; the links found go into `links`, never into the cache."""
     og.renew_token()
-    return opengym.fetch_all(og, uids, people, None)  # no public link
+    out, found = opengym.fetch_all(og, inputs.opengym_uids, people, None, inputs.opengym_invites)  # no public link
+    links.update(found)
+    return out
 
 
 def _given(raw):
@@ -165,7 +170,8 @@ def score_cycle(store, holder, og, inputs: Inputs, now) -> Cycle:
         return Cycle({"error": "no valid scoring config", "config_error": config_error}, [], [], [], lambda: None)
     people = tuple(config["people"])
 
-    gym, gym_as_of, gym_failure = _cached(store, "gym_cache", now, None if og is None else lambda: _gym(og, inputs.opengym_uids, people))
+    links = {}
+    gym, gym_as_of, gym_failure = _cached(store, "gym_cache", now, None if og is None else lambda: _gym(og, inputs, people, links))
     pauses, pauses_as_of, _ = _cached(store, "pauses_cache", now, lambda: _pauses(inputs.pauses, config))
     settings, settings_as_of, settings_failure = _cached(store, "settings_cache", now, lambda: (
         scoring_config.parse_settings(_given(inputs.settings), people)))
@@ -212,7 +218,7 @@ def score_cycle(store, holder, og, inputs: Inputs, now) -> Cycle:
         for p, new, _, _ in workouts_unseen:  # excluded ones too: restoring a workout is not news
             store.record_workouts(p, [k for w in new for k in (w["key"], *w["aliases"])])
 
-    return Cycle(scores, announce, announce_workouts, [(p, e) for p, es, _, _ in recs for e in es], commit, gym_error)
+    return Cycle(scores, announce, announce_workouts, [(p, e) for p, es, _, _ in recs for e in es], commit, gym_error, {} if gym_failure else links)
 
 
 def _route(paths, bpm):

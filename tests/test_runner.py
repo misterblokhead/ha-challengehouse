@@ -20,6 +20,8 @@ from custom_components.fitbridge import runner as runner_mod
 from custom_components.fitbridge.const import (
     DOMAIN,
     OPT_GROUP,
+    OPT_INVITES,
+    OPT_OPENGYM_UIDS,
     OPT_OPENGYM_URL,
     OPT_PEOPLE,
     OPT_VIEWERS,
@@ -231,6 +233,19 @@ async def test_a_renewed_token_lands_in_the_entry_without_a_reload(hass, setup, 
     assert tokens == ["token-0", "token-1", "token-1", "token-3"] and e.data["opengym_token"] == "token-3"
     assert _runner(hass) is runner  # a data-only update does not reload
     assert "token-" not in caplog.text
+
+
+async def test_runner_applies_links(hass, setup, caplog):
+    caplog.set_level(logging.INFO)
+    linked = Cycle({"people": {}}, [], [], [], lambda: None, gym_links={"p2": "u1"})
+    with patch.object(runner_mod, "score_cycle", return_value=linked):
+        e = await setup({OPT_OPENGYM_UIDS: {"p1": "u0"}, OPT_INVITES: {"p2": "AB", "p3": "CD"}})
+        runner = _runner(hass)
+        assert e.options[OPT_OPENGYM_UIDS] == {"p1": "u0", "p2": "u1"}
+        assert e.options[OPT_INVITES] == {"p3": "CD"}  # only the linked person's invite is gone
+        await _tick(hass, 301)
+    assert _runner(hass) is runner  # no reload
+    assert "openGym account linked for p2" in caplog.text and "AB" not in caplog.text and "u1" not in caplog.text
 
 
 async def test_no_url_or_token_means_no_opengym(hass, setup, cycles):

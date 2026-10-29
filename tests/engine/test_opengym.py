@@ -3,7 +3,7 @@ import json
 import unittest
 import urllib.error
 
-from custom_components.fitbridge.engine.opengym import OpenGym, OpenGymAuthError, fetch_all, person_for, to_workout
+from custom_components.fitbridge.engine.opengym import OpenGym, OpenGymAuthError, fetch_all, link_invites, person_for, to_workout
 from custom_components.fitbridge.engine.scoring_config import load_config
 from . import TWO
 from .test_config import DEFAULT
@@ -35,6 +35,26 @@ class OpenGymTests(unittest.TestCase):
         self.assertEqual(person_for({"id": "u1", "name": "Whatever"}, {P0: "u1"}), P0)
         self.assertIsNone(person_for({"id": "u2", "name": P1}, {P0: "u1"}))
 
+    def test_link_invites(self):
+        users = [{"id": "u1", "invitedBy": "AB"}, {"id": "u2", "invitedBy": None}]
+        self.assertEqual(link_invites(users, {}, {P1: "AB"}), {P1: "u1"})
+        self.assertEqual(link_invites(users, {}, {P1: "ZZ"}), {})  # the code is not used yet
+
+    def test_link_invites_never_doubles(self):
+        users = [{"id": "u1", "invitedBy": "AB"}]
+        self.assertEqual(link_invites(users, {P0: "u1"}, {P1: "AB"}), {})  # u1 already belongs to P0
+        self.assertEqual(link_invites(users, {P1: "u9"}, {P1: "AB"}), {})  # P1 already has an account
+        users.append({"id": "u2", "invitedBy": "AB"})
+        self.assertEqual(link_invites(users, {}, {P0: "AB", P1: "AB"}), {P0: "u1", P1: "u2"})  # one account each
+
+    def test_fetch_all_returns_links_and_their_workouts(self):
+        og = OpenGym("http://og", lambda: "t", lambda t: None, opener=fake({
+            "/api/admin/users": {"users": [{"id": "u1", "invitedBy": "AB"}]},
+            "/api/admin/user?id=u1": {"workouts": [{"id": "w", "start": 1, "end": 3600001}]}}))
+        out, links = fetch_all(og, {}, PEOPLE, "x", {P0: "AB"})
+        self.assertEqual((links, [w["key"] for w in out[P0]]), ({P0: "u1"}, ["opengym:w"]))
+        self.assertEqual(og.opener.paths.count("/api/admin/users"), 1)  # one users() call for the link and the workouts
+
     def test_to_workout_and_invalid_sessions(self):
         ok = to_workout({"id": "w1", "start": 1793030000000, "end": 1793033600000, "vol": 5200, "prs": ["bench"], "name": "Push"}, P0, "https://gym")
         self.assertEqual((ok["duration_s"], ok["vol_kg"], ok["key"]), (3600, 5200, "opengym:w1"))
@@ -47,7 +67,8 @@ class OpenGymTests(unittest.TestCase):
         og = OpenGym("http://og", lambda: "t", lambda t: None, opener=fake({
             "/api/admin/users": {"users": [{"id": "u1", "name": "A"}, {"id": "u9", "name": "Stranger"}]},
             "/api/admin/user?id=u1": {"unit": "lb", "workouts": [{"id": "w", "start": 1, "end": 3600001}, {"id": "bad", "start": 1}]}}))
-        out = fetch_all(og, {P0: "u1"}, PEOPLE, "x")
+        out, links = fetch_all(og, {P0: "u1"}, PEOPLE, "x")
+        self.assertEqual(links, {})
         self.assertEqual(set(out), set(PEOPLE))
         self.assertEqual((len(out[P0]), out[P0][0]["unit"]), (1, "lb"))
         if P1 != P0:
@@ -58,7 +79,7 @@ class OpenGymTests(unittest.TestCase):
             og = OpenGym("http://og", lambda: "t", lambda t: None, opener=fake({
                 "/api/admin/users": {"users": [{"id": "u1"}]},
                 "/api/admin/user?id=u1": {**detail, "workouts": [{"id": "w", "start": 1, "end": 3600001}]}}))
-            self.assertEqual(fetch_all(og, {P0: "u1"}, PEOPLE, "x")[P0][0]["unit"], unit)
+            self.assertEqual(fetch_all(og, {P0: "u1"}, PEOPLE, "x")[0][P0][0]["unit"], unit)
 
     def test_to_workout_carries_best_sets_and_unit(self):
         raw = {"id": "w", "start": 1, "end": 3600001,
@@ -96,7 +117,7 @@ class OpenGymTests(unittest.TestCase):
                {"id": "v", "start": 1, "end": 3600001, "vol": "heavy"}]
         og = OpenGym("http://og", lambda: "t", lambda t: None, opener=fake({
             "/api/admin/users": {"users": [{"id": "u1"}]}, "/api/admin/user?id=u1": {"workouts": bad + [good]}}))
-        self.assertEqual([w["key"] for w in fetch_all(og, {P0: "u1"}, PEOPLE, "x")[P0]], ["opengym:w"])
+        self.assertEqual([w["key"] for w in fetch_all(og, {P0: "u1"}, PEOPLE, "x")[0][P0]], ["opengym:w"])
 
     def test_renew_saves_new_token_and_bearer_header(self):
         saved = []

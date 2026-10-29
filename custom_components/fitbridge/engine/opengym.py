@@ -79,13 +79,27 @@ def to_workout(raw, person, public_url, unit="kg"):
     }
 
 
-def fetch_all(og, uids, people, public_url):
+def link_invites(users, uids, invites):
+    """person -> uid for each person with an invite and no account yet: the unclaimed user their code let in."""
+    taken, links = set(uids.values()), {}
+    for person, code in invites.items():
+        uid = next((u["id"] for u in users if code and u.get("invitedBy") == code and u["id"] not in taken), None)
+        if person not in uids and uid:
+            links[person] = uid
+            taken.add(uid)
+    return links
+
+
+def fetch_all(og, uids, people, public_url, invites=None):
+    """(person -> workouts, person -> uid of the accounts the invites just linked), from one users() call."""
+    users = og.users()
+    links = link_invites(users, uids, invites or {})
     out = {p: [] for p in people}
-    for user in og.users():
-        person = person_for(user, uids)
+    for user in users:
+        person = person_for(user, uids | links)
         if person in out:
             detail = og.user(user["id"])
             unit = "lb" if detail.get("unit") == "lb" else "kg"
             ws = (to_workout(r, person, public_url, unit) for r in detail["workouts"])
             out[person] += [w for w in ws if w]
-    return out
+    return out, links

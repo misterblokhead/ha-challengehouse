@@ -18,7 +18,7 @@ from homeassistant.helpers.start import async_at_started
 from homeassistant.util import dt as dt_util
 
 from . import people
-from .const import DATA_DIR, DOMAIN, OPENGYM_TOKEN, OPT_FOLDERS, OPT_OPENGYM_UIDS, OPT_OPENGYM_URL, SIGNAL_SCORES
+from .const import DATA_DIR, DOMAIN, OPENGYM_TOKEN, OPT_FOLDERS, OPT_INVITES, OPT_OPENGYM_UIDS, OPT_OPENGYM_URL, SIGNAL_SCORES
 from .core import find_workout
 from .engine import manual
 from .engine.cycle import ConfigHolder, Inputs, score_cycle, workout_details
@@ -178,13 +178,16 @@ class Runner:
         inputs = Inputs(await self._pauses(), data.steps.snapshot() if data.steps else None,
                         {"history": data.settings_history, "profiles": data.settings_profiles}
                         if data.settings_history or data.settings_profiles else None,
-                        dict(self.entry.options.get(OPT_OPENGYM_UIDS, {})))
+                        dict(self.entry.options.get(OPT_OPENGYM_UIDS, {})),
+                        dict(self.entry.options.get(OPT_INVITES, {})))
         try:
             cycle = await self.hass.async_add_executor_job(self._cycle, og, inputs)
         except Exception as err:  # one bad cycle never stops the timers
             _LOGGER.error("Scoring cycle failed: %s", type(err).__name__)
             return
         self._token_issue(og, cycle.gym_error)
+        if cycle.gym_links and not self.stopping:
+            self._link(cycle.gym_links)
         if isinstance(cycle.scores.get("people"), dict):  # no valid scoring config: the page keeps the last
             self.scores = cycle.scores
         if self.stopping:  # stopping: no handler would get it, so nothing is recorded; the next runner announces
@@ -222,6 +225,16 @@ class Runner:
     @callback
     def _store_token(self, token: str) -> None:
         self.hass.config_entries.async_update_entry(self.entry, data={**self.entry.data, OPENGYM_TOKEN: token})
+
+    @callback
+    def _link(self, links: dict[str, str]) -> None:
+        """Invited accounts that joined: their uids join the options and the invites are used up (no reload: the next cycle reads them)."""
+        options = self.entry.options
+        invites = {p: c for p, c in options.get(OPT_INVITES, {}).items() if p not in links}
+        self.hass.config_entries.async_update_entry(self.entry, options={
+            **options, OPT_OPENGYM_UIDS: {**options.get(OPT_OPENGYM_UIDS, {}), **links}, OPT_INVITES: invites})
+        for person in links:
+            _LOGGER.info("openGym account linked for %s", person)
 
     @callback
     def _token_issue(self, og: OpenGym | None, gym_error: str | None) -> None:
