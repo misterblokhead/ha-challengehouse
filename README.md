@@ -29,25 +29,33 @@ The setup screens ask:
 4. **openGym** (optional): the address of an openGym instance and a pairing code, then per person an existing openGym
    user, an invite, or nobody. See [openGym](#opengym-gym-sessions) below; skip it if nobody trains in a gym.
 
-Then open the **ChallengeHouse** page in the sidebar. Each person's **Fitness** page has a **Connect your phone** card
-(visible only to that person and to admins) with their private webhook URL and the steps for their phone. It reads
-"Waiting for the first workout" until a workout arrives, then "Connected, last workout received ...".
+Then open **ChallengeHouse** in the sidebar. Each person has a **Connect your phone** card (visible only to that person
+and to admins) with their private webhook URL and the steps for their phone. Until their first workout arrives it sits
+at the top of their page and reads "Waiting for the first workout"; after that it is under "Connect your phone" in the
+person's details and reads "Connected, last workout received ...".
 
 Home Assistant needs an external URL (Settings -> System -> Network) for phones to reach the webhook away from home.
-Without one the address only works on your home network, and the card says so. Nabu Casa's remote UI URL works;
-Nabu Casa cloudhooks are not used because their relay breaks ZIP uploads.
+Without one the address only works on your home network, and the setup and the card say so. Nabu Casa's remote UI URL
+works; Nabu Casa cloudhooks are not used because their relay breaks ZIP uploads.
 
 **Changing things later:** Settings -> Devices & services -> ChallengeHouse -> Configure:
 
 - **People:** add a person from a Home Assistant user, or edit a name, plan (changing it starts the new plan today) or
-  phone. People are never deleted: take away their viewer link and their history stays.
+  phone. Adding the second person asks whether the two play as a group. People are never deleted; their history stays.
 - **Who is who and step sensors:** which person each Home Assistant user is ("Nobody" gives a read-only view) and each
   person's step sensor.
 - **Webhooks and watch folders:** show or replace a person's webhook URL, and set a folder the integration scans for new
   files.
-- **Pair with openGym** and **openGym people:** see below.
+- **Pair with openGym** and **openGym users and invites:** see below.
 
 The time zone is Home Assistant's own.
+
+### Upgrading from 0.5.x
+
+0.6.0 copies the people, the group and the start date from your `scoring.toml` into Configure, once, on the first start.
+After that, `[people]` and `[group]` in the file are ignored (the log says so once); edit people in Configure -> People.
+If `scoring.toml` had no people, add them there. Rolling back to 0.5.x reads the file again, so changes made in
+Configure after the upgrade would be missing there.
 
 ### The rule file (optional)
 
@@ -67,12 +75,15 @@ their own phone.
   working.
 - **Run it** with the files in [`opengym/`](opengym): copy `.env.example` to `.env`, set `RP_ID` and `ORIGIN` to your
   address, then `docker compose up -d`. The images are pinned to the version ChallengeHouse is tested with. The web
-  container listens on `127.0.0.1:8092`; point your reverse proxy at it.
+  container listens on `127.0.0.1:8092`; point your reverse proxy at it. If the reverse proxy runs on another machine,
+  publish the web port on a private interface only (LAN or VPN), never to the internet.
 - **Pair it:** open openGym and create your account (the first account is the admin). Then Settings -> Account -> Pair
-  the mobile app, and paste the code in ChallengeHouse (setup, or Configure -> Pair with openGym).
-- **Add people:** link someone who already has an openGym account, or choose **Invite** for someone who does not. Their
-  Connect card then shows the invite code: they open openGym, tap Sign up, type the code (it cannot be passed in the
-  link), and add openGym to their home screen. Once they have signed up, ChallengeHouse links them automatically.
+  the mobile app, and paste the code in ChallengeHouse (setup, or Configure -> Pair with openGym). If pairing fails
+  during setup, you can go on without gym tracking and pair later.
+- **Add people** (setup, or Configure -> openGym users and invites): link someone who already has an openGym account,
+  or choose **Invite** for someone who does not. Their Connect card then shows the invite code: they open openGym, tap
+  Sign up, type the code by hand, and add openGym to their home screen. Once they have signed up, ChallengeHouse links
+  them automatically.
 
 There is also a third-party Home Assistant app for openGym,
 [mzspicoli/opengym-homeassistant](https://github.com/mzspicoli/opengym-homeassistant). It is experimental and not
@@ -119,9 +130,9 @@ Researched, not built. Notes for anyone who wants to add one:
 
 ## Privacy
 
-Everything stays in Home Assistant: workouts are stored in `/config/fitbridge/` (part of Home Assistant's backups), and the
-only outside service the integration talks to is the openGym instance you pair it with (if any). The route maps load their tiles
-through Home Assistant's own map tile proxy, so the page never contacts a map server itself.
+Everything stays in Home Assistant: workouts are stored in `/config/fitbridge/` (part of Home Assistant's backups), and
+the only outside service the integration talks to is the openGym instance you pair it with (if any). The route maps load
+their tiles through Home Assistant's own map tile proxy, so the page never contacts a map server itself.
 
 ## Development
 

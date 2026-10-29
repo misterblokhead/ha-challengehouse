@@ -162,7 +162,7 @@
       "fields": {
         "person": {
           "name": "Person",
-          "description": "The fitbridge person, as in scoring.toml (for example person1)."
+          "description": "The person's id (see Configure -> People)."
         },
         "key": {
           "name": "Workout key",
@@ -176,7 +176,7 @@
       "fields": {
         "person": {
           "name": "Person",
-          "description": "The fitbridge person, as in scoring.toml (for example person1)."
+          "description": "The person's id (see Configure -> People)."
         },
         "key": {
           "name": "Workout key",
@@ -190,7 +190,7 @@
       "fields": {
         "person": {
           "name": "Person",
-          "description": "The fitbridge person, as in scoring.toml (for example person1)."
+          "description": "The person's id (see Configure -> People)."
         },
         "kind": {
           "name": "Kind",
