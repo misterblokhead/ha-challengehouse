@@ -77,9 +77,11 @@ their own phone.
   address, then `docker compose up -d`. The images are pinned to the version ChallengeHouse is tested with. The web
   container listens on `127.0.0.1:8092`; point your reverse proxy at it. If the reverse proxy runs on another machine,
   publish the web port on a private interface only (LAN or VPN), never to the internet.
-- **Pair it:** open openGym and create your account (the first account is the admin). Then Settings -> Account -> Pair
-  the mobile app, and paste the code in ChallengeHouse (setup, or Configure -> Pair with openGym). If pairing fails
-  during setup, you can go on without gym tracking and pair later.
+- **Create your account first:** open openGym and tap Create new profile (the first profile is the admin). Then set
+  `INVITE_ONLY=1` in `.env` and run `docker compose up -d` again, so nobody else can sign up without an invite. Do it
+  in this order: with invite-only on from the start, nobody can create the first profile.
+- **Pair it:** Settings -> Account -> Pair the mobile app, and paste the code in ChallengeHouse (setup, or Configure ->
+  Pair with openGym). If pairing fails during setup, you can go on without gym tracking and pair later.
 - **Add people** (setup, or Configure -> openGym users and invites): link someone who already has an openGym account,
   or choose **Invite** for someone who does not. Their Connect card then shows the invite code: they open openGym, tap
   Create new profile, type the code by hand, and add openGym to their home screen. Once they have signed up, ChallengeHouse links
