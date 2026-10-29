@@ -82,7 +82,7 @@ their own phone.
   during setup, you can go on without gym tracking and pair later.
 - **Add people** (setup, or Configure -> openGym users and invites): link someone who already has an openGym account,
   or choose **Invite** for someone who does not. Their Connect card then shows the invite code: they open openGym, tap
-  Sign up, type the code by hand, and add openGym to their home screen. Once they have signed up, ChallengeHouse links
+  Create new profile, type the code by hand, and add openGym to their home screen. Once they have signed up, ChallengeHouse links
   them automatically.
 
 There is also a third-party Home Assistant app for openGym,

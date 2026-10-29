@@ -45,7 +45,7 @@
     <ol>{#each guide.steps as s (s)}<li>{s}</li>{/each}</ol>
   {/if}
   {#if info.opengym?.invite}
-    <p class="caption">Open openGym at {info.opengym.url}, choose Sign up, enter code <b>{info.opengym.invite}</b>, then Add to Home Screen.</p>
+    <p class="caption">Open openGym at {info.opengym.url}, choose Create new profile, enter code <b>{info.opengym.invite}</b>, then Add to Home Screen.</p>
   {/if}
 {/snippet}
 

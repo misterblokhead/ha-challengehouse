@@ -135,7 +135,7 @@ function jt(e, n) {
 		var T = U(x, 2), E = (e) => {
 			var r = Dt(), i = V(r), a = U(i), o = B(a, !0);
 			t(), X(r), L(() => {
-				l(i, `Open openGym at ${n.info.opengym.url ?? ""}, choose Sign up, enter code `), l(o, n.info.opengym.invite);
+				l(i, `Open openGym at ${n.info.opengym.url ?? ""}, choose Create new profile, enter code `), l(o, n.info.opengym.invite);
 			}), j(e, r);
 		};
 		z(T, (e) => {
