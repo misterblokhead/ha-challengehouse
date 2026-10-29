@@ -61,10 +61,36 @@
       "init": {
         "title": "ChallengeHouse",
         "menu_options": {
+          "people": "People",
           "viewers": "Who is who and step sensors",
+          "inputs": "Webhooks and watch folders",
           "opengym": "Pair with openGym",
-          "people": "openGym users",
-          "inputs": "Webhooks and watch folders"
+          "gym_people": "openGym users and invites"
+        }
+      },
+      "people": {
+        "title": "People",
+        "description": "Pick a person to change their name, plan or phone, or add a new person. People are never deleted: their history stays.",
+        "data": {
+          "person": "Person"
+        }
+      },
+      "person_edit": {
+        "title": "Change a person",
+        "description": "A new plan starts today; the old plan and its history stay.",
+        "data": {
+          "name": "Name",
+          "plan": "Plan",
+          "phone": "Phone"
+        }
+      },
+      "person_add": {
+        "title": "Add a person",
+        "description": "Pick the Home Assistant user. They see their own page, and get their own webhook once this is saved.",
+        "data": {
+          "user": "Home Assistant user",
+          "plan": "Plan",
+          "phone": "Phone"
         }
       },
       "viewers": {
@@ -83,27 +109,31 @@
           "code": "Pairing code"
         }
       },
-      "people": {
-        "title": "openGym users",
-        "description": "Pick each person's openGym user; their gym sessions count as workouts. Leave Nobody for a person without openGym."
-      },
       "inputs": {
         "title": "Webhooks and watch folders",
         "description": "Each person's phone posts workouts to their own webhook: a Health Exporter export (ZIP or JSON) or an OpenTracks GPX file as the request body.\n\n{urls}\n\nOptionally, give a person a folder (for example under /share or /media) that is scanned for GPX files every minute. Leave it empty for none.",
         "data": {
           "new_urls": "Make new webhook URLs (the current ones stop working; open this step again to see the new ones)"
         }
+      },
+      "gym_people": {
+        "title": "openGym users and invites",
+        "description": "Pick each person's openGym user; their gym sessions count as workouts. For someone without an openGym account, choose Invite: ChallengeHouse makes a sign-up code and shows it to them later. Inviting again stops the old code working. Leave Nobody for a person without openGym."
       }
     },
     "abort": {
       "waiting_for_fitbridge": "Waiting for fitbridge: it has not scored yet. Try again in a minute; check the log if scoring.toml is invalid.",
       "not_paired": "Pair with openGym first.",
-      "cannot_connect": "openGym could not be reached, or it rejected the token. Pair with openGym again if this persists."
+      "cannot_connect": "openGym could not be reached, or it rejected the token. Pair with openGym again if this persists.",
+      "no_free_users": "Every Home Assistant user is already a viewer of a person. Free one in Who is who first."
     },
     "error": {
       "invalid_code": "openGym did not accept this pairing code. Codes are 4 to 16 letters and digits; make a new one in openGym if it expired.",
       "cannot_connect": "openGym could not be reached at this address.",
-      "folder_missing": "This folder does not exist. Give its full path, for example /share/opentracks."
+      "folder_missing": "This folder does not exist. Give its full path, for example /share/opentracks.",
+      "name_required": "Give the person a name.",
+      "duplicate_gym_user": "Each openGym account can belong to one person only.",
+      "invite_failed": "openGym could not make an invite. Check that it is running, then submit again."
     }
   },
   "issues": {
