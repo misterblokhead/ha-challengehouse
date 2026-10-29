@@ -51,9 +51,10 @@
       },
       "install_pair": {
         "title": "Pair with the new openGym",
-        "description": "openGym is installed and running.\n\n1. In Chrome (or another browser, not the Home Assistant app), open openGym from the sidebar.\n2. Choose Create new profile: the first profile becomes the admin.\n3. Go to Settings -> Account -> Pair the mobile app and paste the code here.",
+        "description": "openGym is installed and running.\n\n1. In Chrome (or another browser, not the Home Assistant app), open openGym from the sidebar.\n2. Choose Create new profile: the first profile becomes the admin.\n3. Go to Settings -> Account -> Pair the mobile app and paste the code here.\n\nTo go on without gym tracking, tick the box below and submit; the app stays installed and can be paired later in the ChallengeHouse options.",
         "data": {
-          "code": "Pairing code"
+          "code": "Pairing code",
+          "skip": "Continue without gym tracking"
         }
       },
       "pair": {
@@ -76,7 +77,7 @@
       "cannot_connect": "openGym could not be reached at this address.",
       "duplicate_gym_user": "Each openGym account can belong to one person only.",
       "invite_failed": "openGym could not make an invite. Check that it is running, or choose Nobody and invite later.",
-      "address_https": "Give an address that starts with https://.",
+      "address_https": "Give the https address you open Home Assistant at, without a path, for example https://home.example.com.",
       "app_unavailable": "Couldn't fetch the openGym app. Check the internet connection and try again.",
       "app_install_failed": "Home Assistant could not install the openGym app. Its log (Settings -> System -> Logs, Supervisor) says why.",
       "app_start_failed": "The openGym app is installed but did not start. Its log (Settings -> Apps -> openGym) says why."
@@ -203,7 +204,7 @@
       "name_required": "Give the person a name.",
       "duplicate_gym_user": "Each openGym account can belong to one person only.",
       "invite_failed": "openGym could not make an invite. Check that it is running, then submit again.",
-      "address_https": "Give an address that starts with https://.",
+      "address_https": "Give the https address you open Home Assistant at, without a path, for example https://home.example.com.",
       "app_unavailable": "Couldn't fetch the openGym app. Check the internet connection and try again.",
       "app_install_failed": "Home Assistant could not install the openGym app. Its log (Settings -> System -> Logs, Supervisor) says why.",
       "app_start_failed": "The openGym app is installed but did not start. Its log (Settings -> Apps -> openGym) says why."

@@ -3,6 +3,7 @@ from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import aiohttp
+import pytest
 from conftest import PEOPLE_OPTIONS
 from engine.test_ingest import P0, P1
 from homeassistant import config_entries
@@ -710,12 +711,33 @@ async def test_setup_install_prefills_and_takes_the_edited_address(hass, enable_
     app["async_install"].assert_awaited_once_with(hass, HA)  # what the person confirmed, not what was detected
 
 
-async def test_setup_install_rejects_http(hass, enable_custom_integrations):
+@pytest.mark.parametrize("address", ["http://homeassistant.local:8123", "https://", f"{HA}/lovelace/0", f"{HA}/?tab=1",
+                                     f"{HA}/#top", "https://@ha.example.test", "https://ha.example.test:port"])
+async def test_setup_install_takes_only_an_https_origin(hass, enable_custom_integrations, address):
     patcher, app = _app()
     with patcher:
-        result = await _install(hass, "http://homeassistant.local:8123")
+        result = await _install(hass, address)
     assert result["type"] is FlowResultType.FORM and result["step_id"] == "install" and result["errors"] == {"address": "address_https"}
     app["async_install"].assert_not_called()
+
+
+@pytest.mark.parametrize(("address", "origin"), [(f"{HA}/", HA), ("https://HA.example.test:8443", "https://ha.example.test:8443")])
+async def test_setup_install_stores_the_origin(hass, enable_custom_integrations, address, origin):
+    patcher, app = _app()
+    with patcher:
+        result = await _installed(hass, await _install(hass, address), hass.config_entries.flow)
+    assert result["step_id"] == "install_pair"
+    app["async_install"].assert_awaited_once_with(hass, origin)
+
+
+async def test_setup_install_pair_can_go_on_without_gym_tracking(hass, enable_custom_integrations):
+    patcher, app = _app()
+    with patcher:
+        result = await _installed(hass, await _install(hass), hass.config_entries.flow)
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {"skip": True})
+    assert result["type"] is FlowResultType.CREATE_ENTRY and result["data"] == {}
+    assert OPT_OPENGYM_URL not in result["options"] and OPT_OPENGYM_LINK not in result["options"]
+    app["async_invite_only"].assert_not_called()
 
 
 async def test_setup_install_pair_and_invite(hass, enable_custom_integrations, aioclient_mock, caplog):
