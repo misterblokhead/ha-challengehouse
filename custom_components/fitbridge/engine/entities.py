@@ -14,7 +14,8 @@ PERSON_SENSORS = {
     "week": ("Week", "mdi:calendar-week", "%", lambda r: r["week"]["progress"],
              lambda r: {k: r["week"][k] for k in ("week", "runs", "workouts", "active_days", "bonus", "goal", "last_week", "goal_met", "paused", "days_left")}),
     "streak_weeks": ("Streak", "mdi:fire", "wk", lambda r: r["streak"], lambda r: {"best": r["best_streak"]}),
-    "plan": ("Plan", "mdi:run-fast", None, lambda r: r["plan"]["state"], lambda r: r["plan"]),
+    "plan": ("Plan", "mdi:run-fast", None, lambda r: r["plan"]["state"] if r["plan"] else None,
+             lambda r: r["plan"] or {}),
     "badges": ("Badges", "mdi:medal", None, lambda r: r["badges"]["count"], lambda r: r["badges"]),
     # longest_session_km is always a number (0.0 before the first outdoor run), so no unknown state
     "pbs": ("Personal bests", "mdi:trophy", "km", lambda r: r["pbs"]["longest_session_km"],

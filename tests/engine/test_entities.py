@@ -113,6 +113,13 @@ class EntityTests(unittest.TestCase):
         self.assertEqual(state({**RESULT["group"], "week": {**week, "met": not week["met"]}}), "off" if week["met"] else "on")
         self.assertEqual(GROUP_SENSORS["week"][2], None)
 
+    def test_plan_sensor_without_a_plan(self):
+        _, _, _, state, attrs = PERSON_SENSORS["plan"]
+        r1 = RESULT["people"][P1]
+        self.assertEqual((state(r1), attrs(r1)), (r1["plan"]["state"], r1["plan"]))
+        none = {**r1, "plan": None}
+        self.assertEqual((state(none), attrs(none)), (None, {}))
+
     def test_one_person_household_has_no_group(self):
         (S1,) = SOLO["people"]
         self.assertIsNone(score({S1: []}, [], SOLO, NOW(1))["group"])
