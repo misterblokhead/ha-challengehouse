@@ -1,3 +1,4 @@
+import contextlib
 from pathlib import Path
 
 import voluptuous as vol
@@ -71,6 +72,7 @@ class FitbridgeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._who: list[dict] = []  # per chosen user, in the order ticked: id, uid (HA user), name, then plan, phone, steps
         self._group = False
         self._url = self._token = None
+        self._invites: dict[str, str] = {}  # person -> invite code made so far, kept when a later invite fails
 
     async def async_step_user(self, user_input=None):
         if self._async_current_entries():
@@ -129,25 +131,30 @@ class FitbridgeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         labels = _labels({w["id"]: w["name"] for w in self._who})
         errors = {}
         if user_input is not None:
-            uids, invites = {}, {}
-            try:
-                for w in self._who:
-                    pick = user_input.get(labels[w["id"]])
-                    if pick == "invite":
-                        invites[w["id"]] = await gym.async_invite(self.hass, self._url, self._token, w["name"])
-                    elif pick:
-                        uids[w["id"]] = pick
-            except gym.GymError:
-                errors["base"] = "invite_failed"
+            picks = {w["id"]: user_input.get(labels[w["id"]]) for w in self._who}
+            uids = {pid: pick for pid, pick in picks.items() if pick and pick != "invite"}
+            if len(set(uids.values())) < len(uids):
+                errors["base"] = "duplicate_gym_user"  # before any invite is made
             else:
-                return await self._create(uids, invites)
+                try:
+                    for w in self._who:
+                        pid = w["id"]
+                        if picks[pid] == "invite" and pid not in self._invites:  # kept from an earlier try
+                            self._invites[pid] = await gym.async_invite(self.hass, self._url, self._token, w["name"])
+                        elif picks[pid] != "invite" and pid in self._invites:  # changed their mind: do not leave a live code
+                            with contextlib.suppress(gym.GymError):
+                                await gym.async_revoke(self.hass, self._url, self._token, self._invites.pop(pid))
+                except gym.GymError:
+                    errors["base"] = "invite_failed"
+                else:
+                    return await self._create(uids, self._invites)
         try:
             users = await gym.async_users(self.hass, self._url, self._token)
         except gym.GymError:
             users = []  # linking to an existing account can wait for Configure
         select = _choice({"": "Nobody", "invite": "Invite", **{u["id"]: str(u.get("name") or u["id"]) for u in users}})
-        return self.async_show_form(step_id="gym_people", errors=errors, data_schema=vol.Schema({
-            vol.Optional(label, default=""): select for label in labels.values()}))
+        return self.async_show_form(step_id="gym_people", errors=errors, data_schema=self.add_suggested_values_to_schema(
+            vol.Schema({vol.Optional(label, default=""): select for label in labels.values()}), user_input or {}))
 
     async def _create(self, uids: dict[str, str], invites: dict[str, str]):
         today = dt_util.now().date()

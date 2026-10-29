@@ -1,5 +1,5 @@
 import asyncio
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import aiohttp
 from conftest import PEOPLE_OPTIONS, SCORES
@@ -11,6 +11,7 @@ from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import MockUser
 from test_steps import _phone
 
+from custom_components.fitbridge import gym
 from custom_components.fitbridge import runner as runner_mod
 from custom_components.fitbridge.const import (
     DOMAIN,
@@ -336,3 +337,55 @@ async def test_people_need_a_pairing_and_a_reachable_gym(hass, setup, aioclient_
         hass.config_entries.async_update_entry(e, data={**e.data, "opengym_token": "tok"}, options={OPT_OPENGYM_URL: GYM})
         aioclient_mock.get(f"{GYM}/api/admin/users", status=401)
         assert (await _open(hass, e, "people"))["reason"] == "cannot_connect"
+
+
+async def _gym_people(hass, aioclient_mock, *names):
+    """Two (or more) people, paired, at the gym_people form; returns (result, field labels)."""
+    aioclient_mock.post(f"{GYM}/api/pair/redeem", json={"token": "tok-new"})
+    aioclient_mock.get(f"{GYM}/api/admin/users", json={"users": [{"id": "u1", "name": "Synthetic A"}, {"id": "u2", "name": "Synthetic B"}]})
+    result, _ = await _start(hass, *names)
+    for _ in names:
+        result = await _answer(hass, result)
+    if len(names) == 2:
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {"group": False})
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {"next_step_id": "pair"})
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {OPT_OPENGYM_URL: GYM, "code": "ABCD"})
+    assert result["step_id"] == "gym_people"
+    return result, [str(k) for k in result["data_schema"].schema]
+
+
+async def test_setup_one_gym_account_per_person(hass, enable_custom_integrations, aioclient_mock):
+    result, (first, second) = await _gym_people(hass, aioclient_mock, "Person 1", "Person 2")
+    with patch.object(gym, "async_invite", AsyncMock(return_value="C0DE")) as invite:
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {first: "u1", second: "u1"})
+        assert result["type"] is FlowResultType.FORM and result["errors"] == {"base": "duplicate_gym_user"}
+        invite.assert_not_called()
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {first: "invite", second: "invite"})
+        assert result["type"] is FlowResultType.CREATE_ENTRY  # two invites are two different codes
+    assert result["options"][OPT_INVITES] == {"person_1": "C0DE", "person_2": "C0DE"} and OPT_OPENGYM_UIDS not in result["options"]
+
+
+async def test_setup_failed_invite_keeps_earlier_codes_for_the_retry(hass, enable_custom_integrations, aioclient_mock):
+    result, (first, second) = await _gym_people(hass, aioclient_mock, "Person 1", "Person 2")
+    with patch.object(gym, "async_invite", AsyncMock(side_effect=["C0DE", gym.GymError("cannot_connect")])) as invite:
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {first: "invite", second: "invite"})
+        assert result["type"] is FlowResultType.FORM and result["errors"] == {"base": "invite_failed"}
+        assert [c.args[3] for c in invite.call_args_list] == ["Person 1", "Person 2"]
+        invite.side_effect = ["D0DE"]
+        invite.reset_mock()
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {first: "invite", second: "invite"})
+        assert [c.args[3] for c in invite.call_args_list] == ["Person 2"]  # Person 1 keeps the first code
+    assert result["options"][OPT_INVITES] == {"person_1": "C0DE", "person_2": "D0DE"}
+
+
+async def test_setup_a_kept_invite_is_revoked_when_the_person_gets_nobody(hass, enable_custom_integrations, aioclient_mock, caplog):
+    result, (first, second) = await _gym_people(hass, aioclient_mock, "Person 1", "Person 2")
+    with patch.object(gym, "async_invite", AsyncMock(side_effect=["C0DE", gym.GymError("cannot_connect")])), \
+            patch.object(gym, "async_revoke", AsyncMock()) as revoke:
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {first: "invite", second: "invite"})
+        assert result["errors"] == {"base": "invite_failed"}
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {first: "", second: "u2"})
+        assert result["type"] is FlowResultType.CREATE_ENTRY
+        assert [c.args[3] for c in revoke.call_args_list] == ["C0DE"]
+    assert OPT_INVITES not in result["options"] and result["options"][OPT_OPENGYM_UIDS] == {"person_2": "u2"}
+    assert "C0DE" not in caplog.text

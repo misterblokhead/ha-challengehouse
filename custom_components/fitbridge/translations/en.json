@@ -49,6 +49,7 @@
       "no_people": "Tick at least one person.",
       "invalid_code": "openGym did not accept this pairing code. Codes are 4 to 16 letters and digits; make a new one in openGym if it expired.",
       "cannot_connect": "openGym could not be reached at this address.",
+      "duplicate_gym_user": "Each openGym account can belong to one person only.",
       "invite_failed": "openGym could not make an invite. Check that it is running, or choose Nobody and invite later."
     },
     "abort": {
