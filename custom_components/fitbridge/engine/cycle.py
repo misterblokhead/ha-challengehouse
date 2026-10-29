@@ -7,8 +7,8 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from . import details, opengym, records, scoring, scoring_config, shoes
-from .ingest import Unreadable, aware, db_workouts, is_run
+from . import details, opengym, plancheck, records, scoring, scoring_config, shoes
+from .ingest import Unreadable, _number, aware, db_workouts, is_run
 
 log = logging.getLogger(__name__)
 
@@ -46,6 +46,24 @@ def fill_best_km(store, types):
             log.warning("best 1 km of %s: %s", r["key"], type(e).__name__)
             seconds = None
         store.set_best_km(r["person"], r["key"], seconds)
+
+
+def fill_plan_blocks(store, types):
+    """Run blocks of every run not checked yet. A file that cannot be read or parsed stores {"error": True}, so it is
+    logged once and never re-read; an indoor run, or one without a file, stores its average speed."""
+    done = store.plan_blocks()
+    for r in store.all_rows():
+        if (r["person"], r["key"]) in done or not is_run(r, types):
+            continue
+        if r["indoor"] or not r["file"]:
+            data = plancheck.indoor(_number(r["distance_m"]), _number(r["duration_s"]) or 0)
+        else:
+            try:
+                data = plancheck.blocks(Path(r["file"]).read_bytes())
+            except Exception as e:  # one bad file never blocks a cycle
+                log.warning("plan blocks of %s: %s", r["key"], type(e).__name__)
+                data = {"error": True}
+        store.set_plan_blocks(r["person"], r["key"], data)
 
 
 class ConfigHolder:
@@ -180,6 +198,7 @@ def score_cycle(store, holder, og, inputs: Inputs, now) -> Cycle:
     steps, steps_as_of, _ = _cached(store, "steps_cache", now, lambda: (
         _steps(inputs.steps, people, json.loads(store.kv_get("steps_cache") or "null"))))
     fill_best_km(store, config["types"])
+    fill_plan_blocks(store, config["types"])
     workouts, uncounted = db_workouts(store, people, config["types"])
     excluded = store.exclusions()
     for p, ws in workouts.items():

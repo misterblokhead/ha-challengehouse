@@ -1,4 +1,5 @@
 """SQLite state: workouts, seen files, caches (kv), exclusions and what was announced."""
+import json
 import sqlite3
 import threading
 from datetime import datetime, timezone
@@ -18,6 +19,9 @@ CREATE TABLE IF NOT EXISTS badges(person TEXT, id TEXT, unlocked_at TEXT, PRIMAR
 CREATE TABLE IF NOT EXISTS manual_seen(msg_id TEXT PRIMARY KEY);
 CREATE TABLE IF NOT EXISTS announced_workouts(person TEXT, key TEXT, PRIMARY KEY(person, key));
 CREATE TABLE IF NOT EXISTS best_km(person TEXT, key TEXT, seconds INTEGER, PRIMARY KEY(person, key));
+CREATE TABLE IF NOT EXISTS plan_blocks(person TEXT, key TEXT, data TEXT, PRIMARY KEY(person, key));
+CREATE TABLE IF NOT EXISTS plan_reviews(
+  person TEXT, key TEXT, decision TEXT NOT NULL, type_match TEXT, PRIMARY KEY(person, key));
 CREATE TABLE IF NOT EXISTS records(person TEXT, id TEXT, value REAL, PRIMARY KEY(person, id));
 CREATE TABLE IF NOT EXISTS record_holders(person TEXT, id TEXT, key TEXT, PRIMARY KEY(person, id, key));
 CREATE TABLE IF NOT EXISTS shoes(
@@ -29,6 +33,8 @@ CREATE TABLE IF NOT EXISTS run_shoes(person TEXT, key TEXT, shoe_id INTEGER, PRI
 #         exported yet), no_route (indoor, never has a route), archived (no route kind),
 #         manual (entered by hand, through an action), or pending_upload/job_pending/completed/failed from the Endurain
 #         uploads (rows from before the move keep them; scoring never reads status)
+# plan_blocks: the run blocks of each run (plancheck.blocks / indoor, or {"error": true}); NULL data: none. plan_reviews:
+#         the user's decision on a run's plan check (type_match: the activity type chosen when decision is "type").
 # manual_seen: ids of the MQTT manual messages from before the move (no longer written).
 # shoes / run_shoes: a person's shoes and which shoe each run was on; the current shoe is kv current_shoe:<person>.
 # Indoor workouts stored as awaiting_route before no_route existed.
@@ -102,6 +108,31 @@ class Store:
     def set_best_km(self, person, key, seconds):
         with self.lock, self.db:
             self.db.execute("INSERT OR REPLACE INTO best_km VALUES(?,?,?)", (person, key, seconds))
+
+    def plan_blocks(self):
+        """{(person, workout key): the plan-check blocks dict, or None}."""
+        with self.lock:
+            return {(r["person"], r["key"]): json.loads(r["data"]) if r["data"] else None
+                    for r in self.db.execute("SELECT * FROM plan_blocks")}
+
+    def set_plan_blocks(self, person, key, data):
+        with self.lock, self.db:
+            self.db.execute("INSERT OR REPLACE INTO plan_blocks VALUES(?,?,?)",
+                            (person, key, None if data is None else json.dumps(data)))
+
+    def plan_reviews(self):
+        """{(person, workout key): {"decision", "type_match"}}."""
+        with self.lock:
+            return {(r["person"], r["key"]): {"decision": r["decision"], "type_match": r["type_match"]}
+                    for r in self.db.execute("SELECT * FROM plan_reviews")}
+
+    def set_plan_review(self, person, key, decision, type_match=None):
+        """Records the decision; decision None clears it."""
+        with self.lock, self.db:
+            if decision is None:
+                self.db.execute("DELETE FROM plan_reviews WHERE person=? AND key=?", (person, key))
+            else:
+                self.db.execute("INSERT OR REPLACE INTO plan_reviews VALUES(?,?,?,?)", (person, key, decision, type_match))
 
     def exclusions(self):
         with self.lock:

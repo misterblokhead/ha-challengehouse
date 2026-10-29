@@ -281,9 +281,12 @@ def db_workouts(store, people, types):
     and a reason: "type" when the table does not know its type (name = its type), or "no_gps" (classify). Rows we cannot place in time are skipped; a number stored as
     text (rows from before map_hex_workout checked them) counts as missing."""
     out, uncounted = {p: [] for p in people}, {p: [] for p in people}
-    excluded, best_km = store.exclusions(), store.best_km()
+    excluded, best_km, plan_blocks, reviews = store.exclusions(), store.best_km(), store.plan_blocks(), store.plan_reviews()
     for r in store.all_rows():
+        review = reviews.get((r["person"], r["key"]))
         c = classify(r["source"], r["activity_type"], r["points"], types)
+        if review and review["decision"] == "type":  # a type classify does not know for this source keeps the stored one
+            c = classify(r["source"], review["type_match"], r["points"], types) or c
         start = aware(r["start"])
         if r["person"] not in out or not start:
             continue
@@ -302,5 +305,6 @@ def db_workouts(store, people, types):
             "name": c["name"], "best_1k_s": best_km.get((r["person"], r["key"])), "lifts": {}, "unit": "kg",
             "url": None,  # no links since Endurain went
             "excluded": (r["person"], r["key"]) in excluded, "reason": c.get("reason"),
+            "blocks": plan_blocks.get((r["person"], r["key"])), "review": review,
         })
     return out, uncounted

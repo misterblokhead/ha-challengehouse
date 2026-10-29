@@ -343,5 +343,22 @@ class FlowTests(unittest.TestCase):
         self.assertEqual([(w["key"], w["kind"], w["url"]) for w in out[P0]], [("w", "walk", None), ("e", "run", None)])
 
 
+    def review_run(self, decision):
+        t = dict(start="2026-10-27T18:00:00+01:00", end="2026-10-27T18:30:00+01:00", duration_s=1800)
+        self.store.add(P0, "r", "health_exporter", "archived", activity_type="running", **t)
+        self.store.set_plan_review(P0, "r", "type", decision)
+        return ingest.db_workouts(self.store, PEOPLE, TYPES)[0][P0][0]
+
+    def test_db_workouts_review_type(self):
+        w = self.review_run("cycling")
+        self.assertEqual((w["kind"], w["name"], w["min_min"], w["effort"]), ("home", "Cycling", 20, True))
+        self.assertEqual(w["review"], {"decision": "type", "type_match": "cycling"})
+        self.assertIsNone(w["blocks"])
+
+    def test_db_workouts_review_type_unknown(self):
+        w = self.review_run("zumba")
+        self.assertEqual((w["kind"], w["name"]), ("run", "Run"))
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -15,6 +15,7 @@ from . import LEGACY_PEOPLE, TWO, overlay
 from .test_config import DEFAULT
 from .test_ingest import gpx_with_points, hex_workout, hex_zip
 from .test_opengym import fake
+from .test_plancheck import synth
 from .test_records import seg, track
 
 PEOPLE = tuple(load_config(DEFAULT, TWO)["people"])
@@ -368,6 +369,34 @@ class ScoringCycleTests(unittest.TestCase):
             "activity_type": activity, "points": 5, "file": str(path), "start": "2026-10-27T18:00:00+01:00",
             "end": "2026-10-27T18:30:00+01:00", "duration_s": 1800, **fields})
         return path
+
+    def test_fill_plan_blocks_once(self):
+        self.add_gpx_run("t1", synth([(300, 5.5), (60, 8.3), (90, 5.5)]))
+        self.add_gpx_run("t2", b"", activity="walking")                  # a walk gets no row
+        with mock.patch.object(cycle.plancheck, "blocks", wraps=cycle.plancheck.blocks) as spy:
+            self.scores()
+            self.scores()
+        self.assertEqual(spy.call_count, 1)
+        self.assertEqual(list(self.store.plan_blocks()), [(P0, "t1")])
+        self.assertEqual(len(self.store.plan_blocks()[(P0, "t1")]["blocks"]), 1)
+
+    def test_fill_plan_blocks_bad_file(self):
+        self.add_gpx_run("bad", b"not a gpx")
+        self.add_gpx_run("gone", b"").unlink()
+        with self.assertLogs("custom_components.fitbridge", "WARNING") as logs:
+            self.scores()
+        self.assertEqual(self.store.plan_blocks(), {(P0, "bad"): {"error": True}, (P0, "gone"): {"error": True}})
+        self.assertEqual(sorted(l.split(":")[-1].strip() for l in logs.output if "plan blocks" in l),
+                         ["FileNotFoundError", "Unreadable"])
+        with self.assertNoLogs("custom_components.fitbridge", "WARNING"):
+            self.run_cycle()
+
+    def test_fill_plan_blocks_indoor(self):
+        self.store.add(P0, "H", "health_exporter", "no_route", activity_type="running", indoor=1,
+                       start="2026-10-27T18:00:00+01:00", end="2026-10-27T18:30:00+01:00",
+                       duration_s=1800, distance_m=4000)
+        self.scores()
+        self.assertEqual(self.store.plan_blocks(), {(P0, "H"): {"indoor": True, "avg_kmh": 8.0}})
 
     def test_fill_best_km_reads_a_run_file_once(self):
         path = self.add_gpx_run("t1", track([seg(1500, pace=300)]))

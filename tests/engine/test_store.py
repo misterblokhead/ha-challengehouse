@@ -23,6 +23,19 @@ class StoreTests(unittest.TestCase):
         self.store.db.close()
         self.tmp.cleanup()
 
+    def test_plan_blocks_roundtrip(self):
+        self.store.set_plan_blocks(P0, "a", {"blocks": [[0, 60, 8.3]], "boundary_kmh": 6.9})
+        self.store.set_plan_blocks(P0, "b", None)
+        self.assertEqual(self.store.plan_blocks(), {(P0, "a"): {"blocks": [[0, 60, 8.3]], "boundary_kmh": 6.9}, (P0, "b"): None})
+
+    def test_plan_review_set_and_clear(self):
+        self.store.set_plan_review(P0, "a", "type", "cycling")
+        self.store.set_plan_review(P0, "b", "ok")
+        self.assertEqual(self.store.plan_reviews(), {(P0, "a"): {"decision": "type", "type_match": "cycling"},
+                                                     (P0, "b"): {"decision": "ok", "type_match": None}})
+        self.store.set_plan_review(P0, "a", None)
+        self.assertEqual(list(self.store.plan_reviews()), [(P0, "b")])
+
     def test_old_indoor_awaiting_rows_move_to_no_route(self):
         self.store.add(P1, "OLD", "health_exporter", "awaiting_route", activity_type="walking", indoor=1)
         self.store.add(P1, "OUT", "health_exporter", "awaiting_route", activity_type="running", indoor=0)
