@@ -38,7 +38,9 @@ class FixtureTests(unittest.TestCase):
             r.pop("max_hr")
             r.pop("older")
             for w in r["recent"] + r["feed"]:
-                del w["counts"], w["reason"]
+                del w["counts"], w["reason"], w["check"], w["review"], w["caught_up"]
+            for k in ("cooldown_s", "steps", "times", "review_pending"):  # plan check, likewise newer
+                r["plan"].pop(k)
         self.assertEqual(result, RESULT)
         events = [json.loads(p) for t, p, r in FIX["messages"] if not r]
         self.assertEqual([(e["event_type"], e["person"]) for e in events],

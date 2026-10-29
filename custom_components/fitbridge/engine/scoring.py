@@ -5,6 +5,7 @@ from datetime import date, datetime, time, timedelta
 from functools import partial
 from zoneinfo import ZoneInfo
 
+from .plancheck import check
 from .records import muscle_group
 from .scoring_config import COUNTERS, pause_titles, plan_sessions
 
@@ -125,6 +126,7 @@ def mark_joint(by_person, cfg):
                 for x, y in ((a, b), (b, a)):
                     x["joint_s"] = shared
                     x["partner_km"] = None if y["distance_m"] is None else y["distance_m"] / 1000
+                    x["partner_key"] = y["key"]
 
 
 def _badge_id(badge, t):
@@ -183,6 +185,75 @@ def _meets(w, session):
     return True
 
 
+def _passes(w, c):
+    """The owner's decision decides; without one the check does ("none": no readable track, counted by duration)."""
+    r = w.get("review")
+    return r["decision"] == "plan" if r else c["state"] in ("match", "indoor", "none")
+
+
+def plan_progress(cleaned, cfg, now=None):
+    """Plan progress of every person in one pass over all runs in start order (plan-check spec 1.2-1.4), so a joint run
+    sees both people's progress at that moment: {person: {"done", "by_key", "checks", "pending"}}.
+    `cleaned`: clean() output, joint-marked; `now`: runs after its week are left out, as score_person leaves them."""
+    tz = ZoneInfo(cfg["rules"]["timezone"])
+    today = now and local_date(now, tz)
+    last = today and today + timedelta(days=6 - today.weekday())
+    hist = {p: cfg["people"][p]["plan_history"] for p in cleaned}
+    sessions = {p: [plan_sessions(cfg, h["plan"]) if h["plan"] else [] for h in hist[p]] for p in cleaned}
+    out = {p: {"done": [0] * len(hist[p]), "by_key": {}, "checks": {}, "pending": 0} for p in cleaned}
+    plan_days = defaultdict(int)                   # (person, local day) -> sessions completed
+    runs = {(p, w["key"]): (p, w) for p in cleaned for w in cleaned[p]
+            if not w["excluded"] and w["kind"] == "run" and (not last or local_date(w["start"], tz) <= last)}
+
+    def active(p, w):
+        """(plan_history index, plan id) on the run's day; plan id None without a plan."""
+        i = _active_plan(hist[p], local_date(w["start"], tz))
+        return (i, None) if i is None else (i, hist[p][i]["plan"])
+
+    def ahead(e):
+        i, plan = active(*e)
+        return out[e[0]]["done"][i] if plan else -1
+
+    def settle(p, w, lead):
+        """Complete at most one session with run w; `lead`: (plan id, session index) the partner completed with this
+        joint run, or None. Returns the same pair for what w completed, or None."""
+        d = local_date(w["start"], tz)
+        i, plan = active(p, w)
+        if not plan:
+            return None
+        ss, done, pp = sessions[p][i], out[p]["done"], out[p]
+        if done[i] >= len(ss) or plan_days[p, d] >= cfg["plan"]["max_sessions_per_day"]:
+            return None
+        catch_up = [lead[1]] if lead and lead[0] == plan and lead[1] > done[i] else []
+        for j in catch_up + [done[i]]:             # the partner's day first; failing that, the own next day
+            if not _meets(w, ss[j]):
+                continue
+            c = pp["checks"][w["key"]] = dict(check(w.get("blocks"), ss[j]), label=f"W{ss[j]['week']}D{ss[j]['day']}")
+            if _passes(w, c):
+                break
+        else:
+            if w["key"] in pp["checks"] and not w.get("review"):
+                pp["pending"] += 1
+            return None
+        caught_up, done[i] = j != done[i], j + 1   # a catch-up skips the days in between: progress, no entry, no XP
+        plan_days[p, d] += 1
+        graduated = done[i] == len(ss)
+        pp["by_key"][w["key"]] = {"label": c["label"], "week": ss[j]["week"], "graduated": graduated, "caught_up": caught_up,
+                                  "end_of_week": graduated or ss[done[i]]["week"] != ss[j]["week"]}
+        return plan, j
+
+    seen = set()
+    for p, w in sorted(runs.values(), key=lambda e: e[1]["start"]):
+        if (p, w["key"]) in seen:
+            continue
+        partner = w.get("partner_key") and runs.get((next(m for m in cfg["group"]["members"] if m != p), w["partner_key"]))
+        lead = None
+        for e in sorted([(p, w)] + ([partner] if partner else []), key=ahead, reverse=True):  # a joint pair together, ahead first
+            seen.add((e[0], e[1]["key"]))
+            lead = settle(*e, lead)
+    return out
+
+
 def max_hr(workouts, birth_year, today, cfg):
     """A person's max HR: the higher of the Tanaka estimate (208 - 0.7 x age, needs a birth year) and the highest
     plausible measured max (a workout's max counts only when its average is >= rules.max_hr_fit_pct of it).
@@ -197,17 +268,19 @@ def max_hr(workouts, birth_year, today, cfg):
     return None if estimate is None else {"bpm": estimate, "source": "estimate", "date": None}
 
 
-def score_person(workouts, paused, cfg, person, now, steps=None, settings=None, max_bpm=None):
+def score_person(workouts, paused, cfg, person, now, steps=None, settings=None, max_bpm=None, plan=None):
     """Week, XP, level, streak, plan and counters for one person (spec section 5).
 
     `workouts`: output of clean(), joint-marked; `paused`: the person's pause dates;
     `steps`: the person's {"YYYY-MM-DD": steps}; `settings`: the settings payload (goals spec section 3);
-    `max_bpm`: the person's max HR for the effort check (None: duration only)."""
+    `max_bpm`: the person's max HR for the effort check (None: duration only);
+    `plan`: the person's plan_progress() entry (None: this person's alone, no catch-up)."""
     tz = ZoneInfo(cfg["rules"]["timezone"])
     rules, xpc = cfg["rules"], cfg["xp"]
     history = cfg["people"][person]["plan_history"]
     sessions = [plan_sessions(cfg, h["plan"]) if h["plan"] else [] for h in history]
-    done = [0] * len(history)                      # completed sessions per plan_history entry
+    plan = plan or plan_progress({person: workouts}, cfg, now)[person]
+    done = plan["done"]                            # completed sessions per plan_history entry
     today = local_date(now, tz)
     this_monday = today - timedelta(days=today.weekday())
     by_week = defaultdict(list)
@@ -216,11 +289,11 @@ def score_person(workouts, paused, cfg, person, now, steps=None, settings=None, 
             d = local_date(w["start"], tz)
             by_week[d - timedelta(days=d.weekday())].append((d, w))
 
-    c, unlocked_at, plan_done = dict.fromkeys(COUNTERS, 0), {}, {}
+    c, unlocked_at = dict.fromkeys(COUNTERS, 0), {}
     bump = partial(_bump, c, unlocked_at, cfg["badges"])
     streak, last_run, weekly, last_week = 0, None, {}, None
     workout_xp = defaultdict(float)                # XP per workout key: the feed's numbers and, summed, the total
-    day_xp, plan_days = defaultdict(float), defaultdict(int)
+    day_xp = defaultdict(float)
     active_rows = []                               # synthetic feed rows, one per active day
     not_counted = {}                               # workout key -> "short" | "easy": minute XP, no ring
 
@@ -314,19 +387,12 @@ def score_person(workouts, paused, cfg, person, now, steps=None, settings=None, 
                 counted.add((key, d))
                 count(wkst, goal, d, key, w["key"])
 
-            # Plan: a run completes the next session if it meets the target, within the per-day limit.
-            i = _active_plan(history, d) if kind == "run" else None
-            if (i is not None and done[i] < len(sessions[i])
-                    and plan_days[d] < cfg["plan"]["max_sessions_per_day"] and _meets(w, sessions[i][done[i]])):
-                s = sessions[i][done[i]]
-                done[i] += 1
-                plan_days[d] += 1
-                plan_done[w["key"]] = f"W{s['week']}D{s['day']}"
+            # Plan: plan_progress decided which runs complete a session.
+            s = plan["by_key"].get(w["key"])
+            if s:
                 workout_xp[w["key"]] += xpc["plan_session"]
-                graduated = done[i] == len(sessions[i])
-                if graduated or sessions[i][done[i]]["week"] != s["week"]:
-                    bump(d, "plan_weeks", to=s["week"])
-                if graduated:
+                bump(d, "plan_weeks", to=s["week"] - (not s["end_of_week"]))  # a catch-up past a week's end completes that week too
+                if s["graduated"]:
                     bump(d, "plan_graduated")
 
             minute_xp = (min(mins, xpc["session_cap_min"]) * xpc["per_min"][kind]
@@ -364,13 +430,15 @@ def score_person(workouts, paused, cfg, person, now, steps=None, settings=None, 
             "week": nxt["week"] if nxt else None, "day": nxt["day"] if nxt else None,
             "target": nxt["target"] if nxt else None,
             "intervals": [list(iv) for iv in nxt["intervals"]] if nxt else [],
+            "cooldown_s": nxt["cooldown_s"] if nxt else None,
+            "steps": [list(iv) for iv in nxt["steps"]] if nxt else [], "times": nxt["times"] if nxt else None,
+            "review_pending": plan["pending"],
             "due_today": (nxt is not None and wkst["runs"] < goal["runs"] and today not in paused
                           and (last_run is None or (today - last_run).days >= 2)),
         } if active else None,
         "weekly": weekly,
         "counters": c,
         "unlocked_at": unlocked_at,
-        "plan_done": plan_done,
         "workout_xp": workout_xp,
         "active_rows": active_rows,
         "not_counted": not_counted,
@@ -397,15 +465,18 @@ def _badges(cfg, counters, unlocked_at):
     return {"count": len(unlocked), "recent": unlocked[:3], "next": nxt[:3], "unlocked": unlocked}
 
 
-def _feed(workouts, plan_done, workout_xp, not_counted, cfg, since, limit):
+def _feed(workouts, plan, workout_xp, not_counted, cfg, since, limit):
     """Workouts on or after local date `since` (at most `limit`), excluded ones included, newest first.
+    `plan`: the person's plan_progress() entry.
     `not_counted`: {key: "short" | "easy" | "type" | "no_gps" | None (before rules.start)}, why a row fills no ring (counts False)."""
     tz = ZoneInfo(cfg["rules"]["timezone"])
     ws = [w for w in workouts if local_date(w["start"], tz) >= since][::-1][:limit]
     return [{"key": w["key"], "aliases": w.get("aliases", []), "kind": w["kind"], "name": w["name"], "source": w["source"], "indoor": w["indoor"],
              "start": w["start"].astimezone(tz).isoformat(), "minutes": round(w["duration_s"] / 60),
              "km": None if w["distance_m"] is None else round(w["distance_m"] / 1000, 2), "avg_hr": w["avg_hr"],
-             "xp": round(workout_xp.get(w["key"], 0)), "plan": plan_done.get(w["key"]), "joint": bool(w.get("joint_s")), "excluded": w["excluded"],
+             "xp": round(workout_xp.get(w["key"], 0)), "plan": plan["by_key"].get(w["key"], {}).get("label"),
+             "check": plan["checks"].get(w["key"]), "review": w.get("review"),
+             "caught_up": plan["by_key"].get(w["key"], {}).get("caught_up", False), "joint": bool(w.get("joint_s")), "excluded": w["excluded"],
              "counts": w["key"] not in not_counted, "reason": not_counted.get(w["key"]),
              "url": w["url"]} | ({"steps": w["steps"]} if "steps" in w else {}) for w in ws]
 
@@ -482,11 +553,12 @@ def score(by_person, pauses, cfg, now, steps=None, settings=None, catalog=None, 
     `uncounted`: {person: [workout that counts nothing, its `reason` "type" unless given]}, shown in `feed` only."""
     cleaned = {p: clean([dict(w) for w in by_person.get(p, [])], cfg) for p in cfg["people"]}
     mark_joint(cleaned, cfg)
+    progress = plan_progress(cleaned, cfg, now)
     tz = ZoneInfo(cfg["rules"]["timezone"])
     profiles = (settings or {}).get("profiles", {})
     max_hrs = {p: max_hr(cleaned[p], profiles.get(p, {}).get("birth_year"), local_date(now, tz), cfg) for p in cfg["people"]}
     raw = {p: score_person(cleaned[p], pause_days(pauses, p, cfg), cfg, p, now, (steps or {}).get(p), settings,
-                           max_hrs[p] and max_hrs[p]["bpm"])
+                           max_hrs[p] and max_hrs[p]["bpm"], progress[p])
            for p in cfg["people"]}
     start = cfg["rules"]["start"]
     window = max(start, local_date(now, tz) - timedelta(days=89))  # today + 89 days back = 90
@@ -498,14 +570,14 @@ def score(by_person, pauses, cfg, now, steps=None, settings=None, catalog=None, 
         early = clean(by_person.get(p, []), cfg, early=True)  # before rules.start: likewise, and no reason to show
         reasons = r["not_counted"] | {w["key"]: None for w in early} | {w["key"]: w.get("reason", "type") for w in other}
         rows = _feed(sorted(cleaned[p] + early + r["active_rows"] + other, key=lambda w: w["start"]),
-                     r["plan_done"], r["workout_xp"], reasons, cfg, date.min, None)
-        people[p] = {k: v for k, v in r.items() if k not in ("weekly", "counters", "unlocked_at", "plan_done", "workout_xp", "active_rows", "not_counted")} | {
+                     progress[p], r["workout_xp"], reasons, cfg, date.min, None)
+        people[p] = {k: v for k, v in r.items() if k not in ("weekly", "counters", "unlocked_at", "workout_xp", "active_rows", "not_counted")} | {
             "name": cfg["people"][p]["name"], "max_hr": max_hrs[p],
             "badges": _badges(cfg, c, r["unlocked_at"]),
             "pbs": {"longest_session_km": round(c["longest_session_km"], 2), "prs": c["prs"],
                     "gym_tonnes": round(c["tonnes"], 2),
                     "lifts": lifts, "fastest_1k": fastest_1k},
-            "recent": _feed(cleaned[p], r["plan_done"], r["workout_xp"], r["not_counted"], cfg, start, 20),
+            "recent": _feed(cleaned[p], progress[p], r["workout_xp"], r["not_counted"], cfg, start, 20),
             "feed": [i for i in rows if i["start"][:10] >= window.isoformat()],  # start's date is the local one
             "older": [i for i in rows if i["start"][:10] < window.isoformat()],  # in memory only: core.shape drops it, GET feed pages it
         }

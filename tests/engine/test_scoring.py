@@ -1,11 +1,17 @@
+import tempfile
 import unittest
 from datetime import date, datetime, timedelta
+from pathlib import Path
 from zoneinfo import ZoneInfo
 
+from custom_components.fitbridge.engine.ingest import db_workouts
+from custom_components.fitbridge.engine.plancheck import blocks
 from custom_components.fitbridge.engine.scoring import clean, local_date, mark_joint, pause_days, score, score_person, week_couple, week_goal
 from custom_components.fitbridge.engine.scoring_config import COUNTERS, load_config
-from . import ONE, TWO, overlay
+from custom_components.fitbridge.engine.store import Store
+from . import COUPLE, ONE, TWO, overlay
 from .test_config import DEFAULT
+from .test_plancheck import W1, synth
 
 TZ = ZoneInfo("Europe/Amsterdam")
 CFG = load_config(DEFAULT, TWO)
@@ -481,6 +487,152 @@ class ScoringTests(unittest.TestCase):
         ws = [wk("person1", "walk", d, 18, 0, 100 / 60) for d in range(30)]  # 30 x 1.666.. min = exactly 50 XP
         p = score({"person1": ws, "person2": []}, [], CFG, NOW(30))["people"]["person1"]
         self.assertEqual((p["xp"], p["level"]), (50, 2))
+
+
+MATCH = blocks(synth(W1))                                      # 8 x 60 s run blocks: matches every W1 day
+BIKE = blocks(synth([(1500, 2.5)]))                            # no run blocks at all
+SHORT = blocks(synth([(300, 5.5)] + 7 * [(50, 8.3), (100, 5.5)] + [(300, 5)]))  # matches W1, not W2 (too little running)
+OTHER = DEFAULT + ('\n[plans.other]\nname="Other"\n[[plans.other.weeks]]\nrepeat=3\nsessions=[{warmup_s=300, '
+                   'intervals=[["run", 60], ["walk", 90]], times=8, target={type="duration", fraction=0.8}}]\n')
+
+
+def run(person, day, hh=18, mm=0, minutes=26, **kw):
+    return wk(person, "run", day, hh, mm, minutes, km=3, **kw)
+
+
+def people(ws, day, cfg=CFG):
+    """score() people for person1/person2 workouts in `ws`, at NOW(day)."""
+    by = {"person1": [w for w in ws if w["person"] == "person1"], "person2": [w for w in ws if w["person"] == "person2"]}
+    return score(by, [], cfg, NOW(day))["people"]
+
+
+def row(p, w):
+    return next(i for i in p["feed"] if i["key"] == w["key"])
+
+
+class PlanCheckTests(unittest.TestCase):
+    def test_matching_run_completes_day(self):
+        w = run("person1", 0, blocks=MATCH)
+        p = people([w], 1)["person1"]
+        self.assertEqual((p["plan"]["state"], p["xp"], p["plan"]["review_pending"]), ("W1D2", 26 + 20, 0))
+        r = row(p, w)
+        self.assertEqual((r["plan"], r["check"]["state"], r["check"]["found"], r["check"]["label"], r["review"], r["caught_up"]),
+                         ("W1D1", "match", 8, "W1D1", None, False))
+
+    def test_bike_run_waits_for_review(self):
+        w = run("person1", 0, minutes=25, blocks=BIKE)
+        p = people([w], 1)["person1"]
+        self.assertEqual((p["plan"]["state"], p["plan"]["completed"], p["plan"]["review_pending"]), ("W1D1", 0, 1))
+        self.assertEqual((p["xp"], p["week"]["runs"]), (25, 1))       # a run as usual, no plan XP
+        r = row(p, w)
+        self.assertEqual((r["plan"], r["check"]["state"], r["check"]["found"], r["review"]), (None, "review", 0, None))
+
+    def test_review_plan_completes(self):
+        w = run("person1", 0, blocks=BIKE, review={"decision": "plan", "type_match": None})
+        p = people([w], 1)["person1"]
+        self.assertEqual((p["plan"]["state"], p["xp"], p["plan"]["review_pending"]), ("W1D2", 26 + 20, 0))
+        self.assertEqual((row(p, w)["plan"], row(p, w)["review"]["decision"]), ("W1D1", "plan"))
+
+    def test_review_run_keeps_day_open(self):
+        w = run("person1", 0, blocks=BIKE, review={"decision": "run", "type_match": None})
+        p = people([w], 1)["person1"]
+        self.assertEqual((p["plan"]["state"], p["xp"], p["plan"]["review_pending"], row(p, w)["plan"]), ("W1D1", 26, 0, None))
+        self.assertEqual(row(p, w)["check"]["state"], "review")
+
+    def test_review_type_not_a_run(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = Store(Path(tmp) / "db.sqlite")
+            store.add("person1", "r", "health_exporter", "archived", activity_type="running", start="2026-10-27T18:00:00+01:00",
+                      end="2026-10-27T18:30:00+01:00", duration_s=1800)
+            store.set_plan_review("person1", "r", "type", "cycling")
+            counted, uncounted = db_workouts(store, ("person1", "person2"), CFG["types"])
+        p = score(counted, [], CFG, NOW(2), uncounted=uncounted)["people"]["person1"]
+        self.assertEqual((p["feed"][0]["kind"], p["week"]["runs"], p["week"]["workouts"], p["plan"]["state"]), ("home", 0, 1, "W1D1"))
+        self.assertIsNone(p["feed"][0]["check"])
+
+    def test_review_change_resettles(self):
+        w = run("person1", 0, blocks=BIKE, review={"decision": "plan", "type_match": None})
+        self.assertEqual(people([w], 1)["person1"]["plan"]["state"], "W1D2")
+        w["review"] = {"decision": "run", "type_match": None}
+        self.assertEqual(people([w], 1)["person1"]["plan"]["state"], "W1D1")
+
+    def test_catch_up_joint(self):
+        ws = [run("person1", 0), run("person1", 2), run("person1", 4), run("person2", 4, blocks=MATCH)]
+        ps = people(ws, 5)
+        self.assertEqual((ps["person1"]["plan"]["completed"], row(ps["person1"], ws[2])["plan"]), (3, "W1D3"))
+        self.assertFalse(row(ps["person1"], ws[2])["caught_up"])
+        p2, r = ps["person2"], row(ps["person2"], ws[3])
+        self.assertEqual((p2["plan"]["completed"], p2["plan"]["state"]), (3, "W2D1"))
+        self.assertEqual((r["plan"], r["caught_up"], r["check"]["label"], r["check"]["state"]), ("W1D3", True, "W1D3", "match"))
+        self.assertEqual(p2["xp"], 26 + 13 + 20)                     # plan XP once: the skipped days earn none
+        self.assertIn("plan_week_1", [u["id"] for u in p2["badges"]["unlocked"]])
+
+    def test_catch_up_needs_match(self):
+        ws = [run("person1", d) for d in (0, 2, 4)] + [run("person1", 6), run("person2", 6, mm=3, blocks=SHORT)]
+        ps = people(ws, 7)
+        self.assertEqual(row(ps["person1"], ws[3])["plan"], "W2D1")
+        r = row(ps["person2"], ws[4])
+        self.assertEqual((r["plan"], r["caught_up"], r["check"]["label"], ps["person2"]["plan"]["completed"]), ("W1D1", False, "W1D1", 1))
+
+    def test_no_catch_up_solo(self):
+        ws = [run("person1", d) for d in (0, 2, 4)] + [run("person2", 4, hh=10, blocks=MATCH)]
+        r = row(people(ws, 5)["person2"], ws[3])
+        self.assertEqual((r["plan"], r["caught_up"]), ("W1D1", False))
+
+    def test_no_catch_up_ahead(self):
+        ws = [run("person2", d, blocks=MATCH) for d in (0, 2)] + [run("person1", 4), run("person2", 4, mm=3, blocks=MATCH)]
+        ps = people(ws, 5)
+        self.assertEqual((row(ps["person2"], ws[3])["plan"], row(ps["person2"], ws[3])["caught_up"]), ("W1D3", False))
+        self.assertEqual((ps["person2"]["plan"]["completed"], ps["person1"]["plan"]["completed"]), (3, 3))
+        self.assertTrue(row(ps["person1"], ws[2])["caught_up"])
+        short = [run("person2", d, blocks=MATCH) for d in (0, 2)] + [run("person1", 4), run("person2", 4, mm=1, minutes=18)]
+        ps = people(short, 5)                                         # the one ahead completes nothing: nothing to catch up to
+        self.assertEqual((row(ps["person1"], short[2])["plan"], ps["person2"]["plan"]["completed"]), ("W1D1", 2))
+
+    def test_no_catch_up_other_plan(self):
+        ov = overlay(group=COUPLE)
+        ov["people"]["person2"]["plan_history"] = [{"plan": "other", "from": "2026-10-26"}]
+        cfg = load_config(OTHER, ov)
+        ws = [run("person1", d) for d in (0, 2, 4)] + [run("person2", 4, mm=3, blocks=MATCH)]
+        p2 = people(ws, 5, cfg)["person2"]
+        self.assertEqual((row(p2, ws[3])["plan"], row(p2, ws[3])["caught_up"], p2["plan"]["completed"]), ("W1D1", False, 1))
+
+    def test_same_day_joint_no_catch_up(self):
+        ws = [run("person1", 0), run("person2", 0, blocks=MATCH), run("person1", 2), run("person2", 2, mm=3, blocks=MATCH)]
+        ps = people(ws, 3)
+        for p, w in (("person1", ws[2]), ("person2", ws[3])):
+            self.assertEqual((row(ps[p], w)["plan"], row(ps[p], w)["caught_up"], ps[p]["plan"]["completed"]), ("W1D2", False, 2))
+
+    def test_removed_run_with_review(self):
+        w = run("person1", 0, blocks=BIKE, review={"decision": "plan", "type_match": None}, excluded=True)
+        p = people([w], 1)["person1"]
+        self.assertEqual((p["plan"]["state"], p["xp"], row(p, w)["check"], row(p, w)["review"]["decision"]), ("W1D1", 0, None, "plan"))
+        w["excluded"] = False
+        self.assertEqual(people([w], 1)["person1"]["plan"]["state"], "W1D2")
+
+    def test_unreadable_blocks_count_by_duration(self):
+        w = run("person1", 0, blocks={"error": True})
+        p = people([w], 1)["person1"]
+        self.assertEqual((p["plan"]["state"], row(p, w)["check"]["state"]), ("W1D2", "none"))
+
+    def test_plan_payload_programme(self):
+        plan = sp([], 1)["plan"]
+        self.assertEqual((plan["cooldown_s"], plan["steps"], plan["times"], plan["review_pending"]),
+                         (300, [["run", 60], ["walk", 90]], 8, 0))
+        self.assertEqual(len(plan["intervals"]), 16)
+
+    def test_no_plan_person(self):
+        for history in ([], [{"plan": None, "from": "2026-10-26"}]):
+            ov = overlay(group=COUPLE)
+            ov["people"]["person2"]["plan_history"] = history
+            cfg = load_config(DEFAULT, ov)
+            ws = [run("person2", 0, blocks=MATCH), run("person1", 2), run("person2", 2, mm=3, blocks=MATCH)]
+            ps = people(ws, 3, cfg)
+            self.assertIsNone(ps["person2"]["plan"])
+            self.assertEqual([(row(ps["person2"], w)["check"], row(ps["person2"], w)["plan"]) for w in (ws[0], ws[2])],
+                             [(None, None), (None, None)])
+            self.assertTrue(row(ps["person2"], ws[2])["joint"])
+            self.assertEqual((row(ps["person1"], ws[1])["plan"], row(ps["person1"], ws[1])["caught_up"]), ("W1D1", False))
 
 
 def lift(w, r):
