@@ -15,6 +15,7 @@ def can_edit(viewer_person: str | None, is_admin: bool, target: str) -> bool:
 
 
 def can_connect(viewer_person: str | None, is_admin: bool, target: str) -> bool:
+    # unlike can_edit, an admin who is no person may: setting up the household's phones is the admin's job, scoring is not
     return is_admin or viewer_person == target
 
 
@@ -37,7 +38,7 @@ def shape(scores: dict, viewer_person: str | None, is_admin: bool, steps_by_pers
                        for p, r in scores["people"].items()},
             "viewer": {"person": viewer_person,
                        "can_edit": [p for p in scores["people"] if can_edit(viewer_person, is_admin, p)],
-                       "admin": is_admin}}
+                       "can_connect": [p for p in scores["people"] if can_connect(viewer_person, is_admin, p)]}}
 
 
 def older_feed(scores: dict, person: str, before: date) -> dict:

@@ -66,10 +66,10 @@
     timer = setTimeout(load, data ? 60000 : 30000);
   }
 
-  // The Connect card's data for the viewer's own person and whoever they may edit; a failed or refused request leaves the card as it was (hidden).
+  // The Connect card's data for whoever the viewer may connect; a refused or failed request hides that person's card (a lost right, a gone person).
   const loadConnects = (d) =>
     connectIds(d.viewer, d.people).forEach((id) =>
-      get(`connect?person=${encodeURIComponent(id)}`).then((info) => { connects[id] = info; }, () => {}));
+      get(`connect?person=${encodeURIComponent(id)}`).then((info) => { connects[id] = info; }, () => { delete connects[id]; }));
 
   $effect(() => {
     load();
@@ -111,7 +111,7 @@
     {/if}
   {:else}
     <Status scoredAt={data.scored_at} configError={data.config_error} settingsError={data.settings_error} {now} />
-    {#if connectTop}<Connect info={connects[split.self]} {now} />{/if}
+    {#if connectTop}<Connect info={connects[split.self]} {now} person={people[split.self]} />{/if}
     {#if split.self}
       <!-- mapped viewer: the others compact on top, the own tile full width, the own details (Task 8) below -->
       {#if split.others.length}

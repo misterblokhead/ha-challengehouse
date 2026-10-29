@@ -54,9 +54,9 @@ async def test_scores_wait_for_the_first_payload(hass, client, send):
     resp = await c.get(f"{UI}/scores")
     assert resp.status == 200
     body = await resp.json()
-    assert body["people"] == {p: {**r, "shoes": [], "steps_today": None, "steps_week": None} for p, r in SCORES["people"].items()} and body["viewer"] == {"person": "p1", "can_edit": ["p1"], "admin": False}
+    assert body["people"] == {p: {**r, "shoes": [], "steps_today": None, "steps_week": None} for p, r in SCORES["people"].items()} and body["viewer"] == {"person": "p1", "can_edit": ["p1"], "can_connect": ["p1"]}
     robin = await (await (await client("robin")).get(f"{UI}/scores")).json()
-    assert robin["viewer"] == {"person": None, "can_edit": [], "admin": True}
+    assert robin["viewer"] == {"person": None, "can_edit": [], "can_connect": ["p1", "p2"]}  # an admin who is no person
 
 
 

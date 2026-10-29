@@ -1,4 +1,4 @@
-import { $ as e, $t as t, A as n, At as r, B as i, Bt as a, C as o, Ct as s, D as c, Dt as l, E as u, Et as d, F as f, Ft as p, G as m, Gt as h, H as g, Ht as _, I as v, It as y, J as b, Jt as x, K as S, Kt as C, L as w, Lt as T, M as E, Mt as D, N as O, Nt as k, O as A, Ot as j, P as M, Pt as N, Q as P, Qt as F, R as I, Rt as L, S as ee, St as R, T as z, Tt as B, U as V, Ut as H, V as te, Vt as U, W, Wt as G, X as ne, Xt as re, Y as ie, Yt as ae, Z as oe, Zt as se, _ as ce, _t as le, a as ue, at as de, b as fe, bt as K, c as pe, ct as me, d as he, dt as q, en as ge, et as _e, f as ve, ft as ye, g as be, gt as J, h as xe, ht as Y, i as Se, in as Ce, it as we, j as Te, jt as X, k as Ee, kt as De, l as Oe, lt as ke, m as Ae, mt as je, n as Me, nn as Ne, nt as Pe, o as Fe, ot as Ie, p as Le, pt as Re, q as ze, qt as Z, rn as Be, rt as Q, s as Ve, st as He, t as Ue, tt as We, u as Ge, ut as Ke, v as qe, vt as Je, w as Ye, wt as Xe, x as Ze, xt as Qe, y as $e, yt as et, z as tt, zt as $ } from "./shared-fHTYD0sh.js";
+import { $ as e, $t as t, A as n, At as r, B as i, Bt as a, C as o, Ct as s, D as c, Dt as l, E as u, Et as d, F as f, Ft as p, G as m, Gt as h, H as g, Ht as _, I as v, It as y, J as b, Jt as x, K as S, Kt as C, L as w, Lt as T, M as E, Mt as D, N as O, Nt as k, O as A, Ot as j, P as M, Pt as N, Q as P, Qt as F, R as I, Rt as L, S as ee, St as R, T as z, Tt as B, U as V, Ut as H, V as te, Vt as U, W, Wt as G, X as ne, Xt as re, Y as ie, Yt as ae, Z as oe, Zt as se, _ as ce, _t as le, a as ue, at as de, b as fe, bt as K, c as pe, ct as me, d as he, dt as q, en as ge, et as _e, f as ve, ft as ye, g as be, gt as J, h as xe, ht as Y, i as Se, in as Ce, it as we, j as Te, jt as X, k as Ee, kt as De, l as Oe, lt as ke, m as Ae, mt as je, n as Me, nn as Ne, nt as Pe, o as Fe, ot as Ie, p as Le, pt as Re, q as ze, qt as Z, rn as Be, rt as Q, s as Ve, st as He, t as Ue, tt as We, u as Ge, ut as Ke, v as qe, vt as Je, w as Ye, wt as Xe, x as Ze, xt as Qe, y as $e, yt as et, z as tt, zt as $ } from "./shared-oHYzPqTx.js";
 // src/lib/actions.svelte.js
 var nt = 5e3, rt = H({}), it = H({}), at = H({
 	on: !1,
@@ -79,17 +79,17 @@ async function vt(e, t, n) {
 	return st.n++, dt("Moved to the other shoe"), !0;
 }
 // src/lib/ui/Connect.svelte
-var yt = j("<div class=\"url svelte-gy3e4s\"><input readonly=\"\" aria-label=\"Your address\" class=\"svelte-gy3e4s\"/> <button type=\"button\" class=\"btn press\">Copy</button></div>"), bt = j("<p class=\"warn svelte-gy3e4s\">This address only works at home.</p>"), xt = j("<p class=\"caption svelte-gy3e4s\"> </p> <div class=\"choice svelte-gy3e4s\"><button type=\"button\" class=\"btn press svelte-gy3e4s\">iPhone</button> <button type=\"button\" class=\"btn press svelte-gy3e4s\">Android</button></div>", 1), St = j("<li class=\"svelte-gy3e4s\"> </li>"), Ct = j("<ol class=\"svelte-gy3e4s\"></ol>"), wt = j("<p class=\"caption svelte-gy3e4s\"> <b> </b>, then Add to Home Screen.</p>"), Tt = j("<p> </p> <!> <!> <!> <!>", 1), Et = j("<details class=\"card connect svelte-gy3e4s\"><summary class=\"svelte-gy3e4s\">Connect your phone <small class=\"svelte-gy3e4s\"> </small></summary> <div class=\"inner svelte-gy3e4s\"><!></div></details>"), Dt = j("<section class=\"card connect svelte-gy3e4s\" aria-label=\"Connect your phone\"><div class=\"inner svelte-gy3e4s\"><h2 class=\"svelte-gy3e4s\">Connect your phone</h2><!></div></section>");
+var yt = j("<div class=\"url svelte-gy3e4s\"><input readonly=\"\" aria-label=\"Your address\" class=\"svelte-gy3e4s\"/> <button type=\"button\" class=\"btn press\" aria-label=\"Copy address\">Copy</button></div>"), bt = j("<p class=\"warn svelte-gy3e4s\">This address only works at home.</p>"), xt = j("<p class=\"caption svelte-gy3e4s\"> </p> <div class=\"choice svelte-gy3e4s\"><button type=\"button\" class=\"btn press svelte-gy3e4s\">iPhone</button> <button type=\"button\" class=\"btn press svelte-gy3e4s\">Android</button></div>", 1), St = j("<li class=\"svelte-gy3e4s\"> </li>"), Ct = j("<ol class=\"svelte-gy3e4s\"></ol>"), wt = j("<p class=\"caption svelte-gy3e4s\"> <b> </b>, then Add to Home Screen.</p>"), Tt = j("<p> </p> <!> <!> <!> <!>", 1), Et = j("<details class=\"card connect svelte-gy3e4s\"><summary class=\"svelte-gy3e4s\">Connect your phone <small class=\"svelte-gy3e4s\"> </small></summary> <div class=\"inner svelte-gy3e4s\"><!></div></details>"), Dt = j("<section class=\"card connect svelte-gy3e4s\" aria-label=\"Connect your phone\"><div class=\"inner svelte-gy3e4s\"><h2 class=\"svelte-gy3e4s\">Connect your phone</h2><!></div></section>");
 function Ot(e, t) {
 	x(t, !0);
 	let n = (e) => {
 		var n = Tt(), r = a(n);
-		let l;
-		var m = U(r, !0), h = _(r, 2), g = (e) => {
+		let i;
+		var l = U(r, !0), h = _(r, 2), g = (e) => {
 			var n = yt(), r = $(n);
-			Ke(r), Ie(r, (e) => G(f, e), () => N(f));
+			Ke(r), Ie(r, (e) => G(p, e), () => N(p));
 			var i = _(r, 2);
-			F(n), y(() => ye(r, t.info.url)), k("focus", r, (e) => e.currentTarget.select()), D("click", i, p), d(e, n);
+			F(n), y(() => ye(r, t.info.url)), k("focus", r, (e) => e.currentTarget.select()), D("click", i, m), d(e, n);
 		};
 		s(h, (e) => {
 			t.info.url && e(g);
@@ -102,17 +102,17 @@ function Ot(e, t) {
 			t.info.external || e(b);
 		});
 		var x = _(v, 2), S = (e) => {
-			var t = xt(), n = a(t), r = U(n, !0), o = _(n, 2), s = $(o), l = _(s, 2);
-			F(o), y(() => B(r, N(c).title)), D("click", s, () => G(i, "iphone")), D("click", l, () => G(i, "android")), d(e, t);
+			var t = xt(), n = a(t), r = U(n, !0), i = _(n, 2), s = $(i), c = _(s, 2);
+			F(i), y(() => B(r, N(u).title)), D("click", s, () => G(o, "iphone")), D("click", c, () => G(o, "android")), d(e, t);
 		}, C = (e) => {
 			var t = Ct();
-			K(t, 20, () => N(c).steps, (e) => e, (e, t) => {
+			K(t, 20, () => N(u).steps, (e) => e, (e, t) => {
 				var n = St(), r = U(n, !0);
 				y(() => B(r, t)), d(e, n);
 			}), F(t), d(e, t);
 		};
 		s(x, (e) => {
-			N(o) ? e(C, -1) : e(S);
+			N(c) ? e(C, -1) : e(S);
 		});
 		var w = _(x, 2), T = (e) => {
 			var n = wt(), r = $(n), i = _(r), a = U(i, !0);
@@ -123,28 +123,33 @@ function Ot(e, t) {
 		s(w, (e) => {
 			t.info.opengym?.invite && e(T);
 		}), y(() => {
-			l = J(r, 1, "status svelte-gy3e4s", null, l, { ok: N(u).state === "connected" }), B(m, N(u).text);
+			i = J(r, 1, "status svelte-gy3e4s", null, i, { ok: N(f).state === "connected" }), B(l, N(f).text);
 		}), d(e, n);
-	}, r = Q(t, "collapsed", 3, !1), i = h(null), o = C(() => t.info.phone ?? N(i)), c = C(() => fe(N(o))), u = C(() => $e(t.info, t.now)), f = h(void 0);
-	async function p() {
+	}, r = Q(t, "person", 3, null), i = Q(t, "collapsed", 3, !1), o = h(null), c = C(() => t.info.phone ?? N(o)), u = C(() => fe(N(c))), f = C(() => $e(t.info, t.now, r())), p = h(void 0);
+	async function m() {
+		N(p).focus(), N(p).setSelectionRange(0, N(p).value.length);
+		let e = !1;
 		try {
-			await navigator.clipboard.writeText(t.info.url), dt("Address copied");
+			await navigator.clipboard.writeText(t.info.url), e = !0;
 		} catch {
-			N(f).select();
+			try {
+				e = document.execCommand("copy");
+			} catch {}
 		}
+		dt(e ? "Copied" : "Select and copy the address");
 	}
-	var m = l(), g = a(m), v = (e) => {
+	var g = l(), v = a(g), b = (e) => {
 		var t = Et(), r = $(t), i = _($(r)), a = U(i, !0);
 		F(r);
 		var o = _(r, 2), s = $(o);
-		n(s), F(o), F(t), y(() => B(a, N(u).state === "connected" ? "Connected" : "Waiting")), d(e, t);
-	}, b = (e) => {
+		n(s), F(o), F(t), y(() => B(a, N(f).state === "connected" ? "Connected" : "Waiting")), d(e, t);
+	}, S = (e) => {
 		var t = Dt(), r = $(t), i = _($(r));
 		n(i), F(r), F(t), d(e, t);
 	};
-	s(g, (e) => {
-		r() ? e(v) : e(b, -1);
-	}), d(e, m), Z();
+	s(v, (e) => {
+		i() ? e(b) : e(S, -1);
+	}), d(e, g), Z();
 }
 X(["click"]);
 // src/lib/ui/Badges.svelte
@@ -729,7 +734,7 @@ var Hn = j("<p class=\"msg\" role=\"status\"> </p>"), Un = j("<p class=\"msg\" r
 function pr(e, t) {
 	let n = r();
 	x(t, !0);
-	let i = Q(t, "shoes", 3, null), o = () => import("./viz-3I83KMq2.js"), c, u = h(null), f = h(null), p = h(null), g = h(null), v = h(null), b = h(!1), S = 0;
+	let i = Q(t, "shoes", 3, null), o = () => import("./viz-NEfEx8y9.js"), c, u = h(null), f = h(null), p = h(null), g = h(null), v = h(null), b = h(!1), S = 0;
 	async function w(e) {
 		let n = c.show();
 		if (!n) return;
@@ -1098,6 +1103,9 @@ function yr(e, t) {
 			},
 			get now() {
 				return t.now;
+			},
+			get person() {
+				return t.person;
 			},
 			collapsed: !0
 		});
@@ -1729,7 +1737,9 @@ function xi(e, t) {
 	}
 	let O = (e) => ce(e.viewer, e.people).forEach((e) => Ne(`connect?person=${encodeURIComponent(e)}`).then((t) => {
 		w[e] = t;
-	}, () => {}));
+	}, () => {
+		delete w[e];
+	}));
 	T(() => {
 		D();
 		let e = () => document.hidden || D();
@@ -1789,6 +1799,9 @@ function xi(e, t) {
 				},
 				get now() {
 					return N(S);
+				},
+				get person() {
+					return N(k)[N(j).self];
 				}
 			});
 		};

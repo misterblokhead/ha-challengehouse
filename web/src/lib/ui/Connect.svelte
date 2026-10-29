@@ -4,20 +4,25 @@
 
   // How a person's phone reaches fitbridge: their webhook address (a secret: the integration only answers the person and admins),
   // the steps for their phone and whether a workout has arrived. `collapsed`: a row that opens (Details); else a card (top of the page).
-  let { info, now, collapsed = false } = $props();
+  let { info, now, person = null, collapsed = false } = $props();
   let picked = $state(null); // a choice made here when the integration has no phone for this person; it is not saved
   const phone = $derived(info.phone ?? picked);
   const guide = $derived(connectSteps(phone));
-  const status = $derived(connectStatus(info, now));
+  const status = $derived(connectStatus(info, now, person));
   let field = $state();
 
+  // Selected first, so it is ready to copy by hand when neither copy works (no Clipboard API on plain http; iOS wants a selection).
   async function copy() {
+    field.focus();
+    field.setSelectionRange(0, field.value.length);
+    let copied = false;
     try {
       await navigator.clipboard.writeText(info.url);
-      say("Address copied");
+      copied = true;
     } catch {
-      field.select(); // no Clipboard API (plain http): leave it selected for a manual copy
+      try { copied = document.execCommand("copy"); } catch { /* none left: the selection stays */ }
     }
+    say(copied ? "Copied" : "Select and copy the address");
   }
 </script>
 
@@ -26,7 +31,7 @@
   {#if info.url}
     <div class="url">
       <input bind:this={field} readonly value={info.url} aria-label="Your address" onfocus={(e) => e.currentTarget.select()} />
-      <button type="button" class="btn press" onclick={copy}>Copy</button>
+      <button type="button" class="btn press" onclick={copy} aria-label="Copy address">Copy</button>
     </div>
   {/if}
   {#if !info.external}<p class="warn">This address only works at home.</p>{/if}

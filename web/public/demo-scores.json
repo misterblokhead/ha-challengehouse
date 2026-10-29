@@ -815,7 +815,10 @@
       "alex",
       "jo"
     ],
-    "admin": true
+    "can_connect": [
+      "alex",
+      "jo"
+    ]
   },
   "settings_error": null
 }

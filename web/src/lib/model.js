@@ -284,10 +284,9 @@ export const recordKeys = (pbs) => new Set([...(pbs?.lifts ?? []).map((l) => l.k
 // On top of the page only for a fresh person: nothing received yet and no workouts on the page (migrated people keep it in Details).
 export const connectOnTop = (person, info) => !!info && info.last_received == null && !person.feed.length;
 
-// The people to ask `connect` about: for an admin everyone (mapped to a person or not), else the viewer's own and whoever they may edit;
-// the integration says 403 to the rest.
+// The people to ask `connect` about: whoever the integration says the viewer may connect (core.can_connect), own person first.
 export const connectIds = (viewer, people) =>
-  [...new Set([viewer.person, ...(viewer.admin ? Object.keys(people) : viewer.can_edit ?? [])])].filter((id) => Object.hasOwn(people, id));
+  [...new Set([viewer.person, ...(viewer.can_connect ?? [])])].filter((id) => Object.hasOwn(people, id));
 
 const STEPS = {
   iphone: {
@@ -310,9 +309,10 @@ const STEPS = {
 };
 export const connectSteps = (phone) => STEPS[phone] ?? { title: "Which phone do you have?", steps: [] };
 
-// "Connected · last workout received today, 07:05" (local time; the date instead of "today" on another day)
-export function connectStatus(info, now) {
-  if (info.last_received == null) return { state: "waiting", text: "Waiting for the first workout" };
+// "Connected · last workout received today, 07:05" (local time; the date instead of "today" on another day). Nothing received yet:
+// a person with workouts already (migrated from before the update) is not waiting for a first one.
+export function connectStatus(info, now, person = null) {
+  if (info.last_received == null) return { state: "waiting", text: person?.feed?.length ? "No upload since this update" : "Waiting for the first workout" };
   const at = new Date(info.last_received);
   const day = at.toDateString() === now.toDateString() ? "today" : `${at.getDate()} ${MONTHS[at.getMonth()]}`;
   return { state: "connected", text: `Connected · last workout received ${day}, ${pad(at.getHours())}:${pad(at.getMinutes())}` };

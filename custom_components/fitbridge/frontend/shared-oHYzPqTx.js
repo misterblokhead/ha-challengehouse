@@ -2772,7 +2772,7 @@ var Va = (e) => `${e.w} ${e.unit} × ${e.r}`, Ha = [
 })), Ga = (e) => Ua(e).map(({ group: e, lifts: t }) => ({
 	group: e,
 	lifts: [...t].sort((e, t) => e.name.localeCompare(t.name))
-})), Ka = (e) => `${Math.floor(e / 60)}:${Xi(e % 60)}`, qa = (e) => new Set([...(e?.lifts ?? []).map((e) => e.key), e?.fastest_1k?.key].filter(Boolean)), Ja = (e, t) => !!t && t.last_received == null && !e.feed.length, Ya = (e, t) => [.../* @__PURE__ */ new Set([e.person, ...e.admin ? Object.keys(t) : e.can_edit ?? []])].filter((e) => Object.hasOwn(t, e)), Xa = {
+})), Ka = (e) => `${Math.floor(e / 60)}:${Xi(e % 60)}`, qa = (e) => new Set([...(e?.lifts ?? []).map((e) => e.key), e?.fastest_1k?.key].filter(Boolean)), Ja = (e, t) => !!t && t.last_received == null && !e.feed.length, Ya = (e, t) => [.../* @__PURE__ */ new Set([e.person, ...e.can_connect ?? []])].filter((e) => Object.hasOwn(t, e)), Xa = {
 	iphone: {
 		title: "iPhone",
 		steps: [
@@ -2794,15 +2794,15 @@ var Va = (e) => `${e.w} ${e.unit} × ${e.r}`, Ha = [
 	title: "Which phone do you have?",
 	steps: []
 };
-function Qa(e, t) {
+function Qa(e, t, n = null) {
 	if (e.last_received == null) return {
 		state: "waiting",
-		text: "Waiting for the first workout"
+		text: n?.feed?.length ? "No upload since this update" : "Waiting for the first workout"
 	};
-	let n = new Date(e.last_received);
+	let r = new Date(e.last_received);
 	return {
 		state: "connected",
-		text: `Connected · last workout received ${n.toDateString() === t.toDateString() ? "today" : `${n.getDate()} ${ua[n.getMonth()]}`}, ${Xi(n.getHours())}:${Xi(n.getMinutes())}`
+		text: `Connected · last workout received ${r.toDateString() === t.toDateString() ? "today" : `${r.getDate()} ${ua[r.getMonth()]}`}, ${Xi(r.getHours())}:${Xi(r.getMinutes())}`
 	};
 }
 // src/lib/details.js

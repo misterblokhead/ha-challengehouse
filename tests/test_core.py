@@ -36,11 +36,11 @@ def test_can_connect(person, admin, target, expected):
 
 def test_shape_adds_viewer():
     out = core.shape(SCORES, "p1", False)
-    assert out["viewer"] == {"person": "p1", "can_edit": ["p1"], "admin": False}
+    assert out["viewer"] == {"person": "p1", "can_edit": ["p1"], "can_connect": ["p1"]}
     assert out["people"] == {p: {**r, "shoes": [], "steps_today": None, "steps_week": None} for p, r in SCORES["people"].items()}
     assert "viewer" not in SCORES and "shoes" not in SCORES["people"]["p1"]
     assert core.shape(SCORES, "p1", True)["viewer"]["can_edit"] == ["p1", "p2"]
-    assert core.shape(SCORES, None, True)["viewer"] == {"person": None, "can_edit": [], "admin": True}
+    assert core.shape(SCORES, None, True)["viewer"] == {"person": None, "can_edit": [], "can_connect": ["p1", "p2"]}
 
 
 def test_public_drops_older_and_keeps_an_error_payload():

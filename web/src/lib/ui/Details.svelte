@@ -50,7 +50,7 @@
   {#if manage}<ShoesDialog bind:this={shoesDialog} person={id} shoes={p.shoes} />{/if}
 {/if}
 
-{#if connect}<Connect info={connect} {now} collapsed />{/if}
+{#if connect}<Connect info={connect} {now} person={p} collapsed />{/if}
 
 <style>
   h2 {

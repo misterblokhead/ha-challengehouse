@@ -508,15 +508,20 @@ test("connectStatus: waiting, or connected with the local time of the last worko
   assert.deepEqual(connectStatus({ last_received: null }, now), { state: "waiting", text: "Waiting for the first workout" });
   assert.deepEqual(connectStatus({ last_received: at.toISOString() }, now), { state: "connected", text: "Connected · last workout received today, 07:05" });
   assert.equal(connectStatus({ last_received: at.toISOString() }, new Date(2026, 10, 2)).text, "Connected · last workout received 29 Oct, 07:05");
+  assert.deepEqual(connectStatus({ last_received: null }, now, { feed: [] }), { state: "waiting", text: "Waiting for the first workout" });
 });
 
-test("connectIds: the viewer's own person and everyone they can edit (admins: all), once, only people on the page", () => {
+test("connectStatus: a migrated person (workouts, but nothing received since the update) is not waiting for a first workout", () => {
+  assert.deepEqual(connectStatus({ last_received: null }, new Date(2026, 9, 29), { feed: [{ key: "a" }] }),
+    { state: "waiting", text: "No upload since this update" });
+});
+
+test("connectIds: whoever the integration says the viewer may connect, own person first, once, only people on the page", () => {
   const people = { a: {}, b: {}, c: {} };
-  assert.deepEqual(connectIds({ person: "a", can_edit: ["a"] }, people), ["a"]);
-  assert.deepEqual(connectIds({ person: "a", can_edit: ["a", "b", "c"] }, people), ["a", "b", "c"]);
-  assert.deepEqual(connectIds({ person: null, can_edit: ["b", "gone"] }, people), ["b"]);
-  assert.deepEqual(connectIds({ person: null, can_edit: [] }, people), []);
-  assert.deepEqual(connectIds({ person: null }, people), []); // an older payload without can_edit
-  assert.deepEqual(connectIds({ person: null, can_edit: [], admin: true }, people), ["a", "b", "c"]); // an admin who is no person
-  assert.deepEqual(connectIds({ person: "b", can_edit: ["a", "b", "c"], admin: true }, people), ["b", "a", "c"]); // own person first
+  assert.deepEqual(connectIds({ person: "a", can_connect: ["a"] }, people), ["a"]);
+  assert.deepEqual(connectIds({ person: "b", can_connect: ["a", "b", "c"] }, people), ["b", "a", "c"]); // own person first
+  assert.deepEqual(connectIds({ person: null, can_connect: ["b", "gone"] }, people), ["b"]); // an admin who is no person
+  assert.deepEqual(connectIds({ person: null, can_connect: [] }, people), []);
+  assert.deepEqual(connectIds({ person: null }, people), []); // an older payload without can_connect
+  assert.deepEqual(connectIds({ person: "a", can_edit: ["a", "b"] }, people), ["a"]); // can_edit is not the connect rule
 });
