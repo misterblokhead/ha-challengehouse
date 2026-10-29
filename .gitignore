@@ -4,3 +4,5 @@ __pycache__/
 .worktrees/
 tests/.venv/
 web/node_modules/
+*.local.md
+*.local/
