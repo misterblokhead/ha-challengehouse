@@ -358,7 +358,7 @@ def score_person(workouts, paused, cfg, person, now, steps=None, settings=None, 
                      days_left=7 - today.weekday(), progress=int(100 * progress),
                      goal=goal, last_week=last_week),
         "streak": streak, "best_streak": c["best_streak"],
-        "plan": active and {
+        "plan": {
             "state": f"W{nxt['week']}D{nxt['day']}" if nxt else "Graduated",
             "plan": history[i]["plan"], "completed": done[i], "warmup_s": nxt["warmup_s"] if nxt else None,
             "week": nxt["week"] if nxt else None, "day": nxt["day"] if nxt else None,
@@ -366,7 +366,7 @@ def score_person(workouts, paused, cfg, person, now, steps=None, settings=None, 
             "intervals": [list(iv) for iv in nxt["intervals"]] if nxt else [],
             "due_today": (nxt is not None and wkst["runs"] < goal["runs"] and today not in paused
                           and (last_run is None or (today - last_run).days >= 2)),
-        },
+        } if active else None,
         "weekly": weekly,
         "counters": c,
         "unlocked_at": unlocked_at,

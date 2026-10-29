@@ -307,4 +307,4 @@ async def test_runner_uses_options_people(hass, setup, caplog):
     await setup({OPT_PEOPLE: {"mine": {"name": "Mine", "plan_history": []}}, OPT_GROUP: None})
     assert set(await _runner(hass).async_people()) == {"mine"}
     assert _runner(hass).scores["people"].keys() == {"mine"}
-    assert len([r for r in caplog.records if "Configure" in r.message]) == 1
+    assert not [r for r in caplog.records if "Configure" in r.message]  # the migration said it, once

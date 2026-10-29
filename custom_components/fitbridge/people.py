@@ -40,16 +40,18 @@ def _json_safe(value):
     return value.isoformat() if isinstance(value, date) else value  # a TOML datetime is a date too
 
 
-def from_toml(text: str) -> dict | None:
-    """{"people", "group", "start"} of a scoring.toml, tables unchanged, dates as ISO strings; None when it has no
-    [people]. Raises when the TOML does not parse or has no valid rules.start."""
+def from_toml(text: str) -> tuple[dict | None, str | None]:
+    """({"people", "group", "start"} of a scoring.toml, tables unchanged, dates as ISO strings, or None when it has no
+    [people]; its rules.timezone). Raises when the TOML does not parse or has people but no valid rules.start."""
     raw = tomllib.loads(text)
+    rules = raw.get("rules", {})
     if "people" not in raw:
-        return None
-    start = raw.get("rules", {}).get("start")
+        return None, rules.get("timezone")
+    start = rules.get("start")
     if not isinstance(start, date) or isinstance(start, datetime):
         raise ValueError("rules.start must be a date")
-    return {OPT_PEOPLE: _json_safe(raw["people"]), OPT_GROUP: _json_safe(raw.get("group")), OPT_START: start.isoformat()}
+    return ({OPT_PEOPLE: _json_safe(raw["people"]), OPT_GROUP: _json_safe(raw.get("group")), OPT_START: start.isoformat()},
+            rules.get("timezone"))
 
 
 def person(name: str, pick: str | None, today: date) -> dict:

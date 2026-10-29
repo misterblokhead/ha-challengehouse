@@ -60,15 +60,15 @@ def test_with_plan_appends_and_a_stop_without_a_plan_changes_nothing():
 
 
 def test_from_toml():
-    assert people.from_toml(TOML) == {
+    assert people.from_toml(TOML) == ({
         OPT_PEOPLE: {
             "person1": {"name": "Person 1", "goal": {"runs": 3},
                         "plan_history": [{"plan": "c25k", "from": "2026-10-26"}, {"plan": "free", "from": "2026-12-01"}]},
             "person2": {"name": "Person 2"}},
         OPT_GROUP: {"name": "couple", "members": ["person1", "person2"]},
-        OPT_START: "2026-10-26"}
+        OPT_START: "2026-10-26"}, "Europe/Amsterdam")
 
 
 def test_from_toml_without_people_or_group():
-    assert people.from_toml("[rules]\nstart = 2026-10-26\n") is None
-    assert people.from_toml(TOML.split("[group]")[0])[OPT_GROUP] is None
+    assert people.from_toml("[rules]\nstart = 2026-10-26\n") == (None, None)
+    assert people.from_toml(TOML.split("[group]")[0])[0][OPT_GROUP] is None

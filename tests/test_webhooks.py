@@ -178,7 +178,7 @@ async def test_urls_are_homeassistants_own_never_a_cloudhook(hass, setup):
         assert webhooks.async_url(hass, hook) == f"/api/webhook/{hook}"  # none at all: the path to put a host before
 
 
-async def test_last_received_set_on_new_upload_only(hass, setup, client, freezer):
+async def test_last_received_set_on_every_accepted_upload(hass, setup, client, freezer):
     freezer.move_to("2026-10-28 12:00:00+00:00")
     e = await setup()
     runner = hass.data[DOMAIN].runner
@@ -186,16 +186,22 @@ async def test_last_received_set_on_new_upload_only(hass, setup, client, freezer
     await _post(hass, client, e.data[WEBHOOKS][P0], gpx_with_points())
     assert runner.last_received(P0) == "2026-10-28T12:00:00+00:00" and runner.last_received(P1) is None
     freezer.move_to("2026-10-28 13:00:00+00:00")
-    await _post(hass, client, e.data[WEBHOOKS][P0], gpx_with_points())  # a phone retry: nothing new
-    assert runner.last_received(P0) == "2026-10-28T12:00:00+00:00"
+    await _post(hass, client, e.data[WEBHOOKS][P0], gpx_with_points())  # a phone retry: nothing new, but the phone works
+    assert runner.last_received(P0) == "2026-10-28T13:00:00+00:00"
+    freezer.move_to("2026-10-28 14:00:00+00:00")
+    await _post(hass, client, e.data[WEBHOOKS][P0], b"junk", status=400)  # not accepted
+    assert runner.last_received(P0) == "2026-10-28T13:00:00+00:00"
 
 
-async def test_last_received_set_by_a_new_folder_file_only(hass, setup, tmp_path, freezer):
+async def test_last_received_set_by_every_folder_file_stored(hass, setup, tmp_path, freezer):
     freezer.move_to("2026-10-28 12:00:00+00:00")
     (tmp_path / "run.gpx").write_bytes(gpx_with_points())
     await setup({OPT_FOLDERS: {P0: str(tmp_path)}})
     runner = hass.data[DOMAIN].runner
-    for at, expected in (("12:01:01", "2026-10-28T12:01:01+00:00"), ("12:02:02", "2026-10-28T12:01:01+00:00")):  # then unchanged
+    for at, expected in (("12:01:01", "2026-10-28T12:01:01+00:00"), ("12:02:02", "2026-10-28T12:01:01+00:00"),  # then unchanged
+                         ("12:03:03", "2026-10-28T12:03:03+00:00")):  # a copy of the same workout: stored, nothing new
+        if at == "12:03:03":
+            (tmp_path / "copy.gpx").write_bytes(gpx_with_points())
         freezer.move_to(f"2026-10-28 {at}+00:00")
         async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=1))
         await hass.async_block_till_done(wait_background_tasks=True)

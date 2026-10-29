@@ -20,6 +20,7 @@ from custom_components.fitbridge.const import (
     OPT_VIEWERS,
     WEBHOOKS,
 )
+from custom_components.fitbridge.runner import received_key
 from custom_components.fitbridge.settings import monday_of
 
 UI = "/api/fitbridge/ui"
@@ -576,7 +577,7 @@ async def test_connect_for_self(hass, entry, client, send):
     hass.config_entries.async_update_entry(entry, data={WEBHOOKS: {"p1": "hook1"}}, options={
         **entry.options, OPT_PHONES: {"p1": "iphone"}, OPT_OPENGYM_URL: "https://gym.example.test", OPT_INVITES: {"p1": "code1"}})
     hass.config.external_url = "https://ha.example.test"
-    hass.data[DOMAIN].runner.store.kv_set("last_received:p1", "2026-10-28T12:00:00+00:00")
+    hass.data[DOMAIN].runner.store.kv_set(received_key("p1"), "2026-10-28T12:00:00+00:00")
     resp = await (await client("alex")).get(f"{UI}/connect", params={"person": "p1"})
     assert resp.status == 200
     assert await resp.json() == {

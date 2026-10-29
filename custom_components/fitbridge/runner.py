@@ -5,7 +5,6 @@ import logging
 import secrets
 import shutil
 import time
-import tomllib
 from datetime import timedelta
 from pathlib import Path
 
@@ -34,12 +33,9 @@ ISSUE_TOKEN = "opengym_token"
 DEFAULT_CONFIG = Path(__file__).parent / "engine" / "scoring.toml"
 
 
-def _has_people(config: Path) -> bool:
-    try:
-        raw = tomllib.loads(config.read_text(encoding="utf-8"))
-    except (OSError, ValueError):  # the holder reports an unreadable file
-        return False
-    return "people" in raw or "group" in raw
+def received_key(person: str) -> str:
+    """The store's kv key for when an upload or folder file of person last arrived."""
+    return f"last_received:{person}"
 
 
 class Runner:
@@ -114,8 +110,9 @@ class Runner:
         return reply
 
     def last_received(self, person: str) -> str | None:
-        """When something new from person last arrived (ISO, UTC); reads the store, so call it in the executor."""
-        return self.store.kv_get(f"last_received:{person}") if self.store else None
+        """When an accepted upload or a stored folder file of person last arrived (ISO, UTC); reads the store, so call it
+        in the executor."""
+        return self.store.kv_get(received_key(person)) if self.store else None
 
     async def async_details(self, person: str, key: str) -> dict | None:
         """What a workout's pop-up shows, read in the executor from the store and the archived GPX; None when the last
@@ -261,11 +258,7 @@ class Runner:
         config = self.dir / "scoring.toml"
         if not config.exists():  # the user's copy is never overwritten
             shutil.copyfile(DEFAULT_CONFIG, config)
-        overlay = people.overlay(self.entry.options, self.hass.config.time_zone)
-        if overlay and _has_people(config):
-            _LOGGER.info("People, group and start date come from Settings -> Devices & services -> ChallengeHouse -> Configure; "
-                         "those in scoring.toml are ignored")
-        self.holder = ConfigHolder(config, overlay)
+        self.holder = ConfigHolder(config, people.overlay(self.entry.options, self.hass.config.time_zone))
         return Store(self.dir / "fitbridge.db")
 
     def _cycle(self, og, inputs):
@@ -273,12 +266,11 @@ class Runner:
 
     def _ingest(self, person: str, body: bytes) -> dict:
         reply = ingest_body(self.store, self.dir / "archive", person, body)
-        if reply["new"]:
-            self._received(person)
+        self._received(person)  # accepted, new or not: the phone gets through
         return reply
 
     def _received(self, person: str) -> None:
-        self.store.kv_set(f"last_received:{person}", dt_util.utcnow().isoformat(timespec="seconds"))
+        self.store.kv_set(received_key(person), dt_util.utcnow().isoformat(timespec="seconds"))
 
     def _scan(self) -> set[str]:
         """Scans each person's folder; returns the people whose folder is not there."""

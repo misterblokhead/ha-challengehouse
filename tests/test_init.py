@@ -33,12 +33,17 @@ async def test_panel_registered_and_removed_on_unload(hass, entry):
 
 
 async def test_migrate_copies_people_once(hass, setup, caplog):
+    caplog.set_level(logging.INFO)
     await hass.config.async_set_time_zone("Europe/Amsterdam")
     path = _toml(hass, OLD_TOML)
     e = await setup({OPT_VIEWERS: {"u1": "person1"}}, minor_version=3)
     assert e.minor_version == 4
     assert e.options == {OPT_VIEWERS: {"u1": "person1"}, OPT_PEOPLE: PEOPLE, OPT_GROUP: GROUP, OPT_START: "2026-10-26"}
     assert "timezone" not in caplog.text and path.read_text(encoding="utf-8") == OLD_TOML  # the file is left alone
+    assert len([r for r in caplog.records if "edit them in Configure" in r.message]) == 1
+    await hass.config_entries.async_reload(e.entry_id)
+    await hass.async_block_till_done(wait_background_tasks=True)
+    assert len([r for r in caplog.records if "edit them in Configure" in r.message]) == 1  # once, not every start
 
 
 async def test_migrate_keeps_the_people_already_in_the_options(hass, setup):

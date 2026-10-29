@@ -178,20 +178,21 @@ def ingest_gpx(store, archive: Path, person: str, data: bytes) -> bool:
 
 
 def scan_folder(store, archive: Path, person: str, folder: Path) -> bool:
-    """Stores each new GPX file in folder; True when one brought a new workout."""
-    new = False
+    """Stores each new or changed GPX file in folder; True when it stored one (a new workout or not)."""
+    stored = False
     for path in sorted(folder.glob("*.gpx")):
         if store.file_seen(path):
             continue
         data = path.read_bytes()
         try:
-            new |= ingest_gpx(store, archive, person, data)
+            ingest_gpx(store, archive, person, data)
         except (ET.ParseError, ValueError, TypeError) as e:
             # shortcut: a half-synced file parses badly; it is retried when mtime/size change
             log.warning("unreadable GPX %s: %s", path.name, type(e.__cause__ or e).__name__)  # Unreadable: its cause
             continue
         store.mark_seen(path)
-    return new
+        stored = True
+    return stored
 
 
 def ingest_export(store, archive: Path, person: str, body: bytes):

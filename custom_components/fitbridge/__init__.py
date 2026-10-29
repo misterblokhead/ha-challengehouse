@@ -1,6 +1,5 @@
 """Fitness page: runs fitbridge's scoring (runner.py), shows it as sensors and events and serves it to a sidebar panel."""
 import logging
-import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -67,7 +66,7 @@ def _old_settings(path: Path) -> tuple[dict | None, str | None]:
         text = path.read_text(encoding="utf-8")
     except FileNotFoundError:
         return None, None
-    return people.from_toml(text), tomllib.loads(text).get("rules", {}).get("timezone")
+    return people.from_toml(text)
 
 
 async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -85,7 +84,9 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         options = dict(entry.options)
         if old and OPT_PEOPLE not in options:  # copied once: what Configure holds is never overwritten by the file
             options |= {k: v for k, v in old.items() if v is not None}
-            if timezone != hass.config.time_zone:
+            _LOGGER.info("People, group and start date moved from scoring.toml into the ChallengeHouse options; those in "
+                         "scoring.toml are now ignored: edit them in Configure")
+            if timezone and timezone != hass.config.time_zone:
                 _LOGGER.warning("scoring.toml has timezone %s, Home Assistant has %s: Home Assistant's is used", timezone, hass.config.time_zone)
         elif OPT_PEOPLE not in options:
             _LOGGER.warning("scoring.toml has no people to move (missing or without [people]); add them in Configure -> People")
