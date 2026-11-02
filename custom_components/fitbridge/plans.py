@@ -1,7 +1,6 @@
 """Custom running plans built on the Fitness page: validated, ids, loaded from a Store; the runner hands them to the
 engine in the overlay."""
 import logging
-import math
 import re
 
 from homeassistant.util import slugify
@@ -57,8 +56,8 @@ def _session(s, at: str) -> dict:
     elif kind == "duration":
         out["target"] = {"type": kind, "fraction": FRACTIONS[kind]}
     elif kind == "distance":
-        km = t.get("km")
-        if isinstance(km, bool) or not isinstance(km, (int, float)) or not math.isfinite(km) or not 0.1 <= km <= 100:
+        km = t.get("km")  # no float() or isfinite: a huge int overflows; the range test refuses it, NaN and inf
+        if isinstance(km, bool) or not isinstance(km, (int, float)) or not 0.1 <= km <= 100:
             _bad(f"{at}.target.km", "must be a number 0.1-100")
         out["target"] = {"type": kind, "km": km, "fraction": FRACTIONS[kind]}
     else:

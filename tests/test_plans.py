@@ -39,6 +39,8 @@ def _body(**session):
     (_body(times=51), "weeks.1.sessions.1.times"),
     (_body(target={"type": "distance", "km": 0.05}), "weeks.1.sessions.1.target.km"),
     (_body(target={"type": "distance", "km": 101}), "weeks.1.sessions.1.target.km"),
+    *[(_body(target={"type": "distance", "km": km}), "weeks.1.sessions.1.target.km")
+      for km in (10**400, float("nan"), float("inf"), True, "5", None)],
     (_body(note="n" * 81), "weeks.1.sessions.1.note"),
     (_body(warmup_s=10801), "weeks.1.sessions.1.warmup_s"),
     ("nope", "body"),
