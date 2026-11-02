@@ -10,7 +10,7 @@ from homeassistant.util import dt as dt_util
 
 from . import settings
 from . import webhooks
-from .const import DOMAIN, OPT_INVITES, OPT_OPENGYM_LINK, OPT_OPENGYM_URL, OPT_PHONES, OPT_STEPS, OPT_VIEWERS, WEBHOOKS
+from .const import DOMAIN, OPT_INVITES, OPT_OPENGYM_LINK, OPT_OPENGYM_URL, OPT_PHONES, OPT_START, OPT_STEPS, OPT_VIEWERS, WEBHOOKS
 from .core import can_connect, can_edit, find_workout, older_feed, shape, viewer_person
 from .engine import shoes as shoe_engine
 from .steps import parse, week
@@ -56,6 +56,14 @@ def _defaults(scores: dict) -> dict:
             out[p] = {"runs": goal.get("runs"), "workouts": goal.get("workouts", goal.get("gym")),
                       "active_days": goal.get("active_days"), "steps": goal.get("steps")}
     return out
+
+
+def _start(options: dict) -> date | None:
+    """The challenge's start date from the options; None when it is missing or not an ISO date."""
+    try:
+        return date.fromisoformat(options.get(OPT_START))
+    except (TypeError, ValueError):
+        return None
 
 
 def _whole(body: dict, field: str) -> int:
@@ -126,9 +134,12 @@ class UiView(HomeAssistantView):
                 return _detail(self, "not found", HTTPStatus.NOT_FOUND)
             return self.json(body)
         if path == "settings":
-            monday = settings.monday_of(dt_util.now().date())
-            return self.json({"history": data.settings_history, "profiles": data.settings_profiles, "current": settings.current(data.settings_history, monday),
-                              "week_start": monday.isoformat(), "defaults": _defaults(data.scores)})
+            today = dt_util.now().date()
+            monday, history = settings.monday_of(today), data.settings_history
+            return self.json({"history": history, "profiles": data.settings_profiles, "current": settings.current(history, monday),
+                              "pending": settings.pending(history, monday), "week_start": monday.isoformat(),
+                              "applies_from": settings.applies_from(history, today, _start(data.entry.options)).isoformat(),
+                              "defaults": _defaults(data.scores)})
         shaped = self._scores(request, data)
         return self.json({p: r["shoes"] for p, r in shaped["people"].items()} if path == "shoes" else shaped)
 
@@ -202,12 +213,18 @@ class UiView(HomeAssistantView):
         user = request["hass_user"]
         if viewer_person(user.id, data.entry.options.get(OPT_VIEWERS, {}), data.scores) is None:
             return _detail(self, "not allowed", HTTPStatus.FORBIDDEN)
+        today = dt_util.now().date()
+        if isinstance(body, dict) and body.get("action") == "cancel":
+            history = settings.cancel(data.settings_history, settings.monday_of(today))
+            await data.settings_store.async_save({"history": history, "profiles": data.settings_profiles})
+            data.settings_history = history
+            return self.json({"ok": True}, status_code=HTTPStatus.ACCEPTED)
         try:
             entry = settings.validate(body, data.scores["people"])
             profiles = settings.merge_profiles(data.settings_profiles, body.get("profiles"), data.scores["people"])
         except ValueError as err:
             return _detail(self, str(err), HTTPStatus.BAD_REQUEST)
-        monday = settings.monday_of(dt_util.now().date())
+        monday = settings.applies_from(data.settings_history, today, _start(data.entry.options))
         history = settings.put(data.settings_history, entry, monday)
         await data.settings_store.async_save({"history": history, "profiles": profiles})
         data.settings_history, data.settings_profiles = history, profiles  # only once stored: a failed save leaves GET on the old goals
