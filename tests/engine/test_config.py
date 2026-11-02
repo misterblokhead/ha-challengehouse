@@ -8,7 +8,7 @@ from custom_components.fitbridge.engine.scoring_config import COUNTERS, ConfigEr
 
 from . import LEGACY_PEOPLE, ONE, TWO, overlay
 
-DEFAULT = (Path(__file__).parents[2] / "custom_components" / "fitbridge" / "engine" / "scoring.toml").read_text()
+DEFAULT = (Path(__file__).parents[2] / "custom_components" / "fitbridge" / "engine" / "scoring.toml").read_text(encoding="utf-8")
 
 
 # The shipped plans win by id, so a test that edits a plan edits this renamed copy of c25k.
@@ -253,6 +253,10 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(plans["c25k"]["name"], "Couch to 5K")
         self.assertIn("extra", plans)
         self.assertIn("higdon_10k", plans)
+
+    def test_a_users_plan_without_a_name_is_named_by_its_id(self):
+        text = DEFAULT + "\n[[plans.old.weeks]]\nsessions = [{ warmup_s = 0, target = { type = 'none' } }]\n"  # a copy from before names
+        self.assertEqual(load_config(text, TWO)["plans"]["old"]["name"], "old")
 
     def test_shipped_plan_badges_replace_the_users(self):
         text = DEFAULT.replace('title = "C25K week {t}"', 'title = "Old {t}"')

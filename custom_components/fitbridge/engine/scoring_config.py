@@ -293,6 +293,9 @@ def _shipped():
 def _merge_shipped(cfg):
     """The shipped plans and plan badges win by id over the user's copy, which is never overwritten."""
     shipped = copy.deepcopy(_shipped())
+    for pid, p in cfg.get("plans", {}).items():
+        if isinstance(p, dict):
+            p.setdefault("name", pid)  # a copy from before plan names: name newly required
     cfg["plans"] = {**cfg.get("plans", {}), **shipped["plans"]}
     badges = cfg.setdefault("badges", [])
     for sb in (b for b in shipped["badges"] if b["category"] == "plan"):

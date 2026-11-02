@@ -147,9 +147,9 @@ def _badge_id(badge, t):
     return f"{badge['id']}_{t:g}"
 
 
-def _counter(badge):
-    """The counter key a badge reads: a badge naming a plan counts that plan only."""
-    return f"{badge['counter']}:{badge['plan']}" if "plan" in badge else badge["counter"]
+def _counter(name, plan=None):
+    """A counter's key: plan_weeks of one plan (a badge naming a plan) has its own."""
+    return f"{name}:{plan}" if plan else name
 
 
 def _bump(counters, unlocked_at, badges, day, name, by=1, to=None):
@@ -159,7 +159,7 @@ def _bump(counters, unlocked_at, badges, day, name, by=1, to=None):
     old = counters[name]
     new = counters[name] = round(old + by, 6) if to is None else max(old, to)  # float sums: 1.1*9+0.1 must reach 10
     for b in badges:
-        if _counter(b) == name:
+        if _counter(b["counter"], b.get("plan")) == name:
             for t in b["thresholds"]:
                 if old < t <= new:
                     unlocked_at.setdefault(_badge_id(b, t), day.isoformat())
@@ -250,7 +250,8 @@ def plan_progress(cleaned, cfg, now):
         n, loop = len(ss), cfg["plans"][plan].get("loop", False)   # a loop's session for count k is ss[k % n]
         if (done[i] >= n and not loop) or plan_days[p, d] >= cfg["plan"]["max_sessions_per_day"]:
             return None
-        catch_up = [lead[1]] if lead and lead[0] == plan and lead[1] > done[i] and lead[1] // n == done[i] // n else []
+        rnd = done[i] // n                         # the loop round of the own next session (0 for a plan that ends)
+        catch_up = [lead[1]] if lead and lead[0] == plan and lead[1] > done[i] and lead[1] // n == rnd else []
         for j in catch_up + [done[i]]:             # the partner's day first; failing that, the own next day
             s = ss[j % n]
             if not _meets(w, s):
@@ -264,10 +265,12 @@ def plan_progress(cleaned, cfg, now):
             return None
         caught_up, done[i] = j != done[i], j + 1   # a catch-up skips the days in between: progress, no entry, no XP
         plan_days[p, d] += 1
-        end_of_week = done[i] % n == 0 or ss[done[i] % n]["week"] != s["week"]   # a round's end ends its last week
+        k = done[i] % n                            # the next session's place in its round
+        end_of_week = k == 0 or ss[k]["week"] != s["week"]   # a round's end ends its last week
+        # weeks done: those of earlier rounds, then this round's up to s's week (s's own once it ends)
+        weeks_done = rnd * ss[-1]["week"] + s["week"] - (not end_of_week)
         pp["by_key"][w["key"]] = {"label": c["label"], "week": s["week"], "graduated": not loop and done[i] == n,
-                                  "caught_up": caught_up, "end_of_week": end_of_week, "plan": plan,
-                                  "weeks_done": s["week"] - (not end_of_week) + j // n * ss[-1]["week"]}
+                                  "caught_up": caught_up, "end_of_week": end_of_week, "plan": plan, "weeks_done": weeks_done}
         return plan, j
 
     seen = set()
@@ -317,7 +320,7 @@ def score_person(workouts, paused, cfg, person, now, steps=None, settings=None, 
             d = local_date(w["start"], tz)
             by_week[d - timedelta(days=d.weekday())].append((d, w))
 
-    c, unlocked_at = dict.fromkeys([*COUNTERS, *(f"plan_weeks:{pid}" for pid in cfg["plans"])], 0), {}
+    c, unlocked_at = dict.fromkeys([*COUNTERS, *(_counter("plan_weeks", pid) for pid in cfg["plans"])], 0), {}
     bump = partial(_bump, c, unlocked_at, cfg["badges"])
     streak, last_run, weekly, last_week = 0, None, {}, None
     workout_xp = defaultdict(float)                # XP per workout key: the feed's numbers and, summed, the total
@@ -420,7 +423,7 @@ def score_person(workouts, paused, cfg, person, now, steps=None, settings=None, 
             if s:
                 workout_xp[w["key"]] += xpc["plan_session"]
                 bump(d, "plan_weeks", to=s["weeks_done"])  # a catch-up past a week's end completes that week too
-                bump(d, f"plan_weeks:{s['plan']}", to=s["weeks_done"])
+                bump(d, _counter("plan_weeks", s["plan"]), to=s["weeks_done"])
                 if s["graduated"]:
                     bump(d, "plan_graduated")
 
@@ -445,8 +448,8 @@ def score_person(workouts, paused, cfg, person, now, steps=None, settings=None, 
     i = _active_plan(history, today) or 0
     active = history[i]["plan"] if history else None   # no history, or a stopped plan: no plan block
     loop = bool(active) and cfg["plans"][active].get("loop", False)
-    n = len(sessions[i]) if active else 0
-    nxt = sessions[i][done[i] % n] if active and (loop or done[i] < n) else None   # a loop never runs out
+    rnd, k = divmod(done[i], len(sessions[i])) if active else (0, 0)   # loop round, place in the round
+    nxt = sessions[i][k] if active and (loop or rnd == 0) else None   # a loop never runs out
     total = sum(goal[k] for k in GOAL_KEYS)        # `goal` is this week's now
     progress = sum(min(wkst[k], goal[k]) for k in GOAL_KEYS) / total if total else 1
     return {
@@ -458,7 +461,7 @@ def score_person(workouts, paused, cfg, person, now, steps=None, settings=None, 
         "plan": {
             "state": f"W{nxt['week']}D{nxt['day']}" if nxt else "Graduated",
             "plan": history[i]["plan"], "name": cfg["plans"][active]["name"], "note": nxt["note"] if nxt else None,
-            "loop": loop, "round": done[i] // n + 1 if loop else 1, "weeks": len(cfg["plans"][active]["weeks"]),
+            "loop": loop, "round": rnd + 1 if loop else 1, "weeks": len(cfg["plans"][active]["weeks"]),
             "completed": done[i], "warmup_s": nxt["warmup_s"] if nxt else None,
             "week": nxt["week"] if nxt else None, "day": nxt["day"] if nxt else None,
             "target": nxt["target"] if nxt else None,
@@ -491,7 +494,7 @@ def _badges(cfg, counters, unlocked_at):
                                      "category": b["category"]}
         locked = [t for t in b["thresholds"] if _badge_id(b, t) not in unlocked_at]
         if locked and not b.get("hidden"):
-            nxt.append(dict(info[_badge_id(b, locked[0])], current=round(counters[_counter(b)], 2), target=locked[0]))
+            nxt.append(dict(info[_badge_id(b, locked[0])], current=round(counters[_counter(b["counter"], b.get("plan"))], 2), target=locked[0]))
     nxt.sort(key=lambda n: n["current"] / n["target"], reverse=True)
     # unlocked_at is filled in workout order, so reversed = newest first
     unlocked = [dict(info[i], unlocked_at=d) for i, d in reversed(unlocked_at.items())]
