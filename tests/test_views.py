@@ -294,14 +294,26 @@ async def test_a_save_after_the_first_waits_for_next_monday(hass, client, send, 
     assert len(hass_storage["fitbridge.settings"]["data"]["history"]) == 3
 
 
-async def test_before_the_start_a_save_applies_this_week(hass, entry, client, send, hass_storage):
-    later = (dt_util.now().date() + timedelta(days=3)).isoformat()
-    hass.config_entries.async_update_entry(entry, options={**entry.options, OPT_START: later})
+async def test_before_the_start_a_save_applies_this_week_and_drops_a_waiting_change(hass, entry, client, send, hass_storage):
     await send(SCORES)
     c = await client("alex")
     await c.post(f"{UI}/settings", json=SETTINGS)
-    assert (await (await c.post(f"{UI}/settings", json=_mode("own"))).json())["from"] == _this_monday()
-    assert [e["couple"]["mode"] for e in hass_storage["fitbridge.settings"]["data"]["history"]] == ["own"]
+    await c.post(f"{UI}/settings", json=_mode("own"))  # started: waits for next Monday
+    later = (dt_util.now().date() + timedelta(days=3)).isoformat()
+    hass.config_entries.async_update_entry(entry, options={**entry.options, OPT_START: later})
+    assert (await (await c.post(f"{UI}/settings", json=_mode("team"))).json())["from"] == _this_monday()
+    assert [(e["from"], e["couple"]["mode"]) for e in hass_storage["fitbridge.settings"]["data"]["history"]] == [(_this_monday(), "team")]
+
+
+async def test_a_save_without_a_goal_change_applies_now_and_drops_the_waiting_change(hass, client, send, hass_storage):
+    await send(SCORES)
+    c = await client("alex")
+    await c.post(f"{UI}/settings", json=SETTINGS)
+    resp = await c.post(f"{UI}/settings", json={**SETTINGS, "profiles": {"p1": {"birth_year": 1990}}})  # only a birth year
+    assert await resp.json() == {"ok": True, "from": _this_monday()}
+    await c.post(f"{UI}/settings", json=_mode("own"))
+    assert (await (await c.post(f"{UI}/settings", json=SETTINGS)).json())["from"] == _this_monday()  # this week's goals back
+    assert hass_storage["fitbridge.settings"]["data"] == {"history": [{"from": _this_monday(), **SETTINGS}], "profiles": {"p1": {"birth_year": 1990}}}
 
 
 async def test_cancel_drops_the_waiting_change_and_keeps_profiles(hass, client, send, hass_storage):
@@ -311,9 +323,9 @@ async def test_cancel_drops_the_waiting_change_and_keeps_profiles(hass, client, 
     await c.post(f"{UI}/settings", json={**SETTINGS, "profiles": profiles})
     await c.post(f"{UI}/settings", json=_mode("own"))
     assert (await (await client("robin")).post(f"{UI}/settings", json={"action": "cancel"})).status == 403
-    for _ in range(2):  # the second has nothing left to drop
+    for cancelled in (True, False):  # the second has nothing left to drop (already in force, or cancelled elsewhere)
         resp = await c.post(f"{UI}/settings", json={"action": "cancel"})
-        assert resp.status == 202 and await resp.json() == {"ok": True}
+        assert resp.status == 202 and await resp.json() == {"ok": True, "cancelled": cancelled}
         assert hass_storage["fitbridge.settings"]["data"] == {"history": [{"from": _this_monday(), **SETTINGS}], "profiles": profiles}
 
 

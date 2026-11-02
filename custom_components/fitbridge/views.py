@@ -214,18 +214,24 @@ class UiView(HomeAssistantView):
         if viewer_person(user.id, data.entry.options.get(OPT_VIEWERS, {}), data.scores) is None:
             return _detail(self, "not allowed", HTTPStatus.FORBIDDEN)
         today = dt_util.now().date()
+        this_monday = settings.monday_of(today)
         if isinstance(body, dict) and body.get("action") == "cancel":
-            history = settings.cancel(data.settings_history, settings.monday_of(today))
+            history = settings.cancel(data.settings_history, this_monday)
+            cancelled = len(history) != len(data.settings_history)  # false: already in force (past midnight Sunday) or cancelled elsewhere
             await data.settings_store.async_save({"history": history, "profiles": data.settings_profiles})
             data.settings_history = history
-            return self.json({"ok": True}, status_code=HTTPStatus.ACCEPTED)
+            return self.json({"ok": True, "cancelled": cancelled}, status_code=HTTPStatus.ACCEPTED)
         try:
             entry = settings.validate(body, data.scores["people"])
             profiles = settings.merge_profiles(data.settings_profiles, body.get("profiles"), data.scores["people"])
         except ValueError as err:
             return _detail(self, str(err), HTTPStatus.BAD_REQUEST)
-        monday = settings.applies_from(data.settings_history, today, _start(data.entry.options))
-        history = settings.put(data.settings_history, entry, monday)
+        cur = settings.current(data.settings_history, this_monday)
+        if cur is not None and {k: v for k, v in cur.items() if k != "from"} == entry:  # no goal change (a birth year only): nothing waits
+            monday, history = this_monday, settings.cancel(data.settings_history, this_monday)
+        else:  # a change already waiting is replaced, or dropped when this one applies sooner
+            monday = settings.applies_from(data.settings_history, today, _start(data.entry.options))
+            history = settings.put(settings.cancel(data.settings_history, monday), entry, monday)
         await data.settings_store.async_save({"history": history, "profiles": profiles})
         data.settings_history, data.settings_profiles = history, profiles  # only once stored: a failed save leaves GET on the old goals
         return self.json({"ok": True, "from": monday.isoformat()}, status_code=HTTPStatus.ACCEPTED)

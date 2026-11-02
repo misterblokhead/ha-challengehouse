@@ -33,12 +33,13 @@ async function vt(e, t, n) {
 	}), gt(t), $("Saved · updates within 5 min"), !0);
 }
 async function yt() {
+	let e;
 	try {
-		await Ke("POST", "settings", { action: "cancel" });
+		e = await Ke("POST", "settings", { action: "cancel" });
 	} catch (e) {
 		return $(_t(e)), !1;
 	}
-	return $("Change cancelled"), !0;
+	return $(e.cancelled === !1 ? "Nothing to cancel · these goals are in force" : "Change cancelled"), !0;
 }
 async function bt(e, t, n) {
 	let r = `${e}/${t}`, i = ct[r], a = ++mt, o = t.startsWith("manual:"), s = o && n === "remove" ? null : n === "remove";

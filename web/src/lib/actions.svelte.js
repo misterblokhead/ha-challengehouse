@@ -52,13 +52,14 @@ export async function saveGoals(entry, people, weekStart) {
 
 // The Goals sheet's Cancel change: drops the change waiting for next Monday; true once the integration took it.
 export async function cancelGoals() {
+  let r;
   try {
-    await send("POST", "settings", { action: "cancel" });
+    r = await send("POST", "settings", { action: "cancel" });
   } catch (e) {
     say(settingsError(e));
     return false;
   }
-  say("Change cancelled");
+  say(r.cancelled === false ? "Nothing to cancel · these goals are in force" : "Change cancelled"); // past midnight Sunday, or cancelled elsewhere
   return true;
 }
 
