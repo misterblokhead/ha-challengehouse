@@ -1,5 +1,5 @@
 import { get, send } from "./api.js";
-import { goalsDone, pendingDone, serial } from "./model.js";
+import { goalsDone, pendingDone, serial, shortDate } from "./model.js";
 
 // Remove / Restore / Delete from the activity feed. The row changes at once (pending) and settles when a payload shows the change.
 // `pending`: by "person/key", {person, key, want, at, n}; see pendingDone. `toast`: the one message at the bottom, with an optional Undo.
@@ -28,17 +28,38 @@ export function settle(people, now = Date.now()) {
   if (pendingGoals.entry && goalsDone(pendingGoals, people, now)) pendingGoals.entry = null;
 }
 
+const settingsError = (e) => e.detail ?? (e.status === 403 ? "Not allowed" : e.status === 503 ? "Waiting for fitbridge" : "Couldn't reach Home Assistant");
+
 // The Goals sheet's Save; true once the integration took it. `people`: the payload shown now (saving what it already shows leaves nothing pending).
-export async function saveGoals(entry, people) {
+// `weekStart`: this week's Monday; a save the integration files under a later one leaves the tiles on this week's goals.
+export async function saveGoals(entry, people, weekStart) {
+  let r;
   try {
-    await send("POST", "settings", entry);
+    r = await send("POST", "settings", entry);
   } catch (e) {
-    say(e.detail ?? (e.status === 403 ? "Not allowed" : e.status === 503 ? "Waiting for fitbridge" : "Couldn't reach Home Assistant"));
+    say(settingsError(e));
     return false;
+  }
+  if (r.from && r.from > weekStart) {
+    say(`Saved · from Monday ${shortDate(r.from)}`);
+    return true;
   }
   Object.assign(pendingGoals, { entry, at: Date.now() });
   settle(people);
   say("Saved · updates within 5 min");
+  return true;
+}
+
+// The Goals sheet's Cancel change: drops the change waiting for next Monday; true once the integration took it.
+export async function cancelGoals() {
+  let r;
+  try {
+    r = await send("POST", "settings", { action: "cancel" });
+  } catch (e) {
+    say(settingsError(e));
+    return false;
+  }
+  say(r.cancelled === false ? "Nothing to cancel · these goals are in force" : "Change cancelled"); // past midnight Sunday, or cancelled elsewhere
   return true;
 }
 
