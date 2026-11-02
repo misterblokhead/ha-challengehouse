@@ -81,7 +81,7 @@ class ConfigTests(unittest.TestCase):
             (LEGACY.replace('type = "duration"', 'type = "pace"', 1), "target type"),
             (LEGACY.replace('counter = "runs"', 'counter = "nope"', 1), "unknown counter"),
             (LEGACY.replace("[1, 5, 10, 25, 50, 100]", "[5, 1]", 1), "ascending"),
-            (LEGACY.replace('plan = "c25k"', 'plan = "missing"', 1), "unknown plan"),
+            (LEGACY.replace('{ plan = "c25k"', '{ plan = "missing"', 1), "unknown plan"),
             (LEGACY.replace("Europe/Amsterdam", "Nope/Nope"), "timezone"),
             (LEGACY.replace("start = 2026-10-26", "start = 2026-10-26T00:00:00"), "rules.start"),
             (LEGACY.replace("from = 2026-10-26", "from = 2026-10-26T00:00:00", 1), "plan_history"),
@@ -206,12 +206,53 @@ class ConfigTests(unittest.TestCase):
             with self.subTest(text), self.assertRaisesRegex(ConfigError, "malformed config"):
                 load_config(text, TWO)
 
+    def test_higdon_10k_sessions(self):
+        it = plan_sessions(load_config(DEFAULT, TWO), "higdon_10k")
+        self.assertEqual(len(it), 24)
+        self.assertEqual([s["target"]["km"] for s in it][:3], [4.0, 3.2, 4.8])
+        self.assertEqual(it[-1]["target"]["km"], 10.0)
+        self.assertEqual({s["target"]["fraction"] for s in it}, {0.9})
+        self.assertEqual({s["target"]["type"] for s in it}, {"distance"})
+        self.assertTrue(all(s["intervals"] == [] and s["warmup_s"] == 0 for s in it))
+
+    def test_c25k_plus_is_a_loop_of_three(self):
+        plan = load_config(DEFAULT, TWO)["plans"]["c25k_plus"]
+        self.assertIs(plan["loop"], True)
+        it = plan_sessions(load_config(DEFAULT, TWO), "c25k_plus")
+        self.assertEqual(len(it), 3)
+        self.assertEqual([sum(sec for _, sec in s["intervals"]) for s in it], [2100, 1020, 2400])
+        self.assertEqual({(s["warmup_s"], s["cooldown_s"]) for s in it}, {(300, 300)})
+        self.assertEqual([s["note"] for s in it], ["10 min easy, 20 min at your usual pace, 5 min push",
+                                                   "5 min easy, then 12 × (1 min fast, 1 min easy)", "40 min steady"])
+
+    def test_every_shipped_plan_has_an_https_source(self):
+        for pid, plan in load_config(DEFAULT, TWO)["plans"].items():
+            self.assertTrue(plan["source"].startswith("https://"), pid)
+
+    def test_c25k_unchanged(self):
+        it = plan_sessions(load_config(DEFAULT, TWO), "c25k")
+        self.assertEqual(len(it), 27)
+        self.assertEqual([s["total_s"] for s in it][:3] + [it[14]["total_s"], it[15]["total_s"], it[26]["total_s"]],
+                         [1500, 1500, 1500, 1500, 1740, 2100])
+        self.assertTrue(all(s["note"] is None for s in it))
+
+    def test_shipped_plan_badges(self):
+        badges = {b["id"]: b for b in load_config(DEFAULT, TWO)["badges"]}
+        self.assertEqual(badges["plan_week"]["plan"], "c25k")
+        self.assertEqual((badges["plan_week_10k"]["plan"], badges["plan_week_10k"]["thresholds"]), ("higdon_10k", list(range(1, 9))))
+        self.assertEqual((badges["kept_running"]["plan"], badges["kept_running"]["thresholds"]), ("c25k_plus", [4, 12, 26, 52]))
+        self.assertEqual((badges["plans_finished"]["counter"], badges["plans_finished"]["thresholds"]), ("plan_graduated", [1, 3, 5]))
+        self.assertNotIn("plan", badges["plans_finished"])
+        for i in ("plan_week", "plan_week_10k", "kept_running", "plans_finished"):
+            self.assertEqual(badges[i]["category"], "plan", i)
+
     def test_shipped_plans_win_over_the_users_copy(self):
         text = (DEFAULT.replace('name = "Couch to 5K"', 'name = "Mine"') + "\n[plans.extra]\nname = 'Extra'\n"
                 "[[plans.extra.weeks]]\nsessions = [{ warmup_s = 0, target = { type = 'none' } }]\n")
         plans = load_config(text, TWO)["plans"]
         self.assertEqual(plans["c25k"]["name"], "Couch to 5K")
-        self.assertIn("extra", plans)  # Task 3 adds: "higdon_10k" in plans
+        self.assertIn("extra", plans)
+        self.assertIn("higdon_10k", plans)
 
     def test_shipped_plan_badges_replace_the_users(self):
         text = DEFAULT.replace('title = "C25K week {t}"', 'title = "Old {t}"')

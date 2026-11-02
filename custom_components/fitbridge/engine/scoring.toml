@@ -82,6 +82,7 @@ max_sessions_per_day = 1
 # interval list; `repeat = 3` on a week stands for 3 identical sessions.
 [plans.c25k]
 name = "Couch to 5K"
+source = "https://www.nhs.uk/better-health/get-active/get-running-with-couch-to-5k/couch-to-5k-running-plan/"
 
 [[plans.c25k.weeks]]
 repeat = 3
@@ -125,6 +126,80 @@ sessions = [{ warmup_s = 300, cooldown_s = 300, intervals = [["run", 1680]], tar
 repeat = 3
 sessions = [{ warmup_s = 300, cooldown_s = 300, intervals = [["run", 1800]], target = { type = "duration", fraction = 0.8 } }]
 
+# Hal Higdon's Novice 10K (his KM table): three runs a week, distances only.
+[plans.higdon_10k]
+name = "Novice 10K (Hal Higdon)"
+source = "https://www.halhigdon.com/training-programs/10k-training/novice-10k/"
+
+[[plans.higdon_10k.weeks]]
+sessions = [
+  { warmup_s = 0, target = { type = "distance", km = 4.0, fraction = 0.9 } },
+  { warmup_s = 0, target = { type = "distance", km = 3.2, fraction = 0.9 } },
+  { warmup_s = 0, target = { type = "distance", km = 4.8, fraction = 0.9 } },
+]
+
+[[plans.higdon_10k.weeks]]
+sessions = [
+  { warmup_s = 0, target = { type = "distance", km = 4.0, fraction = 0.9 } },
+  { warmup_s = 0, target = { type = "distance", km = 3.2, fraction = 0.9 } },
+  { warmup_s = 0, target = { type = "distance", km = 5.9, fraction = 0.9 } },
+]
+
+[[plans.higdon_10k.weeks]]
+sessions = [
+  { warmup_s = 0, target = { type = "distance", km = 4.0, fraction = 0.9 } },
+  { warmup_s = 0, target = { type = "distance", km = 3.2, fraction = 0.9 } },
+  { warmup_s = 0, target = { type = "distance", km = 6.4, fraction = 0.9 } },
+]
+
+[[plans.higdon_10k.weeks]]
+sessions = [
+  { warmup_s = 0, target = { type = "distance", km = 4.8, fraction = 0.9 } },
+  { warmup_s = 0, target = { type = "distance", km = 3.2, fraction = 0.9 } },
+  { warmup_s = 0, target = { type = "distance", km = 6.4, fraction = 0.9 } },
+]
+
+[[plans.higdon_10k.weeks]]
+sessions = [
+  { warmup_s = 0, target = { type = "distance", km = 4.8, fraction = 0.9 } },
+  { warmup_s = 0, target = { type = "distance", km = 3.2, fraction = 0.9 } },
+  { warmup_s = 0, target = { type = "distance", km = 7.3, fraction = 0.9 } },
+]
+
+[[plans.higdon_10k.weeks]]
+sessions = [
+  { warmup_s = 0, target = { type = "distance", km = 4.8, fraction = 0.9 } },
+  { warmup_s = 0, target = { type = "distance", km = 3.2, fraction = 0.9 } },
+  { warmup_s = 0, target = { type = "distance", km = 8.1, fraction = 0.9 } },
+]
+
+[[plans.higdon_10k.weeks]]
+sessions = [
+  { warmup_s = 0, target = { type = "distance", km = 4.8, fraction = 0.9 } },
+  { warmup_s = 0, target = { type = "distance", km = 3.2, fraction = 0.9 } },
+  { warmup_s = 0, target = { type = "distance", km = 8.9, fraction = 0.9 } },
+]
+
+[[plans.higdon_10k.weeks]]
+sessions = [
+  { warmup_s = 0, target = { type = "distance", km = 4.8, fraction = 0.9 } },
+  { warmup_s = 0, target = { type = "distance", km = 3.2, fraction = 0.9 } },
+  { warmup_s = 0, target = { type = "distance", km = 10.0, fraction = 0.9 } },
+]
+
+# NHS Couch to 5K+ (the podcasts that follow C25K): one week of three sessions, repeated.
+[plans.c25k_plus]
+name = "Keep running (NHS Couch to 5K+)"
+source = "https://www.nhs.uk/better-health/get-active/get-running-with-couch-to-5k/"
+loop = true
+
+[[plans.c25k_plus.weeks]]
+sessions = [
+  { warmup_s = 300, cooldown_s = 300, intervals = [["run", 2100]], note = "10 min easy, 20 min at your usual pace, 5 min push", target = { type = "duration", fraction = 0.8 } },
+  { warmup_s = 300, cooldown_s = 300, intervals = [["run", 1020]], note = "5 min easy, then 12 × (1 min fast, 1 min easy)", target = { type = "duration", fraction = 0.8 } },
+  { warmup_s = 300, cooldown_s = 300, intervals = [["run", 2400]], note = "40 min steady", target = { type = "duration", fraction = 0.8 } },
+]
+
 [[badges]]
 id = "runs"
 counter = "runs"
@@ -154,9 +229,38 @@ category = "running"
 id = "plan_week"
 counter = "plan_weeks"
 thresholds = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+plan = "c25k"
 title = "C25K week {t}"
 titles = { "5" = "Halfway", "9" = "C25K Graduate" }
 icon = "mdi:calendar-check"
+category = "plan"
+
+[[badges]]
+id = "plan_week_10k"
+counter = "plan_weeks"
+plan = "higdon_10k"
+thresholds = [1, 2, 3, 4, 5, 6, 7, 8]
+title = "10K week {t}"
+titles = { "4" = "Halfway", "8" = "10K Graduate" }
+icon = "mdi:calendar-check"
+category = "plan"
+
+[[badges]]
+id = "kept_running"
+counter = "plan_weeks"
+plan = "c25k_plus"
+thresholds = [4, 12, 26, 52]
+title = "Kept running {t} weeks"
+icon = "mdi:run"
+category = "plan"
+
+[[badges]]
+id = "plans_finished"
+counter = "plan_graduated"
+thresholds = [1, 3, 5]
+title = "{t} plans finished"
+titles = { "1" = "Plan finished" }
+icon = "mdi:flag-checkered"
 category = "plan"
 
 [[badges]]
