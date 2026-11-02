@@ -39,27 +39,27 @@
 {:else}
 {#if p.plan || canEdit}
   <section aria-labelledby="{uid}-plan" bind:this={planSection}>
-    <h2 id="{uid}-plan">Plan</h2>
+    <h2 class="heading" id="{uid}-plan">Plan</h2>
     {#if p.plan}<PlanBar plan={p.plan} {canEdit} onchange={() => (plans = { pick: true })} />
     {:else}<button type="button" class="btn choose press" onclick={() => (plans = { pick: true })}>Choose a plan</button>{/if}
   </section>
 {/if}
 <section aria-labelledby="{uid}-feed">
-  <h2 id="{uid}-feed">Activity</h2>
+  <h2 class="heading" id="{uid}-feed">Activity</h2>
   {#key id}<Feed person={id} items={p.feed} {records} onopen={openWorkout} />{/key}
 </section>
 <section aria-labelledby="{uid}-badges">
-  <h2 id="{uid}-badges">Badges <small>{p.badges.count} unlocked</small></h2>
+  <h2 class="heading" id="{uid}-badges">Badges <small>{p.badges.count} unlocked</small></h2>
   <Badges badges={p.badges} />
 </section>
 <section aria-labelledby="{uid}-pbs">
-  <h2 id="{uid}-pbs">Progress</h2>
+  <h2 class="heading" id="{uid}-pbs">Progress</h2>
   <Progress person={p} onopen={openWorkout} />
 </section>
 <WorkoutDialog bind:this={workout} person={id} feed={p.feed} {viewer} shoes={manage ? p.shoes : null} runShoes={p.run_shoes} {reviewTypes} />
 {#if p.shoes?.length || manage}
   <section aria-labelledby="{uid}-shoes">
-    <h2 id="{uid}-shoes">
+    <h2 class="heading" id="{uid}-shoes">
       Shoes
       {#if manage}<button type="button" class="manage press" onclick={() => shoesDialog.open()}>Manage</button>{/if}
     </h2>
@@ -72,10 +72,7 @@
 {/if}
 
 <style>
-  h2 {
-    display: flex; align-items: baseline; justify-content: space-between; margin: 0.5rem 0.25rem 0.5rem;
-    font-size: 1.25rem; font-weight: 700; letter-spacing: -0.01em;
-  }
+  h2 { display: flex; align-items: baseline; justify-content: space-between; margin: 0.5rem 0.25rem 0.5rem; }
   .manage {
     min-width: 2.75rem; min-height: 2.75rem; margin: -0.5rem -0.5rem -0.5rem 0; padding: 0 0.5rem; border: 0; border-radius: var(--radius-ctl);
     background: none; color: var(--accent-text); font: inherit; font-size: 1.0625rem; font-weight: 600;

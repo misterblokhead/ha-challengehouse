@@ -591,7 +591,7 @@ test("gymCaption: the invite sentence in parts (the code is rendered bold); from
 });
 
 // More plans: distance sessions, notes, the plan list and the builder.
-import { planSummary, expandWeeks, sessionSeconds, sessionPlan } from "./model.js";
+import { planSummary, expandWeeks, planMinutes, sessionPlan } from "./model.js";
 
 const dist = { state: "W1D3", warmup_s: 0, cooldown_s: 0, intervals: [], steps: [], times: 1, target: { type: "distance", km: 4.8, fraction: 0.9 }, note: null };
 
@@ -605,6 +605,22 @@ test("programmeText: the session's note comes last", () => {
   assert.equal(programmeText({ ...w1, warmup_s: 0, cooldown_s: 0, times: 1, steps: [["run", 2400]], note: "40 min steady" }), "40 min run · 40 min steady");
   assert.equal(programmeText({ ...dist, note: "easy pace" }), "4.8 km run · easy pace");
   assert.equal(programmeText({ state: "Graduated", steps: [], target: null, note: null }), "");
+});
+
+test("an any-run session: its text, no chip, a check line without blocks", () => {
+  const any = { ...dist, target: { type: "none" } };
+  assert.equal(programmeText(any), "Any run");
+  assert.equal(programmeText({ ...any, warmup_s: 300, note: "easy pace" }), "5 min warm-up walk · Any run · easy pace");
+  const check = { state: "match", found: 0, planned: 0, run_s: 1800, planned_run_s: 0, label: "W1D1", planned_km: null };
+  assert.equal(feedRow({ ...run, check }).chip, null);
+  assert.equal(checkLine(check), "Any run · matches W1D1");
+  assert.equal(checkLine({ ...check, state: "none", run_s: 0 }), "No track to check · any run counts");
+});
+
+test("checkLine: a distance session without a track counts by distance", () => {
+  const check = { state: "none", found: 0, planned: 0, run_s: 0, planned_run_s: 0, label: "W1D3", planned_km: 4.8 };
+  assert.equal(checkLine(check), "No track to check · counts by distance");
+  assert.equal(checkLine({ ...check, state: "match" }, null, 4.87), "4.9 of 4.8 km · matches W1D3");
 });
 
 test("feedRow: a distance session's chip is the km run of the km planned", () => {
@@ -634,10 +650,11 @@ test("expandWeeks: a repeat week becomes its sessions in full, as copies; others
   assert.equal(w[0].sessions[0].warmup_s, 0);
 });
 
-test("sessionSeconds: warm-up, the intervals times over, cool-down", () => {
-  assert.equal(sessionSeconds({ warmup_s: 300, cooldown_s: 300, intervals: [["run", 60], ["walk", 90]], times: 8 }), 1800);
-  assert.equal(sessionSeconds({ warmup_s: 300, intervals: [["run", 1200]] }), 1500);
-  assert.equal(sessionSeconds({ warmup_s: 0, target: { type: "distance", km: 5 } }), 0);
+test("planMinutes: a plan block's warm-up, intervals and cool-down in minutes; a stored session through sessionPlan", () => {
+  assert.equal(planMinutes(sessionPlan({ warmup_s: 300, cooldown_s: 300, intervals: [["run", 60], ["walk", 90]], times: 8 })), 30);
+  assert.equal(planMinutes(sessionPlan({ warmup_s: 300, intervals: [["run", 1200]] })), 25);
+  assert.equal(planMinutes(sessionPlan({ warmup_s: 0, target: { type: "distance", km: 5 } })), 0);
+  assert.equal(planMinutes({ warmup_s: null, cooldown_s: null, intervals: [] }), 0); // a graduated block
 });
 
 test("sessionPlan: a stored session as the plan block planBar and programmeText read", () => {

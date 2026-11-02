@@ -1,12 +1,12 @@
 <script>
-  import { planBar, programmeText } from "../model.js";
+  import { planBar, planMinutes, programmeText } from "../model.js";
 
   // The next session of the running plan: its name, "W1D2" with "Due today" or "Rest day", and its run/walk intervals (a distance session:
   // its km in the text, no bar); a finished plan has none. `canEdit`: a "Change plan" button, calling `onchange`.
   let { plan, canEdit = false, onchange } = $props();
   const next = $derived(plan.week != null); // null: graduated
   const segs = $derived(plan.target?.type === "distance" ? [] : planBar(plan));
-  const minutes = $derived(Math.round(((plan.warmup_s ?? 0) + plan.intervals.reduce((t, [, s]) => t + s, 0) + (plan.cooldown_s ?? 0)) / 60));
+  const minutes = $derived(planMinutes(plan));
   const text = $derived(programmeText(plan));
 </script>
 

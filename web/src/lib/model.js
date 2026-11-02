@@ -78,11 +78,13 @@ const UNCOUNTED = { short: "Too short", easy: "Too easy", type: "Type not counte
 
 const km1 = (km) => String(Math.round(km * 10) / 10); // 4.87 -> "4.9", 10 -> "10"
 
-// The plan-check chip after the plan day: a match "8/8 blocks", a run waiting for its owner's call "Review", an indoor run; else none.
+// The plan-check chip after the plan day: a match "8/8 blocks", a run waiting for its owner's call "Review", an indoor run; else none
+// (an any-run session has nothing to count).
 const chip = (item) => {
   const c = item.check;
   if (item.needs_review) return { text: "Review", tone: "warn" };
   if (c?.planned === 0 && c.planned_km) return { text: `${km1(item.km ?? 0)} of ${km1(c.planned_km)} km`, tone: "plain" }; // a distance session
+  if (c?.planned === 0) return null;
   if (c?.state === "match") return { text: `${c.found}/${c.planned} blocks`, tone: "plain" };
   if (c?.state === "indoor") return { text: "indoor", tone: "plain" };
   return null;
@@ -118,24 +120,24 @@ const half = (s) => Math.round(s / 30) / 2;
 const mins = (s) => `${half(s)} min`;
 
 // The next session as text: "5 min warm-up walk · 8 × (1 min run + 1.5 min walk) · 5 min cool-down walk"; once through (times 1) the steps
-// run on with arrows; a distance session "4.8 km run". The note comes last. "" for no plan or a graduated one.
+// run on with arrows; a distance session "4.8 km run", an any-run one "Any run". The note comes last. "" for no plan or a graduated one.
 export function programmeText(plan) {
   const step = ([kind, s]) => `${mins(s)} ${kind}`;
   const main = plan?.steps?.length
     ? plan.times > 1 ? `${plan.times} × (${plan.steps.map(step).join(" + ")})` : plan.steps.map(step).join(" → ")
-    : plan?.target?.type === "distance" ? `${km1(plan.target.km)} km run` : null;
+    : plan?.target?.type === "distance" ? `${km1(plan.target.km)} km run` : plan?.target?.type === "none" ? "Any run" : null;
   if (!main) return "";
   return [plan.warmup_s > 0 && `${mins(plan.warmup_s)} warm-up walk`, main, plan.cooldown_s > 0 && `${mins(plan.cooldown_s)} cool-down walk`, plan.note].filter(Boolean).join(" · ");
 }
 
 // The plan check of a run in the pop-up: "8 of 8 run blocks · 9.5 of 8 min running · matches W1D2"; a distance session "3.3 of 3.2 km ·
-// matches W1D3". `kmh`: the run's average speed, which an indoor run has no blocks to show instead (the feed row's km over its minutes);
-// `km`: the run's km.
+// matches W1D3"; an any-run session "Any run · matches W1D1". `kmh`: the run's average speed, which an indoor run has no blocks to show
+// instead (the feed row's km over its minutes); `km`: the run's km.
 export function checkLine(c, kmh = null, km = null) {
-  if (c.state === "none") return "No track to check · counts by duration";
+  if (c.state === "none") return `No track to check · ${c.planned_km ? "counts by distance" : c.planned ? "counts by duration" : "any run counts"}`;
   if (c.state === "indoor") return kmh == null ? "Indoor run" : `Indoor: ${kmh.toFixed(1)} km/h average`;
   const fit = c.state === "match" ? "matches" : "doesn't match";
-  if (c.planned === 0 && c.planned_km) return `${km1(km ?? 0)} of ${km1(c.planned_km)} km · ${fit} ${c.label}`;
+  if (c.planned === 0) return `${c.planned_km ? `${km1(km ?? 0)} of ${km1(c.planned_km)} km` : "Any run"} · ${fit} ${c.label}`;
   return `${c.found} of ${c.planned} run blocks · ${half(c.run_s)} of ${mins(c.planned_run_s)} running · ${fit} ${c.label}`;
 }
 
@@ -160,8 +162,8 @@ export function planSummary(p) {
 const copy = (x) => JSON.parse(JSON.stringify(x));
 export const expandWeeks = (weeks) => weeks.map((w) => ({ sessions: Array.from({ length: w.repeat ?? 1 }, () => w.sessions).flat().map(copy) }));
 
-// A stored session's length in seconds (the builder's preview); a distance session's is its warm-up and cool-down.
-export const sessionSeconds = (s) => (s.warmup_s ?? 0) + (s.times ?? 1) * (s.intervals ?? []).reduce((t, [, x]) => t + x, 0) + (s.cooldown_s ?? 0);
+// A plan block's session length in whole minutes: warm-up, the intervals (times over already), cool-down.
+export const planMinutes = (plan) => Math.round(((plan.warmup_s ?? 0) + plan.intervals.reduce((t, [, s]) => t + s, 0) + (plan.cooldown_s ?? 0)) / 60);
 
 // A stored session as the scores' plan block has it, for planBar and programmeText.
 export const sessionPlan = (s) => ({

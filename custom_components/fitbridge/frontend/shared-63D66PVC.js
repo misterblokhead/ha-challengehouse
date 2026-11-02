@@ -2604,7 +2604,7 @@ var ga = (e) => e < 60 ? `${e} min` : e % 60 ? `${Math.floor(e / 60)} h ${ea(e %
 	} : t?.planned === 0 && t.planned_km ? {
 		text: `${va(e.km ?? 0)} of ${va(t.planned_km)} km`,
 		tone: "plain"
-	} : t?.state === "match" ? {
+	} : t?.planned === 0 ? null : t?.state === "match" ? {
 		text: `${t.found}/${t.planned} blocks`,
 		tone: "plain"
 	} : t?.state === "indoor" ? {
@@ -2633,7 +2633,7 @@ var Sa = (e, t, n) => e.flatMap((e) => {
 	}];
 }), Ca = (e, t) => (/* @__PURE__ */ new Date(Date.parse(`${e}T00:00:00Z`) - t * 864e5)).toISOString().slice(0, 10), wa = (e) => Math.round(e / 30) / 2, Ta = (e) => `${wa(e)} min`;
 function Ea(e) {
-	let t = ([e, t]) => `${Ta(t)} ${e}`, n = e?.steps?.length ? e.times > 1 ? `${e.times} × (${e.steps.map(t).join(" + ")})` : e.steps.map(t).join(" → ") : e?.target?.type === "distance" ? `${va(e.target.km)} km run` : null;
+	let t = ([e, t]) => `${Ta(t)} ${e}`, n = e?.steps?.length ? e.times > 1 ? `${e.times} × (${e.steps.map(t).join(" + ")})` : e.steps.map(t).join(" → ") : e?.target?.type === "distance" ? `${va(e.target.km)} km run` : e?.target?.type === "none" ? "Any run" : null;
 	return n ? [
 		e.warmup_s > 0 && `${Ta(e.warmup_s)} warm-up walk`,
 		n,
@@ -2642,10 +2642,10 @@ function Ea(e) {
 	].filter(Boolean).join(" · ") : "";
 }
 function Da(e, t = null, n = null) {
-	if (e.state === "none") return "No track to check · counts by duration";
+	if (e.state === "none") return `No track to check · ${e.planned_km ? "counts by distance" : e.planned ? "counts by duration" : "any run counts"}`;
 	if (e.state === "indoor") return t == null ? "Indoor run" : `Indoor: ${t.toFixed(1)} km/h average`;
 	let r = e.state === "match" ? "matches" : "doesn't match";
-	return e.planned === 0 && e.planned_km ? `${va(n ?? 0)} of ${va(e.planned_km)} km · ${r} ${e.label}` : `${e.found} of ${e.planned} run blocks · ${wa(e.run_s)} of ${Ta(e.planned_run_s)} running · ${r} ${e.label}`;
+	return e.planned === 0 ? `${e.planned_km ? `${va(n ?? 0)} of ${va(e.planned_km)} km` : "Any run"} · ${r} ${e.label}` : `${e.found} of ${e.planned} run blocks · ${wa(e.run_s)} of ${Ta(e.planned_run_s)} running · ${r} ${e.label}`;
 }
 function Oa(e) {
 	if (!e) return [];
@@ -2663,7 +2663,7 @@ function ka(e) {
 	let t = e.weeks.map((e) => e.sessions.length * (e.repeat ?? 1)), n = Math.min(...t), r = Math.max(...t), i = e.weeks.length, a = `${i} ${i === 1 ? "week" : "weeks"}`, o = n === r ? `${a} × ${n} ${n === 1 ? "run" : "runs"}` : `${a} · ${n}-${r} runs a week`;
 	return e.loop ? `${o} · repeats` : o;
 }
-var Aa = (e) => JSON.parse(JSON.stringify(e)), ja = (e) => e.map((e) => ({ sessions: Array.from({ length: e.repeat ?? 1 }, () => e.sessions).flat().map(Aa) })), Ma = (e) => (e.warmup_s ?? 0) + (e.times ?? 1) * (e.intervals ?? []).reduce((e, [, t]) => e + t, 0) + (e.cooldown_s ?? 0), Na = (e) => ({
+var Aa = (e) => JSON.parse(JSON.stringify(e)), ja = (e) => e.map((e) => ({ sessions: Array.from({ length: e.repeat ?? 1 }, () => e.sessions).flat().map(Aa) })), Ma = (e) => Math.round(((e.warmup_s ?? 0) + e.intervals.reduce((e, [, t]) => e + t, 0) + (e.cooldown_s ?? 0)) / 60), Na = (e) => ({
 	...e,
 	cooldown_s: e.cooldown_s ?? 0,
 	steps: e.intervals ?? [],
@@ -3030,4 +3030,4 @@ var jo = (e) => ({
 	Mo.wide = No.matches, Mo.reducedMotion = Po.matches;
 };
 No.addEventListener("change", Fo), Po.addEventListener("change", Fo), Fo();
-export { Ua as $, mn as $t, go as A, ii as At, lo as B, Ar as Bt, ja as C, xi as Ct, Ya as D, mi as Dt, $a as E, gi as Et, to as F, Br as Ft, uo as G, yr as Gt, Oa as H, jr as Ht, Xa as I, zr as It, za as J, ur as Jt, la as K, Q as Kt, xa as L, Nr as Lt, Ia as M, Jr as Mt, ua as N, qr as Nt, so as O, ci as Ot, io as P, Gr as Pt, Ma as Q, pn as Qt, Ca as R, Mr as Rt, ia as S, ki as St, ra as T, yi as Tt, ka as U, xr as Ut, Ra as V, Pr as Vt, Ea as W, br as Wt, Pa as X, En as Xt, Fa as Y, Nn as Yt, Na as Z, sn as Zt, Ja as _, r as _n, Li as _t, To as a, en as an, sa as at, _o as b, Oi as bt, jo as c, tt as cn, no as ct, Eo as d, je as dn, Zi as dt, hn as en, Wa as et, Do as f, Ae as fn, Xi as ft, Da as g, i as gn, Hi as gt, Va as h, n as hn, Wi as ht, Ao as i, Jt as in, fa as it, Za as j, Qr as jt, co as k, ai as kt, xo as l, Qe as ln, da as lt, Ka as m, b as mn, Gi as mt, ko as n, rn as nn, Ha as nt, Oo as o, St as on, ro as ot, Ga as p, g as pn, Ki as pt, aa as q, sr as qt, bo as r, F as rn, La as rt, wo as s, nt as sn, ca as st, Mo as t, gn as tn, Ba as tt, So as u, Xe as un, eo as ut, po as v, t as vn, Ii as vt, ba as w, bi as wt, ho as x, Ai as xt, fo as y, Pi as yt, Sa as z, Or as zt };
+export { Ua as $, mn as $t, go as A, ii as At, lo as B, Ar as Bt, ja as C, xi as Ct, Ya as D, mi as Dt, $a as E, gi as Et, to as F, Br as Ft, Ea as G, yr as Gt, Oa as H, jr as Ht, Xa as I, zr as It, aa as J, ur as Jt, uo as K, Q as Kt, xa as L, Nr as Lt, Ia as M, Jr as Mt, ua as N, qr as Nt, so as O, ci as Ot, io as P, Gr as Pt, Na as Q, pn as Qt, Ca as R, Mr as Rt, ia as S, ki as St, ra as T, yi as Tt, Ma as U, xr as Ut, Ra as V, Pr as Vt, ka as W, br as Wt, Fa as X, En as Xt, za as Y, Nn as Yt, Pa as Z, sn as Zt, Ja as _, r as _n, Li as _t, To as a, en as an, sa as at, _o as b, Oi as bt, jo as c, tt as cn, no as ct, Eo as d, je as dn, Zi as dt, hn as en, Wa as et, Do as f, Ae as fn, Xi as ft, Da as g, i as gn, Hi as gt, Va as h, n as hn, Wi as ht, Ao as i, Jt as in, fa as it, Za as j, Qr as jt, co as k, ai as kt, xo as l, Qe as ln, da as lt, Ka as m, b as mn, Gi as mt, ko as n, rn as nn, Ha as nt, Oo as o, St as on, ro as ot, Ga as p, g as pn, Ki as pt, la as q, sr as qt, bo as r, F as rn, La as rt, wo as s, nt as sn, ca as st, Mo as t, gn as tn, Ba as tt, So as u, Xe as un, eo as ut, po as v, t as vn, Ii as vt, ba as w, bi as wt, ho as x, Ai as xt, fo as y, Pi as yt, Sa as z, Or as zt };

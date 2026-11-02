@@ -1,5 +1,5 @@
 <script>
-  import { planBar, programmeText, sessionPlan, sessionSeconds } from "../model.js";
+  import { planBar, planMinutes, programmeText, sessionPlan } from "../model.js";
 
   // One session of the builder (a sessionDraft, edited in place): warm-up, run/walk rows × times, cool-down, when it is done, a note, and a
   // live preview with the plan bar. `label`: "Week 2, run 1". `ondelete`: removes it (null: the week's only session).
@@ -86,7 +86,7 @@
         {#each segs as g, i (i)}<i style:flex-grow={g.frac} style:background="var(--{g.kind === 'run' ? 'run' : 'fill'})"></i>{/each}
       </div>
     {/if}
-    <p class="caption">{programmeText(plan) || "No run yet"}{#if !dist} · {Math.round(sessionSeconds(s) / 60)} min{/if}</p>
+    <p class="caption">{programmeText(plan) || "No run yet"}{#if !dist} · {planMinutes(plan)} min{/if}</p>
   </div>
 </fieldset>
 

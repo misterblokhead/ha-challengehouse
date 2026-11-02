@@ -2,7 +2,7 @@
   import { onMount, tick } from "svelte";
   import { planOp, say } from "../actions.svelte.js";
   import { get } from "../api.js";
-  import { planSummary } from "../model.js";
+  import { localDay, planSummary } from "../model.js";
 
   // Every plan, to start one for `person` at a chosen week, or stop the current one (the viewer may edit this person). A viewer who is
   // a person may also build plans: "New plan", "Copy & edit", and "Edit" / "Delete" of a custom plan nobody has used.
@@ -28,14 +28,15 @@
   const host = (url) => { try { return new URL(url).hostname.replace(/^www\./, ""); } catch { return "Source"; } };
   function choose(p) {
     chosen = chosen === p.id ? null : p.id;
-    week = 1;
+    week = p.id === current?.plan ? (current.week ?? 1) : 1; // the current plan again: from where it is, not from the start
     deleting = null;
   }
   async function op(body, toast, then) {
     busy = true;
     const r = await planOp(body);
     busy = false;
-    say(r.error ?? toast);
+    // a later "from": today's run already completed a session of the current plan, so the change starts tomorrow
+    say(r.error ?? (r.from && r.from !== localDay() ? `Starts tomorrow: today's run already counted for ${current?.name}` : toast));
     if (!r.error) then();
   }
   const start = (p) => op({ op: "start", person, plan: p.id, start_week: week }, `Started ${p.name}`, onback);
@@ -44,8 +45,8 @@
 </script>
 
 <div class="picker" bind:this={root}>
-  <button type="button" class="back press" bind:this={back} onclick={onback}><span aria-hidden="true">‹</span> Back</button>
-  <h2 id="{uid}-t">{current ? "Change plan" : "Choose a plan"}</h2>
+  <button type="button" class="back-link press" bind:this={back} onclick={onback}><span aria-hidden="true">‹</span> Back</button>
+  <h2 class="heading" id="{uid}-t">{current ? "Change plan" : "Choose a plan"}</h2>
   {#if current}<button type="button" class="btn danger press" disabled={busy} onclick={stop}>Stop plan</button>{/if}
 
   {#if !plans}
@@ -98,11 +99,7 @@
 
 <style>
   .picker { display: flex; flex-direction: column; align-items: stretch; gap: 0.75rem; }
-  .back {
-    align-self: flex-start; min-height: 2.75rem; margin-left: -0.25rem; padding: 0 0.25rem; border: 0; background: none;
-    color: var(--accent-text); font: inherit; font-size: 1.0625rem;
-  }
-  h2 { margin: 0 0.25rem; font-size: 1.25rem; font-weight: 700; letter-spacing: -0.01em; }
+  h2 { margin: 0 0.25rem; }
   ul { margin: 0; padding: 0 1rem; list-style: none; }
   li { padding: 0.25rem 0 0.75rem; }
   li + li { border-top: 1px solid var(--line); }

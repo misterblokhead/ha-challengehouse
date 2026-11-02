@@ -42,8 +42,8 @@
 </script>
 
 <div class="builder">
-  <button type="button" class="back press" bind:this={back} onclick={onback}><span aria-hidden="true">‹</span> Back</button>
-  <h2>{mode === "edit" ? "Edit plan" : "New plan"}</h2>
+  <button type="button" class="back-link press" bind:this={back} onclick={onback}><span aria-hidden="true">‹</span> Back</button>
+  <h2 class="heading">{mode === "edit" ? "Edit plan" : "New plan"}</h2>
   <div class="card head">
     <label class="line">
       <span class="lbl">Name</span>
@@ -82,11 +82,7 @@
 
 <style>
   .builder { display: flex; flex-direction: column; align-items: stretch; gap: 0.75rem; }
-  .back {
-    align-self: flex-start; min-height: 2.75rem; margin-left: -0.25rem; padding: 0 0.25rem; border: 0; background: none;
-    color: var(--accent-text); font: inherit; font-size: 1.0625rem;
-  }
-  h2 { margin: 0 0.25rem; font-size: 1.25rem; font-weight: 700; letter-spacing: -0.01em; }
+  h2 { margin: 0 0.25rem; }
   .card { padding: 0.25rem 1rem; }
   .line { display: flex; align-items: center; gap: 0.5rem; min-height: 3rem; }
   .line + .line { border-top: 1px solid var(--line); }
