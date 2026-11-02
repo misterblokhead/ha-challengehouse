@@ -738,9 +738,11 @@ async def test_save_creates_a_custom_plan_and_rescores(hass, live, hass_storage)
     ({"op": "save", "plan": {**EASY, "name": ""}}, "name: must be text of 1-40 characters"),
     ({"op": "save"}, "body: must be an object"),
     ({"op": "rename"}, "op: save, delete, start or stop"),
+    pytest.param("[" * 200000 + "]" * 200000, "invalid JSON", id="deep-nesting"),  # deeper than the parser goes: RecursionError
 ])
 async def test_a_bad_plan_body_is_400(hass, live, hass_storage, body, detail):
-    resp = await (await live("person1")).post(f"{UI}/plans", json=body)
+    raw = {"data": body, "headers": {"Content-Type": "application/json"}} if isinstance(body, str) else {"json": body}
+    resp = await (await live("person1")).post(f"{UI}/plans", **raw)
     assert resp.status == 400 and (await resp.json())["detail"] == detail
     assert _custom(hass_storage) == {}
 

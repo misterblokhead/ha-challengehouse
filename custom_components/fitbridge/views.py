@@ -45,7 +45,7 @@ async def _json_body(view: HomeAssistantView, request: web.Request, limit: int =
         return None, _detail(view, "body too large", HTTPStatus.REQUEST_ENTITY_TOO_LARGE)
     try:
         return json.loads(raw, parse_constant=_reject_constant), None
-    except ValueError:  # includes bad UTF-8
+    except (ValueError, RecursionError):  # bad UTF-8; nesting deeper than the parser goes
         return None, _detail(view, "invalid JSON", HTTPStatus.BAD_REQUEST)
 
 
