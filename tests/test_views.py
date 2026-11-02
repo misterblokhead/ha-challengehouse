@@ -1,3 +1,4 @@
+import asyncio
 from datetime import date, timedelta
 from unittest.mock import patch
 
@@ -831,3 +832,37 @@ async def test_custom_plans_survive_a_reload(hass, live, hass_storage):
     await hass.config_entries.async_reload(entry.entry_id)
     await hass.async_block_till_done(wait_background_tasks=True)
     assert (await _plans(c))[pid]["by"] == "person1" and pid in hass.data[DOMAIN].custom_plans
+
+
+async def test_a_start_waits_for_a_delete_in_progress(hass, live, hass_storage):
+    c, data = await live("person1"), hass.data[DOMAIN]
+    pid = await _save(c)
+    saving, release, save = asyncio.Event(), asyncio.Event(), data.plans_store.async_save
+
+    async def slow_save(stored):
+        saving.set()
+        await release.wait()
+        await save(stored)
+    with patch.object(data.plans_store, "async_save", side_effect=slow_save):
+        delete = asyncio.ensure_future(c.post(f"{UI}/plans", json={"op": "delete", "id": pid}))
+        await saving.wait()  # the delete passed its used check and is storing
+        start = asyncio.ensure_future(c.post(f"{UI}/plans", json={"op": "start", "person": "person1", "plan": pid}))
+        await asyncio.sleep(0.1)  # without the lock the start would finish here, naming the plan being deleted
+        assert not start.done()
+        release.set()
+        assert (await delete).status == 200 and (await start).status == 404
+    assert _custom(hass_storage) == {} and _history(hass)[-1]["plan"] == "c25k"
+
+
+async def test_a_person_removed_during_a_start_is_404(hass, live):
+    c, data = await live("person1"), hass.data[DOMAIN]
+    entry, plans_of = data.entry, data.runner.async_plans
+
+    async def removed_meanwhile():  # Configure drops person1 while the start awaits the config
+        people = {p: r for p, r in entry.options[OPT_PEOPLE].items() if p != "person1"}
+        hass.config_entries.async_update_entry(entry, options={**entry.options, OPT_PEOPLE: people})
+        return await plans_of()
+    with patch.object(data.runner, "async_plans", side_effect=removed_meanwhile):
+        resp = await c.post(f"{UI}/plans", json={"op": "start", "person": "person1", "plan": "c25k"})
+    assert resp.status == 404 and (await resp.json())["detail"] == "unknown person"
+    assert "person1" not in entry.options[OPT_PEOPLE]

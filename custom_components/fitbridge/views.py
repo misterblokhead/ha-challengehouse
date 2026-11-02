@@ -234,7 +234,10 @@ class UiView(HomeAssistantView):
         data = request.app[KEY_HASS].data.get(DOMAIN)
         if data is None or data.scores is None:
             return _detail(self, "waiting", HTTPStatus.SERVICE_UNAVAILABLE)
-        user = request["hass_user"]
+        async with data.plans_lock:  # one op's checks, store save and options update never interleave with another's
+            return await self._plan_op(data, request["hass_user"], body)
+
+    async def _plan_op(self, data, user, body) -> web.Response:
         viewer = viewer_person(user.id, data.entry.options.get(OPT_VIEWERS, {}), data.scores)
         op = body.get("op") if isinstance(body, dict) else None
         if op in ("start", "stop"):
@@ -282,6 +285,8 @@ class UiView(HomeAssistantView):
             if type(start_week) is not int or not 1 <= start_week <= len(plan["weeks"]):  # with_plan compares it; a bool is no week
                 return _detail(self, f"start_week: a whole number 1-{len(plan['weeks'])}", HTTPStatus.BAD_REQUEST)
         options = data.entry.options  # read after the await: another change meanwhile is kept
+        if person not in options.get(OPT_PEOPLE, {}):  # removed in Configure meanwhile
+            return _detail(self, "unknown person", HTTPStatus.NOT_FOUND)
         record = people.with_plan(options[OPT_PEOPLE][person], pick, dt_util.now().date(), start_week)
         data.runner.hass.config_entries.async_update_entry(data.entry, options={**options, OPT_PEOPLE: {**options[OPT_PEOPLE], person: record}})
         await data.runner.async_reconfigure(data.custom_plans)

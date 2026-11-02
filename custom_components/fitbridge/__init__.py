@@ -1,4 +1,5 @@
 """Fitness page: runs fitbridge's scoring (runner.py), shows it as sensors and events and serves it to a sidebar panel."""
+import asyncio
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -38,6 +39,7 @@ class Data:
     settings_store: Store | None = None
     plans_store: Store | None = None
     custom_plans: dict = field(default_factory=dict)  # {id: plan} built on the page, as the runner hands them to the engine
+    plans_lock: asyncio.Lock = field(default_factory=asyncio.Lock)  # POST plans ops one at a time (views._post_plans)
     steps: StepsCollector | None = None
     runner: Runner | None = None
 
