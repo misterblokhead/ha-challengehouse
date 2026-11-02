@@ -281,6 +281,15 @@ test("goalsDraft: defaults (and couple own/1/8/\"\") without a current entry; a 
     { runs: 2, workouts: 1, active_days: 0, steps: 10000 });
 });
 
+test("goalsDraft: a change waiting for next Monday wins over the current entry", () => {
+  const current = { from: "2026-10-26", people: { person1: { runs: 3, workouts: 2, active_days: 4, steps: 12000 }, person2: { runs: 1, workouts: 2, active_days: 3, steps: 9000 } },
+    couple: { mode: "team", together: 2, team: 10, reward: "" } };
+  const pending = { ...current, from: "2026-11-09", couple: { ...current.couple, mode: "own" }, people: { ...current.people, person1: { ...current.people.person1, runs: 1 } } };
+  const d = goalsDraft({ current, pending, defaults }, twoPeople);
+  assert.equal(d.people.person1.runs, 1);
+  assert.equal(d.couple.mode, "own");
+});
+
 test("goalsDraft: the stored birth years are the field's values, none is null (what the POST body sends to clear)", () => {
   const draft = goalsDraft({ current: null, defaults, profiles: { person1: { birth_year: 1900 } } }, twoPeople);
   assert.deepEqual(draft.profiles, { person1: { birth_year: 1900 }, person2: { birth_year: null } });
