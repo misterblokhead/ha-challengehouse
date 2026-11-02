@@ -80,11 +80,14 @@ def indoor(distance_m, duration_s):
 
 
 def check(found, session):
-    """Match a run against a plan session: {"state": match|review|indoor|none, found, planned, run_s, planned_run_s}.
-    `found` is blocks(), indoor(), {"error": True} or None; planned run blocks pair with detected ones in order,
-    greedily, each detected block used once."""
+    """Match a run against a plan session: {"state": match|review|indoor|none, found, planned, run_s, planned_run_s,
+    planned_km (a distance target's km, else None)}. `found` is blocks(), indoor(), {"error": True} or None; planned
+    run blocks pair with detected ones in order, greedily, each detected block used once. A session without run
+    blocks (a distance session) matches any track: its target decides."""
     plan = [sec for kind, sec in session["intervals"] if kind == "run"]
-    out = {"state": "none", "found": 0, "planned": len(plan), "run_s": 0, "planned_run_s": sum(plan)}
+    t = session.get("target") or {}
+    out = {"state": "none", "found": 0, "planned": len(plan), "run_s": 0, "planned_run_s": sum(plan),
+           "planned_km": t["km"] if t.get("type") == "distance" else None}
     if not found or found.get("error"):
         return out
     if found.get("indoor"):

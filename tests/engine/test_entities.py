@@ -39,7 +39,7 @@ class FixtureTests(unittest.TestCase):
             r.pop("older")
             for w in r["recent"] + r["feed"]:
                 del w["counts"], w["reason"], w["check"], w["review"], w["needs_review"], w["caught_up"]
-            for k in ("cooldown_s", "steps", "times", "review_pending"):  # plan check, likewise newer
+            for k in ("cooldown_s", "steps", "times", "review_pending", "name", "note", "loop", "round", "weeks"):  # plan check and more plans, likewise newer
                 r["plan"].pop(k)
         self.assertEqual(result, RESULT)
         events = [json.loads(p) for t, p, r in FIX["messages"] if not r]

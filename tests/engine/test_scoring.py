@@ -275,7 +275,7 @@ class ScoringTests(unittest.TestCase):
     def test_counters_and_week_fields(self):
         r = sp(week_of(0, runs=3, gym=3) + [wk("person1", "walk", 6, 7, 0, 30)], 6)
         c = r["counters"]
-        self.assertEqual(set(c), COUNTERS)
+        self.assertEqual(set(c), COUNTERS | {f"plan_weeks:{p}" for p in CFG["plans"]})
         self.assertEqual((c["runs"], c["run_km"], c["gym"], c["walks"], c["workouts"], c["early"]), (3, 9, 3, 1, 7, 1))
         self.assertEqual((c["goal_weeks"], c["bonus_weeks"], c["perfect_weeks"], c["best_streak"]), (1, 1, 1, 1))
         self.assertEqual((r["week"]["progress"], r["week"]["days_left"], r["week"]["goal_met"]), (100, 1, True))
@@ -493,7 +493,21 @@ MATCH = blocks(synth(W1))                                      # 8 x 60 s run bl
 BIKE = blocks(synth([(1500, 2.5)]))                            # no run blocks at all
 SHORT = blocks(synth([(300, 5.5)] + 7 * [(50, 8.3), (100, 5.5)] + [(300, 5)]))  # matches W1, not W2 (too little running)
 OTHER = DEFAULT + ('\n[plans.other]\nname="Other"\n[[plans.other.weeks]]\nrepeat=3\nsessions=[{warmup_s=300, '
-                   'intervals=[["run", 60], ["walk", 90]], times=8, target={type="duration", fraction=0.8}}]\n')
+                   'intervals=[["run", 60], ["walk", 90]], times=8, target={type="duration", fraction=0.8}}]\n'
+                   '[[badges]]\nid="other_week"\ncounter="plan_weeks"\nplan="other"\nthresholds=[1]\ntitle="Other week {t}"\n'
+                   'icon="mdi:calendar-check"\ncategory="plan"\n')
+LOOP = DEFAULT + ('\n[plans.loop]\nname="Loop"\nloop=true\n[[plans.loop.weeks]]\nrepeat=2\nsessions=[{warmup_s=300, '
+                  'intervals=[["run", 60], ["walk", 90]], times=8, target={type="duration", fraction=0.8}}]\n'
+                  '[plans.dist]\nname="Dist"\n[[plans.dist.weeks]]\nrepeat=2\n'
+                  'sessions=[{warmup_s=0, note="Easy 3 miles", target={type="distance", km=4.8, fraction=0.9}}]\n')
+
+
+def plan_cfg(text, plan, start_week=None):
+    """Both people on `plan` from the start, optionally at `start_week`."""
+    ov = overlay(group=COUPLE)
+    for p in ov["people"].values():
+        p["plan_history"] = [{"plan": plan, "from": "2026-10-26"} | ({"start_week": start_week} if start_week else {})]
+    return load_config(text, ov)
 
 
 def run(person, day, hh=18, mm=0, minutes=26, **kw):
@@ -678,6 +692,62 @@ class PlanCheckTests(unittest.TestCase):
                              [(None, None), (None, None)])
             self.assertTrue(row(ps["person2"], ws[2])["joint"])
             self.assertEqual((row(ps["person1"], ws[1])["plan"], row(ps["person1"], ws[1])["caught_up"]), ("W1D1", False))
+
+    def test_start_week_skips_sessions_without_xp(self):
+        cfg = plan_cfg(DEFAULT, "c25k", start_week=3)
+        ws = [run("person1", 0), run("person1", 2)]
+        p = people(ws, 3, cfg)["person1"]
+        self.assertEqual((row(p, ws[0])["plan"], row(p, ws[0])["xp"], row(p, ws[1])["plan"]), ("W3D1", 26 + 20, "W3D2"))
+        self.assertEqual(people(ws[:1], 1, cfg)["person1"]["plan"]["completed"], 7)  # 6 skipped + 1
+        self.assertFalse([i for i in p["feed"] if (i["plan"] or "")[:2] in ("W1", "W2")])
+
+    def test_week_badges_count_the_week_reached(self):
+        cfg = plan_cfg(DEFAULT, "c25k", start_week=4)
+        p = people([run("person1", d) for d in (0, 2, 4)], 5, cfg)["person1"]
+        ids = {u["id"] for u in p["badges"]["unlocked"]}
+        self.assertTrue({f"plan_week_{t}" for t in (1, 2, 3, 4)} <= ids)
+        self.assertNotIn("plan_week_5", ids)
+        self.assertEqual(p["xp"], people([run("person1", d) for d in (0, 2, 4)], 5)["person1"]["xp"])  # skipped weeks: no XP
+
+    def test_per_plan_badge_counts_only_its_plan(self):
+        ov = overlay(group=COUPLE)
+        ov["people"]["person2"]["plan_history"] = [{"plan": "other", "from": "2026-10-26"}]
+        cfg = load_config(OTHER, ov)
+        ws = [run(p, d, hh=8 if p == "person2" else 18) for p in ("person1", "person2") for d in (0, 2, 4)]
+        ps = people(ws, 5, cfg)
+        ids = {p: {u["id"] for u in ps[p]["badges"]["unlocked"]} for p in ps}
+        self.assertIn("plan_week_1", ids["person1"])
+        self.assertNotIn("other_week_1", ids["person1"])
+        self.assertIn("other_week_1", ids["person2"])
+
+    def test_loop_plan_wraps_and_never_graduates(self):
+        cfg = plan_cfg(LOOP, "loop")
+        ws = [run("person1", d, blocks=MATCH) for d in (0, 2, 4, 6, 8)]
+        p = people(ws, 9, cfg)["person1"]
+        self.assertEqual([row(p, w)["plan"] for w in ws], ["W1D1", "W1D2", "W1D1", "W1D2", "W1D1"])
+        self.assertEqual((p["plan"]["round"], p["plan"]["state"], p["plan"]["completed"], p["plan"]["loop"]), (3, "W1D2", 5, True))
+        c = score_person(clean(ws, cfg), set(), cfg, "person1", NOW(9))["counters"]
+        self.assertEqual((c["plan_graduated"], c["plan_weeks:loop"], c["plan_weeks"]), (0, 2, 2))
+
+    def test_loop_catch_up_does_not_cross_the_wrap(self):
+        cfg = plan_cfg(LOOP, "loop")
+        ws = [run("person2", 0, hh=8, blocks=MATCH), run("person2", 2, hh=8, blocks=MATCH), run("person1", 0, blocks=MATCH),
+              run("person1", 4, blocks=MATCH), run("person2", 4, mm=3, blocks=MATCH)]
+        ps = people(ws, 5, cfg)
+        self.assertEqual((row(ps["person2"], ws[4])["plan"], ps["person2"]["plan"]["round"]), ("W1D1", 2))
+        r = row(ps["person1"], ws[3])
+        self.assertEqual((r["plan"], r["caught_up"], ps["person1"]["plan"]["completed"]), ("W1D2", False, 2))
+
+    def test_distance_session_passes_on_distance(self):
+        cfg = plan_cfg(LOOP, "dist")
+        short, far = wk("person1", "run", 0, 18, 0, 26, km=4.0), wk("person1", "run", 2, 18, 0, 26, km=4.4, blocks=MATCH)
+        p = people([short, far], 3, cfg)["person1"]
+        self.assertEqual((row(p, short)["plan"], row(p, far)["plan"], row(p, far)["check"]["planned_km"]), (None, "W1D1", 4.8))
+        self.assertEqual((p["plan"]["state"], p["plan"]["note"]), ("W1D2", "Easy 3 miles"))
+
+    def test_plan_block_carries_name_note_loop(self):
+        plan = sp([], 1)["plan"]
+        self.assertEqual((plan["name"], plan["note"], plan["loop"], plan["weeks"], plan["round"]), ("Couch to 5K", None, False, 9, 1))
 
 
 def lift(w, r):
