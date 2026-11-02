@@ -25,11 +25,12 @@ def make_ids(names: list[str], taken: Iterable[str] = ()) -> list[str]:
     return ids
 
 
-def overlay(options: Mapping, time_zone: str) -> dict | None:
+def overlay(options: Mapping, time_zone: str, plans: dict | None = None) -> dict | None:
     """What ConfigHolder merges into scoring.toml; None for an entry whose people are still in the file."""
     if OPT_PEOPLE not in options:
         return None
-    return {"people": options[OPT_PEOPLE], "group": options.get(OPT_GROUP), "start": options[OPT_START], "timezone": time_zone}
+    return {"people": options[OPT_PEOPLE], "group": options.get(OPT_GROUP), "start": options[OPT_START], "timezone": time_zone,
+            "plans": plans or {}}
 
 
 def _json_safe(value):
@@ -59,10 +60,11 @@ def person(name: str, pick: str | None, today: date) -> dict:
     return with_plan({"name": name, "plan_history": []}, pick, today)
 
 
-def with_plan(record: dict, pick: str | None, today: date) -> dict:
+def with_plan(record: dict, pick: str | None, today: date, start_week: int = 1) -> dict:
     """record with the plan picked in a form from today: a plan name starts it (again), "none" (or None) stops the plan;
-    stopping when no plan is active changes nothing. Earlier history stays."""
+    stopping when no plan is active changes nothing. Earlier history stays. start_week is kept when > 1."""
     plan, history = None if pick == "none" else pick, record.get("plan_history", [])
     if plan is None and (not history or history[-1]["plan"] is None):
         return record
-    return {**record, "plan_history": [*history, {"plan": plan, "from": today.isoformat()}]}
+    return {**record, "plan_history": [*history, {"plan": plan, "from": today.isoformat(),
+                                                   **({"start_week": start_week} if plan and start_week > 1 else {})}]}

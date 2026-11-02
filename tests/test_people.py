@@ -39,9 +39,15 @@ def test_overlay_shape():
     options = {OPT_PEOPLE: {"p1": people.person("Alex", "c25k", date(2026, 10, 26))}, OPT_START: "2026-10-26"}
     assert people.overlay(options, "Europe/Amsterdam") == {
         "people": {"p1": {"name": "Alex", "plan_history": [{"plan": "c25k", "from": "2026-10-26"}]}},
-        "group": None, "start": "2026-10-26", "timezone": "Europe/Amsterdam"}
+        "group": None, "start": "2026-10-26", "timezone": "Europe/Amsterdam", "plans": {}}
     group = {"name": "couple", "members": ["p1", "p2"]}
     assert people.overlay({**options, OPT_GROUP: group}, "Europe/London")["group"] == group
+
+
+def test_overlay_carries_plans():
+    options = {OPT_PEOPLE: {}, OPT_START: "2026-10-26"}
+    custom = {"my_a": {"name": "A", "loop": False, "weeks": []}}
+    assert people.overlay(options, "Europe/Amsterdam", custom)["plans"] == custom
 
 
 def test_person_without_plan_has_no_history():
@@ -57,6 +63,14 @@ def test_with_plan_appends_and_a_stop_without_a_plan_changes_nothing():
     assert people.with_plan(stopped, "none", today) == stopped  # already no plan
     assert people.with_plan(on, "c25k", today)["plan_history"][-1] == {"plan": "c25k", "from": "2026-11-02"}  # starts again
     assert people.with_plan({"name": "Alex"}, "none", today) == {"name": "Alex"}  # a migrated record without history
+
+
+def test_with_plan_start_week():
+    today = date(2026, 11, 2)
+    rec = people.person("Alex", None, date(2026, 10, 26))
+    assert people.with_plan(rec, "c25k", today, 4)["plan_history"] == [{"plan": "c25k", "from": "2026-11-02", "start_week": 4}]
+    assert people.with_plan(rec, "c25k", today)["plan_history"] == [{"plan": "c25k", "from": "2026-11-02"}]
+    assert people.with_plan(rec, "c25k", today, 1)["plan_history"] == [{"plan": "c25k", "from": "2026-11-02"}]
 
 
 def test_from_toml():
