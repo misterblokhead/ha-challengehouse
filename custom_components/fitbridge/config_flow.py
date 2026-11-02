@@ -48,10 +48,12 @@ PLANS = {"c25k": "Couch to 5K, starting today", "none": "No plan"}
 
 
 async def _plans(hass: HomeAssistant) -> dict[str, str]:
-    """Every plan of the last good config, shipped and custom; the fixed PLANS before one is loaded (first setup)."""
+    """Every plan of the last good config, shipped and custom, labelled uniquely; the fixed PLANS before one is loaded (first
+    setup, or a setup that failed before the runner opened its config)."""
     data = hass.data.get(DOMAIN)
-    plans = await data.runner.async_plans() if data and data.runner else {}
-    return {**{k: f"{p['name']}, starting today" for k, p in plans.items()}, "none": "No plan"} if plans else PLANS
+    plans = await data.runner.async_plans() if data and data.scores else {}
+    names = _labels({k: p["name"] for k, p in plans.items()})
+    return {**{k: f"{n}, starting today" for k, n in names.items()}, "none": "No plan"} if plans else PLANS
 NO_EXTERNAL_URL = ("\n\nHome Assistant has no external URL, so the phone's webhook address only works at home. Set one in "
                    "Settings -> System -> Network, or use Home Assistant Cloud's remote access.")
 
@@ -368,13 +370,16 @@ class FitbridgeOptionsFlow(_InstallSteps, config_entries.OptionsFlowWithReload):
         record, errors = options[OPT_PEOPLE][pid], {}
         if user_input is not None:
             name = user_input["name"].strip()
-            if name:
+            if user_input["plan"] not in {KEEP, *await _plans(self.hass)}:  # a custom plan deleted while the form was open
+                errors["plan"] = "plan_gone"
+            elif name:
                 if user_input["plan"] != KEEP:
                     record = people.with_plan(record, user_input["plan"], dt_util.now().date())
                 return self.async_create_entry(data={
                     **options, OPT_PEOPLE: {**options[OPT_PEOPLE], pid: {**record, "name": name}},
                     OPT_PHONES: {**options.get(OPT_PHONES, {}), pid: user_input["phone"]}})
-            errors["name"] = "name_required"
+            else:
+                errors["name"] = "name_required"
         phone = options.get(OPT_PHONES, {}).get(pid)
         schema = vol.Schema({
             vol.Required("name"): TextSelector(),
@@ -391,7 +396,10 @@ class FitbridgeOptionsFlow(_InstallSteps, config_entries.OptionsFlowWithReload):
         free = await _ha_users(self.hass, skip={uid for uid, p in viewers.items() if p})
         if not free:
             return self.async_abort(reason="no_free_users")
-        if user_input is not None:
+        errors = {}
+        if user_input is not None and user_input["plan"] not in await _plans(self.hass):  # deleted while the form was open
+            errors["plan"] = "plan_gone"
+        elif user_input is not None:
             uid, today = user_input["user"], dt_util.now().date()
             name = _user_name(await self.hass.auth.async_get_user(uid))
             # never an id a retired person's webhook still has, nor the group's name
@@ -403,7 +411,7 @@ class FitbridgeOptionsFlow(_InstallSteps, config_entries.OptionsFlowWithReload):
             if len(known) == 2 and not options.get(OPT_GROUP):
                 return await self.async_step_group()
             return self.async_create_entry(data=self._added)
-        return self.async_show_form(step_id="person_add", data_schema=vol.Schema({
+        return self.async_show_form(step_id="person_add", errors=errors, data_schema=vol.Schema({
             vol.Required("user"): _choice(free),
             vol.Required("plan", default="c25k"): _choice(await _plans(self.hass)),
             vol.Required("phone", default=PHONES[0]): _choice(PHONE_LABELS)}))

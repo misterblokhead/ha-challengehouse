@@ -5,17 +5,14 @@ import re
 
 from homeassistant.util import slugify
 
-from .engine.scoring_config import check_plan
+from .const import OPT_PEOPLE
+from .engine.scoring_config import _int_in, check_plan
 from .people import make_ids
 
 _LOGGER = logging.getLogger(__name__)
 
 FRACTIONS = {"duration": 0.8, "distance": 0.9}  # fixed by the builder
 MAX_S = 10800
-
-
-def _int_in(v, lo: int, hi: int) -> bool:
-    return isinstance(v, int) and not isinstance(v, bool) and lo <= v <= hi
 
 
 def _bad(field: str, reason: str):
@@ -62,9 +59,9 @@ def _session(s, at: str) -> dict:
         out["target"] = {"type": kind, "km": km, "fraction": FRACTIONS[kind]}
     else:
         _bad(f"{at}.target", "must be duration, distance or none")
-    if s.get("note"):
-        if not (isinstance(s["note"], str) and len(s["note"]) <= 80):
-            _bad(f"{at}.note", "must be text of at most 80 characters")
+    if kind == "duration" and not any(k == "run" for k, _ in out.get("intervals", [])):  # else any short jog completes it
+        _bad(f"{at}.intervals", "a time session needs a run")
+    if s.get("note"):  # check_plan checks it
         out["note"] = s["note"]
     return out
 
@@ -101,18 +98,19 @@ def new_id(name: str, taken) -> str:
 
 def used(people_options: dict) -> set[str]:
     """Plan ids any person's plan_history names."""
-    return {e["plan"] for p in people_options.get("people", {}).values() for e in p.get("plan_history", []) if e.get("plan")}
+    return {e["plan"] for p in people_options.get(OPT_PEOPLE, {}).values() for e in p.get("plan_history", []) if e.get("plan")}
 
 
-async def load(store) -> dict:
-    """{id: plan} from the store; a plan that fails the plan check is skipped, so one broken plan never stops scoring."""
+async def load(store) -> tuple[dict, dict]:
+    """({id: plan}, {id: raw plan skipped}) from the store; a plan that fails the plan check is skipped, so one broken plan
+    never stops scoring, and kept as it is, so a save of the others never drops it."""
     data = await store.async_load()
     stored = data.get("plans") if isinstance(data, dict) else None
-    out = {}
+    good, skipped = {}, {}
     for pid, plan in (stored if isinstance(stored, dict) else {}).items():
-        errs = check_plan({k: v for k, v in plan.items() if k != "by"}) if isinstance(plan, dict) else ["plan: not an object"]
-        if errs:
+        if errs := check_plan(plan):
             _LOGGER.warning("Skipping custom plan %s: %s", pid, errs[0])
+            skipped[pid] = plan
         else:
-            out[pid] = plan
-    return out
+            good[pid] = plan
+    return good, skipped

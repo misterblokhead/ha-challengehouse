@@ -99,12 +99,12 @@ class Runner:
         config, _ = await self.hass.async_add_executor_job(self.holder.get)
         return config["plans"] if config else {}
 
-    async def async_reconfigure(self, custom_plans: dict) -> None:
-        """New custom plans or people options without a reload: the config reloads with them, then a cycle."""
-        self.custom_plans = custom_plans
+    async def async_reconfigure(self, custom_plans: dict | None = None) -> None:
+        """New people options, and new custom plans when given, without a reload: the config reloads with them, then a cycle."""
+        if custom_plans is not None:
+            self.custom_plans = custom_plans
         if self.holder is not None:
-            self.holder.overlay = people.overlay(self.entry.options, self.hass.config.time_zone, custom_plans)
-            self.holder.mtime = None  # after the overlay: a get() running meanwhile then loads it again with the new one
+            self.holder.set_overlay(people.overlay(self.entry.options, self.hass.config.time_zone, self.custom_plans))
         await self.async_score_now()
 
     async def async_types(self) -> dict:

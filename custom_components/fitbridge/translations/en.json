@@ -202,6 +202,7 @@
       "cannot_connect": "openGym could not be reached at this address.",
       "folder_missing": "This folder does not exist. Give its full path, for example /share/opentracks.",
       "name_required": "Give the person a name.",
+      "plan_gone": "This plan was deleted meanwhile. Pick another one.",
       "duplicate_gym_user": "Each openGym account can belong to one person only.",
       "invite_failed": "openGym could not make an invite. Check that it is running, then submit again.",
       "address_https": "Give the address you open Home Assistant at: it must start with https, use a host name (not an IP address: passkeys never work on one) and have no path after it.",

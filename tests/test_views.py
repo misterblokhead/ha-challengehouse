@@ -751,7 +751,7 @@ async def test_a_failed_store_save_changes_nothing(hass, live):
     c, data = await live("person1"), hass.data[DOMAIN]
     with patch.object(data.plans_store, "async_save", side_effect=OSError("disk full")):
         assert (await c.post(f"{UI}/plans", json={"op": "save", "plan": EASY})).status == 500
-    assert data.custom_plans == {} and "my_easy_runs" not in await data.runner.async_plans()
+    assert data.runner.custom_plans == {} and "my_easy_runs" not in await data.runner.async_plans()
 
 
 async def test_edit_or_delete_of_a_used_plan_is_409(hass, live, hass_storage):
@@ -781,7 +781,7 @@ async def test_start_sets_plan_history_with_start_week_without_reload(hass, live
     c = await live("person1")
     runner, today = hass.data[DOMAIN].runner, dt_util.now().date().isoformat()
     resp = await c.post(f"{UI}/plans", json={"op": "start", "person": "person1", "plan": "higdon_10k", "start_week": 3})
-    assert resp.status == 202 and await resp.json() == {"ok": True}
+    assert resp.status == 202 and await resp.json() == {"ok": True, "from": today}
     assert _history(hass)[-1] == {"plan": "higdon_10k", "from": today, "start_week": 3}
     assert hass.data[DOMAIN].runner is runner  # the options changed without a reload
     plan = (await (await c.get(f"{UI}/scores")).json())["people"]["person1"]["plan"]
@@ -793,6 +793,47 @@ async def test_start_sets_plan_history_with_start_week_without_reload(hass, live
     assert (await c.post(f"{UI}/plans", json={"op": "stop", "person": "person1"})).status == 202
     assert _history(hass)[-1] == {"plan": None, "from": today} and hass.data[DOMAIN].runner is runner
     assert (await (await c.get(f"{UI}/scores")).json())["people"]["person1"]["plan"] is None
+
+
+async def _graduating(hass):
+    """person1 on C25K from week 9 since three days ago, its three sessions run the last two days and today: today's graduates."""
+    entry, today = hass.config_entries.async_entries(DOMAIN)[0], dt_util.now().date()
+    team = entry.options[OPT_PEOPLE]
+    history = [{"plan": "c25k", "from": (today - timedelta(days=3)).isoformat(), "start_week": 9}]
+    hass.config_entries.async_update_entry(entry, options={**entry.options, OPT_PEOPLE: {**team, "person1": {**team["person1"], "plan_history": history}}})
+    for key, days_ago in (("r1", 2), ("r2", 1), ("r3", 0)):
+        _run(hass, "person1", key, 5, days_ago)
+    await hass.data[DOMAIN].runner.async_reconfigure()
+    return (today + timedelta(days=1)).isoformat()
+
+
+async def _me(c):
+    return (await (await c.get(f"{UI}/scores")).json())["people"]["person1"]
+
+
+@pytest.mark.parametrize("body", [{"op": "start", "plan": "higdon_10k"}, {"op": "stop"}])
+async def test_a_switch_or_stop_on_graduation_day_starts_tomorrow_and_keeps_the_graduation(hass, live, body):
+    c = await live("person1")
+    tomorrow = await _graduating(hass)
+    before = await _me(c)
+    assert before["plan"]["state"] == "Graduated" and before["plan"]["completed"] == 27  # every C25K session, W9D3 today
+    assert "plans_finished_1" in {b["id"] for b in before["badges"]["unlocked"]}
+    resp = await c.post(f"{UI}/plans", json={**body, "person": "person1"})
+    assert resp.status == 202 and await resp.json() == {"ok": True, "from": tomorrow}
+    assert _history(hass)[-1] == {"plan": body.get("plan"), "from": tomorrow}
+    after = await _me(c)
+    assert after["plan"] == before["plan"] and after["badges"]["unlocked"] == before["badges"]["unlocked"]  # today stays C25K's
+    assert [i["plan"] for i in after["feed"] if i["key"].startswith("r")] == ["W9D3", "W9D2", "W9D1"]
+
+
+async def test_a_switch_the_day_after_a_session_starts_today(hass, live):
+    c, today = await live("person1"), dt_util.now().date().isoformat()
+    _run(hass, "person1", "r1", 5, 1)
+    await hass.data[DOMAIN].runner.async_score_now()
+    assert [i["plan"] for i in (await _me(c))["feed"] if i["key"] == "r1"] == ["W1D1"]  # yesterday's: today has none
+    resp = await c.post(f"{UI}/plans", json={"op": "start", "person": "person1", "plan": "higdon_10k"})
+    assert resp.status == 202 and await resp.json() == {"ok": True, "from": today}
+    assert _history(hass)[-1] == {"plan": "higdon_10k", "from": today} and (await _me(c))["plan"]["plan"] == "higdon_10k"
 
 
 @pytest.mark.parametrize("body,status", [
@@ -833,7 +874,19 @@ async def test_custom_plans_survive_a_reload(hass, live, hass_storage):
     entry = hass.config_entries.async_entries(DOMAIN)[0]
     await hass.config_entries.async_reload(entry.entry_id)
     await hass.async_block_till_done(wait_background_tasks=True)
-    assert (await _plans(c))[pid]["by"] == "person1" and pid in hass.data[DOMAIN].custom_plans
+    assert (await _plans(c))[pid]["by"] == "person1" and pid in hass.data[DOMAIN].runner.custom_plans
+
+
+async def test_a_bad_stored_plan_survives_a_save_of_another(hass, live, hass_storage):
+    c, bad = await live("person1"), {"name": "", "weeks": "junk"}  # e.g. written by a later version
+    hass_storage["fitbridge.plans"] = {"version": 1, "key": "fitbridge.plans", "data": {"plans": {"my_bad": bad}}}
+    await hass.config_entries.async_reload(hass.config_entries.async_entries(DOMAIN)[0].entry_id)
+    await hass.async_block_till_done(wait_background_tasks=True)
+    assert "my_bad" not in await _plans(c)  # skipped: scoring goes on
+    pid = await _save(c, {**EASY, "name": "my bad"})
+    assert pid != "my_bad" and _custom(hass_storage) == {"my_bad": bad, pid: {**_custom(hass_storage)[pid]}}
+    await c.post(f"{UI}/plans", json={"op": "delete", "id": pid})
+    assert _custom(hass_storage) == {"my_bad": bad}
 
 
 async def test_a_start_waits_for_a_delete_in_progress(hass, live, hass_storage):

@@ -539,6 +539,32 @@ async def test_person_edit_lists_shipped_and_custom_plans(hass, setup, hass_stor
     assert e.options[OPT_PEOPLE][P0]["plan_history"] == [*old, {"plan": "higdon_10k", "from": dt_util.now().date().isoformat()}]
 
 
+def _stored_plan(hass_storage, name="Mine"):
+    plan = {"name": name, "by": P0, "weeks": [{"sessions": [{"warmup_s": 0, "target": {"type": "none"}}]}]}
+    hass_storage["fitbridge.plans"] = {"version": 1, "minor_version": 1, "key": "fitbridge.plans", "data": {"plans": {"my_x": plan}}}
+
+
+async def test_plan_labels_stay_unique_when_a_custom_plan_reuses_a_name(hass, setup, hass_storage):
+    _stored_plan(hass_storage, "Couch to 5K")
+    result = await _people_step(hass, await setup(), P0)
+    offered = {o["value"]: o["label"] for o in _field(result, "plan")[1].config["options"]}
+    assert (offered["c25k"], offered["my_x"]) == ("Couch to 5K (c25k), starting today", "Couch to 5K (my_x), starting today")
+
+
+@pytest.mark.parametrize("step", ["edit", "add"])
+async def test_a_plan_deleted_while_the_form_is_open_is_refused(hass, setup, hass_storage, step):
+    _stored_plan(hass_storage)
+    e = await setup()
+    user = MockUser(name="Person 3").add_to_hass(hass)
+    result = await _people_step(hass, e, P0 if step == "edit" else "+")
+    await hass.data[DOMAIN].runner.async_reconfigure({})  # deleted on the page meanwhile
+    before = e.options[OPT_PEOPLE]
+    answer = {"name": "Person 1"} if step == "edit" else {"user": user.id}
+    result = await _configure(hass, result, {**answer, "plan": "my_x", "phone": "iphone"})
+    assert result["type"] is FlowResultType.FORM and result["errors"] == {"plan": "plan_gone"}
+    assert e.options[OPT_PEOPLE] == before  # no plan_history naming a plan that is gone: scoring stays up
+
+
 async def test_edit_person_none_keeps_history(hass, setup):
     e = await setup()
     old = e.options[OPT_PEOPLE][P1]["plan_history"]

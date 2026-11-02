@@ -24,7 +24,7 @@ def test_validate_accepts_a_builder_plan_and_sets_fractions():
 
 
 def _body(**session):
-    return {"name": "Mine", "weeks": [{"sessions": [{"warmup_s": 0, "target": {"type": "duration"}, **session}]}]}
+    return {"name": "Mine", "weeks": [{"sessions": [{"warmup_s": 0, "intervals": [["run", 60]], "target": {"type": "duration"}, **session}]}]}
 
 
 @pytest.mark.parametrize("body, field", [
@@ -41,7 +41,8 @@ def _body(**session):
     (_body(target={"type": "distance", "km": 101}), "weeks.1.sessions.1.target.km"),
     *[(_body(target={"type": "distance", "km": km}), "weeks.1.sessions.1.target.km")
       for km in (10**400, float("nan"), float("inf"), True, "5", None)],
-    (_body(note="n" * 81), "weeks.1.sessions.1.note"),
+    (_body(intervals=[["walk", 240]]), "weeks.1.sessions.1.intervals"),  # a time session needs a run
+    (_body(intervals=[]), "weeks.1.sessions.1.intervals"),
     (_body(warmup_s=10801), "weeks.1.sessions.1.warmup_s"),
     ("nope", "body"),
 ])
@@ -49,6 +50,17 @@ def test_validate_refuses_over_the_limits(body, field):
     with pytest.raises(ValueError) as e:
         plans.validate(body)
     assert str(e.value).startswith(f"{field}: ")
+
+
+def test_validate_refuses_a_long_note_through_the_plan_check():
+    with pytest.raises(ValueError, match="note must be text of at most 80 characters"):
+        plans.validate(_body(note="n" * 81))
+
+
+def test_validate_takes_a_time_session_without_intervals_only_without_a_time_target():
+    assert plans.validate(_body(intervals=[], target={"type": "none"}))["weeks"][0]["sessions"][0]["intervals"] == []
+    with pytest.raises(ValueError, match="intervals: a time session needs a run"):
+        plans.validate({"name": "x", "weeks": [{"sessions": [{"warmup_s": 0, "target": {"type": "duration"}}]}]})
 
 
 def test_validate_accepts_the_limits():
@@ -82,11 +94,12 @@ async def test_load_skips_a_bad_stored_plan(caplog):
     good = plans.validate(copy.deepcopy(BODY))
     bad = {**good, "name": ""}
     with caplog.at_level(logging.WARNING):
-        out = await plans.load(_Store({"plans": {"my_good": {**good, "by": "p1"}, "my_bad": bad, "my_odd": "x"}}))
+        out, skipped = await plans.load(_Store({"plans": {"my_good": {**good, "by": "p1"}, "my_bad": bad, "my_odd": "x"}}))
     assert out == {"my_good": {**good, "by": "p1"}}
+    assert skipped == {"my_bad": bad, "my_odd": "x"}  # kept as they are, so a save writes them back
     assert "Skipping custom plan my_bad" in caplog.text and "Skipping custom plan my_odd" in caplog.text
 
 
 @pytest.mark.parametrize("data", [None, [], {}, {"plans": []}, {"plans": None}])
 async def test_load_of_nothing_is_empty(data):
-    assert await plans.load(_Store(data)) == {}
+    assert await plans.load(_Store(data)) == ({}, {})

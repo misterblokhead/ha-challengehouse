@@ -60,11 +60,11 @@ def person(name: str, pick: str | None, today: date) -> dict:
     return with_plan({"name": name, "plan_history": []}, pick, today)
 
 
-def with_plan(record: dict, pick: str | None, today: date, start_week: int = 1) -> dict:
-    """record with the plan picked in a form from today: a plan name starts it (again), "none" (or None) stops the plan;
+def with_plan(record: dict, pick: str | None, day: date, start_week: int = 1) -> dict:
+    """record with the plan picked in a form from day: a plan name starts it (again), "none" (or None) stops the plan;
     stopping when no plan is active changes nothing. Earlier history stays. start_week is kept when > 1."""
     plan, history = None if pick == "none" else pick, record.get("plan_history", [])
     if plan is None and (not history or history[-1]["plan"] is None):
         return record
-    return {**record, "plan_history": [*history, {"plan": plan, "from": today.isoformat(),
+    return {**record, "plan_history": [*history, {"plan": plan, "from": day.isoformat(),
                                                    **({"start_week": start_week} if plan and start_week > 1 else {})}]}
