@@ -589,3 +589,78 @@ test("gymCaption: the invite sentence in parts (the code is rendered bold); from
   assert.equal(gymCaption(null), null); // no openGym, or no invite yet
   assert.equal(gymCaption({ url: "u", invite: null, in_ha: true }), null);
 });
+
+// More plans: distance sessions, notes, the plan list and the builder.
+import { planSummary, expandWeeks, sessionSeconds, sessionPlan } from "./model.js";
+
+const dist = { state: "W1D3", warmup_s: 0, cooldown_s: 0, intervals: [], steps: [], times: 1, target: { type: "distance", km: 4.8, fraction: 0.9 }, note: null };
+
+test("programmeText: a distance session is its km, with warm-up and cool-down as for intervals", () => {
+  assert.equal(programmeText(dist), "4.8 km run");
+  assert.equal(programmeText({ ...dist, warmup_s: 300, cooldown_s: 300 }), "5 min warm-up walk · 4.8 km run · 5 min cool-down walk");
+  assert.equal(programmeText({ ...dist, target: { type: "distance", km: 10 } }), "10 km run");
+});
+
+test("programmeText: the session's note comes last", () => {
+  assert.equal(programmeText({ ...w1, warmup_s: 0, cooldown_s: 0, times: 1, steps: [["run", 2400]], note: "40 min steady" }), "40 min run · 40 min steady");
+  assert.equal(programmeText({ ...dist, note: "easy pace" }), "4.8 km run · easy pace");
+  assert.equal(programmeText({ state: "Graduated", steps: [], target: null, note: null }), "");
+});
+
+test("feedRow: a distance session's chip is the km run of the km planned", () => {
+  const check = { state: "match", found: 0, planned: 0, run_s: 1800, planned_run_s: 0, label: "W1D3", planned_km: 4.8 };
+  assert.deepEqual(feedRow({ ...run, km: 4.87, check }).chip, { text: "4.9 of 4.8 km", tone: "plain" });
+  assert.deepEqual(feedRow({ ...run, km: null, check }).chip, { text: "0 of 4.8 km", tone: "plain" });
+  assert.deepEqual(feedRow({ ...run, km: 4.87, check, needs_review: true }).chip, { text: "Review", tone: "warn" });
+});
+
+const wk = (n, extra = {}) => ({ sessions: Array.from({ length: n }, () => ({ warmup_s: 0, target: { type: "distance", km: 5 } })), ...extra });
+
+test("planSummary: weeks × runs, a range when weeks differ, and a loop repeats", () => {
+  assert.equal(planSummary({ weeks: Array.from({ length: 8 }, () => wk(3)), loop: false }), "8 weeks × 3 runs");
+  assert.equal(planSummary({ weeks: [wk(3), wk(4), wk(3), wk(3), wk(4), wk(3)], loop: false }), "6 weeks · 3-4 runs a week");
+  assert.equal(planSummary({ weeks: [wk(3)], loop: true }), "1 week × 3 runs · repeats");
+  assert.equal(planSummary({ weeks: [wk(1, { repeat: 3 }), wk(3)] }), "2 weeks × 3 runs"); // repeat = 3 is three runs that week
+  assert.equal(planSummary({ weeks: [wk(1)] }), "1 week × 1 run");
+});
+
+test("expandWeeks: a repeat week becomes its sessions in full, as copies; others unchanged", () => {
+  const w = [wk(1, { repeat: 3 }), wk(2)];
+  const out = expandWeeks(w);
+  assert.deepEqual(out, [{ sessions: [w[0].sessions[0], w[0].sessions[0], w[0].sessions[0]] }, { sessions: w[1].sessions }]);
+  assert.equal("repeat" in out[0], false);
+  out[0].sessions[0].warmup_s = 60; // the builder edits one session: not its siblings, not the plan it copied
+  assert.equal(out[0].sessions[1].warmup_s, 0);
+  assert.equal(w[0].sessions[0].warmup_s, 0);
+});
+
+test("sessionSeconds: warm-up, the intervals times over, cool-down", () => {
+  assert.equal(sessionSeconds({ warmup_s: 300, cooldown_s: 300, intervals: [["run", 60], ["walk", 90]], times: 8 }), 1800);
+  assert.equal(sessionSeconds({ warmup_s: 300, intervals: [["run", 1200]] }), 1500);
+  assert.equal(sessionSeconds({ warmup_s: 0, target: { type: "distance", km: 5 } }), 0);
+});
+
+test("sessionPlan: a stored session as the plan block planBar and programmeText read", () => {
+  const s = { warmup_s: 300, cooldown_s: 300, intervals: [["run", 60], ["walk", 90]], times: 2, target: { type: "duration" }, note: "" };
+  const p = sessionPlan(s);
+  assert.deepEqual(p.intervals, [["run", 60], ["walk", 90], ["run", 60], ["walk", 90]]);
+  assert.equal(programmeText(p), "5 min warm-up walk · 2 × (1 min run + 1.5 min walk) · 5 min cool-down walk");
+  assert.equal(planBar(p).length, 6);
+  assert.equal(programmeText(sessionPlan({ warmup_s: 0, target: { type: "distance", km: 4.8 } })), "4.8 km run");
+});
+
+import { sessionDraft, sessionBody } from "./model.js";
+
+test("sessionDraft: a stored session with every field the builder edits; target without its fraction", () => {
+  assert.deepEqual(sessionDraft({ warmup_s: 300, intervals: [["run", 60]], target: { type: "duration", fraction: 0.8 } }),
+    { warmup_s: 300, cooldown_s: 0, intervals: [["run", 60]], times: 1, target: { type: "duration", km: 5 }, note: "" });
+  assert.deepEqual(sessionDraft({ warmup_s: 0, target: { type: "distance", km: 4.8, fraction: 0.9 }, note: "easy" }),
+    { warmup_s: 0, cooldown_s: 0, intervals: [], times: 1, target: { type: "distance", km: 4.8 }, note: "easy" });
+});
+
+test("sessionBody: what POST plans takes; a distance session has no intervals, an empty note is left out", () => {
+  const s = { warmup_s: 300, cooldown_s: 300, intervals: [["run", 60], ["walk", 90]], times: 8, target: { type: "duration", km: 5 }, note: " " };
+  assert.deepEqual(sessionBody(s), { warmup_s: 300, cooldown_s: 300, intervals: [["run", 60], ["walk", 90]], times: 8, target: { type: "duration" } });
+  assert.deepEqual(sessionBody({ ...s, target: { type: "distance", km: 4.8 }, note: " steady " }), { warmup_s: 300, cooldown_s: 300, target: { type: "distance", km: 4.8 }, note: "steady" });
+  assert.deepEqual(sessionBody({ ...s, intervals: [], target: { type: "none", km: 5 } }), { warmup_s: 300, cooldown_s: 300, target: { type: "none" } });
+});

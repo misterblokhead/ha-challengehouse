@@ -76,10 +76,13 @@ export const duration = (m) => (m < 60 ? `${m} min` : m % 60 ? `${Math.floor(m /
 // Why a workout earns nothing (`reason` of an uncounted one); the row shows it greyed, in place of its XP.
 const UNCOUNTED = { short: "Too short", easy: "Too easy", type: "Type not counted", no_gps: "No GPS" };
 
+const km1 = (km) => String(Math.round(km * 10) / 10); // 4.87 -> "4.9", 10 -> "10"
+
 // The plan-check chip after the plan day: a match "8/8 blocks", a run waiting for its owner's call "Review", an indoor run; else none.
 const chip = (item) => {
   const c = item.check;
   if (item.needs_review) return { text: "Review", tone: "warn" };
+  if (c?.planned === 0 && c.planned_km) return { text: `${km1(item.km ?? 0)} of ${km1(c.planned_km)} km`, tone: "plain" }; // a distance session
   if (c?.state === "match") return { text: `${c.found}/${c.planned} blocks`, tone: "plain" };
   if (c?.state === "indoor") return { text: "indoor", tone: "plain" };
   return null;
@@ -115,12 +118,14 @@ const half = (s) => Math.round(s / 30) / 2;
 const mins = (s) => `${half(s)} min`;
 
 // The next session as text: "5 min warm-up walk · 8 × (1 min run + 1.5 min walk) · 5 min cool-down walk"; once through (times 1) the steps
-// run on with arrows. "" for no plan or a graduated one.
+// run on with arrows; a distance session "4.8 km run". The note comes last. "" for no plan or a graduated one.
 export function programmeText(plan) {
-  if (!plan?.steps?.length) return "";
   const step = ([kind, s]) => `${mins(s)} ${kind}`;
-  const main = plan.times > 1 ? `${plan.times} × (${plan.steps.map(step).join(" + ")})` : plan.steps.map(step).join(" → ");
-  return [plan.warmup_s > 0 && `${mins(plan.warmup_s)} warm-up walk`, main, plan.cooldown_s > 0 && `${mins(plan.cooldown_s)} cool-down walk`].filter(Boolean).join(" · ");
+  const main = plan?.steps?.length
+    ? plan.times > 1 ? `${plan.times} × (${plan.steps.map(step).join(" + ")})` : plan.steps.map(step).join(" → ")
+    : plan?.target?.type === "distance" ? `${km1(plan.target.km)} km run` : null;
+  if (!main) return "";
+  return [plan.warmup_s > 0 && `${mins(plan.warmup_s)} warm-up walk`, main, plan.cooldown_s > 0 && `${mins(plan.cooldown_s)} cool-down walk`, plan.note].filter(Boolean).join(" · ");
 }
 
 // The plan check of a run in the pop-up: "8 of 8 run blocks · 9.5 of 8 min running · matches W1D2". `kmh`: the run's average speed, which
@@ -137,6 +142,45 @@ export function planBar(plan) {
   const segs = [["walk", plan.warmup_s ?? 0], ...plan.intervals, ["walk", plan.cooldown_s ?? 0]].filter(([, s]) => s > 0);
   const total = segs.reduce((t, [, s]) => t + s, 0);
   return segs.map(([kind, s]) => ({ kind, frac: s / total }));
+}
+
+// A plan of the list (GET plans): "8 weeks × 3 runs", "6 weeks · 3-4 runs a week"; " · repeats" for a loop. A `repeat = 3` week is three runs.
+export function planSummary(p) {
+  const runs = p.weeks.map((w) => w.sessions.length * (w.repeat ?? 1));
+  const lo = Math.min(...runs), hi = Math.max(...runs), n = p.weeks.length;
+  const weeks = `${n} ${n === 1 ? "week" : "weeks"}`;
+  const text = lo === hi ? `${weeks} × ${lo} ${lo === 1 ? "run" : "runs"}` : `${weeks} · ${lo}-${hi} runs a week`;
+  return p.loop ? `${text} · repeats` : text;
+}
+
+// A plan's weeks for the builder, which only saves `sessions` lists: a `repeat = n` week becomes its session n times. Deep copies, so an
+// edit changes one session only.
+export const expandWeeks = (weeks) => weeks.map((w) => ({ sessions: Array.from({ length: w.repeat ?? 1 }, () => w.sessions).flat().map((s) => structuredClone(s)) }));
+
+// A stored session's length in seconds (the builder's preview); a distance session's is its warm-up and cool-down.
+export const sessionSeconds = (s) => (s.warmup_s ?? 0) + (s.times ?? 1) * (s.intervals ?? []).reduce((t, [, x]) => t + x, 0) + (s.cooldown_s ?? 0);
+
+// A stored session as the scores' plan block has it, for planBar and programmeText.
+export const sessionPlan = (s) => ({
+  ...s, cooldown_s: s.cooldown_s ?? 0, steps: s.intervals ?? [], times: s.times ?? 1, note: s.note || null,
+  intervals: Array.from({ length: s.times ?? 1 }, () => s.intervals ?? []).flat(),
+});
+
+// The builder edits a session with every field there (a km kept for a switch to distance); the server sets the fractions itself.
+export const sessionDraft = (s) => ({
+  warmup_s: s.warmup_s ?? 0, cooldown_s: s.cooldown_s ?? 0, intervals: structuredClone(s.intervals ?? []), times: s.times ?? 1,
+  target: { type: s.target?.type ?? "duration", km: s.target?.km ?? 5 }, note: s.note ?? "",
+});
+
+// A draft session as POST plans takes it: a distance session has no intervals, an empty note none.
+export function sessionBody(s) {
+  const dist = s.target.type === "distance";
+  return {
+    warmup_s: s.warmup_s, cooldown_s: s.cooldown_s,
+    ...(!dist && s.intervals.length && { intervals: s.intervals, times: s.times }),
+    target: dist ? { type: "distance", km: s.target.km } : { type: s.target.type },
+    ...(s.note.trim() && { note: s.note.trim() }),
+  };
 }
 
 export function layout(viewer, people) {

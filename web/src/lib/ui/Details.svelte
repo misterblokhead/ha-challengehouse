@@ -3,6 +3,8 @@
   import Connect from "./Connect.svelte";
   import Feed from "./Feed.svelte";
   import PlanBar from "./PlanBar.svelte";
+  import PlanBuilder from "./PlanBuilder.svelte";
+  import PlanPicker from "./PlanPicker.svelte";
   import Progress from "./Progress.svelte";
   import Shoes from "./Shoes.svelte";
   import ShoesDialog from "./ShoesDialog.svelte";
@@ -11,19 +13,27 @@
 
   // A person's plan, 90-day activity, badges, progress and shoes: inline under the viewer's own tile, or in the sheet for anyone else.
   // `connect`: the Connect card's data when this viewer may connect this person (and it is not on top of the page already).
-  // `canEdit`: this viewer may Remove/Restore this person's workouts (viewer.can_edit); a tap on a workout opens its pop-up.
-  let { id, person: p, canEdit, viewer, connect = null, reviewTypes = {}, now } = $props();
+  // `canEdit`: this viewer may Remove/Restore this person's workouts (viewer.can_edit) and change their plan; a tap on a workout opens its pop-up.
+  // "Change plan" swaps all of this for the plan list, and from there the builder; Back returns. `people`: the names of plan makers.
+  let { id, person: p, canEdit, viewer, people = {}, connect = null, reviewTypes = {}, now } = $props();
   const uid = $props.id();
   const records = $derived(recordKeys(p.pbs));
   const manage = $derived(shoesManageable(p, canEdit)); // live data and this viewer may edit: Manage, and each run's shoe
   let shoesDialog = $state(), workout = $state();
   const openWorkout = (item) => workout.open(item);
+  let plans = $state(null); // null: the details; "pick": the plan list; {from, mode}: the builder
 </script>
 
-{#if p.plan}
+{#if plans === "pick"}
+  <PlanPicker person={id} current={p.plan} {viewer} {people} onback={() => (plans = null)} onbuild={(from, mode) => (plans = { from, mode })} />
+{:else if plans}
+  <PlanBuilder from={plans.from} mode={plans.mode} onback={() => (plans = "pick")} />
+{:else}
+{#if p.plan || canEdit}
   <section aria-labelledby="{uid}-plan">
     <h2 id="{uid}-plan">Plan</h2>
-    <PlanBar plan={p.plan} />
+    {#if p.plan}<PlanBar plan={p.plan} {canEdit} onchange={() => (plans = "pick")} />
+    {:else}<button type="button" class="btn choose press" onclick={() => (plans = "pick")}>Choose a plan</button>{/if}
   </section>
 {/if}
 <section aria-labelledby="{uid}-feed">
@@ -51,6 +61,7 @@
 {/if}
 
 {#if connect}<Connect info={connect} {now} person={p} collapsed />{/if}
+{/if}
 
 <style>
   h2 {
@@ -62,5 +73,6 @@
     background: none; color: var(--accent-text); font: inherit; font-size: 1.0625rem; font-weight: 600;
   }
   .none { margin: 0 0.25rem; }
+  .choose { width: 100%; }
   small { color: var(--muted); font-size: 0.875rem; font-weight: 500; letter-spacing: 0; }
 </style>

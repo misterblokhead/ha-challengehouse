@@ -1,17 +1,20 @@
 <script>
   import { planBar, programmeText } from "../model.js";
 
-  // The next session of the running plan: "W1D2" with "Due today" or "Rest day", and its run/walk intervals; a finished plan has none.
-  let { plan } = $props();
-  const segs = $derived(planBar(plan));
+  // The next session of the running plan: its name, "W1D2" with "Due today" or "Rest day", and its run/walk intervals (a distance session:
+  // its km in the text, no bar); a finished plan has none. `canEdit`: a "Change plan" button, calling `onchange`.
+  let { plan, canEdit = false, onchange } = $props();
+  const next = $derived(plan.week != null); // null: graduated
+  const segs = $derived(plan.target?.type === "distance" ? [] : planBar(plan));
   const minutes = $derived(Math.round(((plan.warmup_s ?? 0) + plan.intervals.reduce((t, [, s]) => t + s, 0) + (plan.cooldown_s ?? 0)) / 60));
   const text = $derived(programmeText(plan));
 </script>
 
 <div class="card plan">
+  {#if plan.name}<p class="caption name">{plan.name}{#if plan.loop} · Round {plan.round}{/if}</p>{/if}
   <div class="top">
     <span class="big">{plan.state}</span>
-    {#if segs.length}<span class="tag" class:due={plan.due_today}>{plan.due_today ? "Due today" : "Rest day"}</span>{/if}
+    {#if next}<span class="tag" class:due={plan.due_today}>{plan.due_today ? "Due today" : "Rest day"}</span>{/if}
   </div>
   {#if segs.length}
     <div class="segs" role="img" aria-label="Run and walk intervals, {minutes} minutes in total">
@@ -27,10 +30,12 @@
       {text}{#if plan.review_pending}<span class="review">{text ? " · " : ""}{plan.review_pending} {plan.review_pending === 1 ? "run" : "runs"} to review</span>{/if}
     </p>
   {/if}
+  {#if canEdit}<button type="button" class="btn change press" onclick={onchange}>Change plan</button>{/if}
 </div>
 
 <style>
   .plan { padding: 1rem; }
+  .name { margin: 0 0 0.25rem; font-weight: 600; }
   .top { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
   .tag { padding: 0.25rem 0.625rem; border-radius: var(--radius-chip); background: var(--fill); font-size: 0.8125rem; font-weight: 600; }
   .tag.due { background: color-mix(in srgb, var(--good) 18%, transparent); color: var(--good-text); }
@@ -40,4 +45,5 @@
   .prog { margin: 0.5rem 0 0; }
   .review { color: var(--warn-text); font-weight: 600; }
   .dot { display: inline-block; width: 0.625rem; height: 0.625rem; border-radius: 50%; vertical-align: -0.0625rem; }
+  .change { width: 100%; margin-top: 0.875rem; }
 </style>
