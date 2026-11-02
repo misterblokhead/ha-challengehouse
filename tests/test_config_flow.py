@@ -526,6 +526,19 @@ async def test_edit_person_plan_appends_history(hass, setup):
     assert e.options[OPT_PHONES][P0] == "android" and e.options[OPT_PEOPLE][P1] == PEOPLE_OPTIONS[OPT_PEOPLE][P1]
 
 
+async def test_person_edit_lists_shipped_and_custom_plans(hass, setup, hass_storage):
+    plan = {"name": "Mine", "by": P0, "weeks": [{"sessions": [{"warmup_s": 0, "target": {"type": "none"}}]}]}
+    hass_storage["fitbridge.plans"] = {"version": 1, "minor_version": 1, "key": "fitbridge.plans", "data": {"plans": {"my_x": plan}}}
+    e = await setup()
+    result = await _people_step(hass, e, P0)
+    offered = {o["value"]: o["label"] for o in _field(result, "plan")[1].config["options"]}
+    assert list(offered) == ["keep", "c25k", "higdon_10k", "c25k_plus", "my_x", "none"] and offered["my_x"] == "Mine, starting today"
+    old = e.options[OPT_PEOPLE][P0]["plan_history"]
+    result = await _configure(hass, result, {"name": "Person 1", "plan": "higdon_10k", "phone": "iphone"})
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert e.options[OPT_PEOPLE][P0]["plan_history"] == [*old, {"plan": "higdon_10k", "from": dt_util.now().date().isoformat()}]
+
+
 async def test_edit_person_none_keeps_history(hass, setup):
     e = await setup()
     old = e.options[OPT_PEOPLE][P1]["plan_history"]

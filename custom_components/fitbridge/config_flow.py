@@ -45,6 +45,13 @@ INVITE = "invite"
 GROUP = "couple"  # the group's name, never a person's id
 PHONE_LABELS = {"iphone": "iPhone", "android": "Android"}
 PLANS = {"c25k": "Couch to 5K, starting today", "none": "No plan"}
+
+
+async def _plans(hass: HomeAssistant) -> dict[str, str]:
+    """Every plan of the last good config, shipped and custom; the fixed PLANS before one is loaded (first setup)."""
+    data = hass.data.get(DOMAIN)
+    plans = await data.runner.async_plans() if data and data.runner else {}
+    return {**{k: f"{p['name']}, starting today" for k, p in plans.items()}, "none": "No plan"} if plans else PLANS
 NO_EXTERNAL_URL = ("\n\nHome Assistant has no external URL, so the phone's webhook address only works at home. Set one in "
                    "Settings -> System -> Network, or use Home Assistant Cloud's remote access.")
 
@@ -371,7 +378,7 @@ class FitbridgeOptionsFlow(_InstallSteps, config_entries.OptionsFlowWithReload):
         phone = options.get(OPT_PHONES, {}).get(pid)
         schema = vol.Schema({
             vol.Required("name"): TextSelector(),
-            vol.Required("plan", default=KEEP): _choice({KEEP: "Keep the current plan", **PLANS}),
+            vol.Required("plan", default=KEEP): _choice({KEEP: "Keep the current plan", **await _plans(self.hass)}),
             vol.Required("phone", default=phone if phone in PHONES else PHONES[0]): _choice(PHONE_LABELS)})
         return self.async_show_form(step_id="person_edit", errors=errors, data_schema=self.add_suggested_values_to_schema(
             schema, user_input or {"name": record["name"]}))
@@ -398,7 +405,7 @@ class FitbridgeOptionsFlow(_InstallSteps, config_entries.OptionsFlowWithReload):
             return self.async_create_entry(data=self._added)
         return self.async_show_form(step_id="person_add", data_schema=vol.Schema({
             vol.Required("user"): _choice(free),
-            vol.Required("plan", default="c25k"): _choice(PLANS),
+            vol.Required("plan", default="c25k"): _choice(await _plans(self.hass)),
             vol.Required("phone", default=PHONES[0]): _choice(PHONE_LABELS)}))
 
     async def async_step_group(self, user_input=None):
