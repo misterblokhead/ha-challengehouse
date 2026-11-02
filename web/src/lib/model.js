@@ -275,9 +275,10 @@ export function clampGoal(field, value) {
   return Math.min(hi, Math.max(lo, Math.round(value / step) * step));
 }
 
-// The entry the sheet starts from (a POST body: no `from`): this week's settings, else each person's goal as scored now.
+// The entry the sheet starts from (a POST body: no `from`): the change waiting for next Monday, else this week's settings, else
+// each person's goal as scored now.
 export function goalsDraft(res, people) {
-  const cur = res.current;
+  const cur = res.pending ?? res.current;
   const goal = (id) => cur?.people?.[id] ?? res.defaults?.[id] ?? {};
   return {
     people: Object.fromEntries(Object.keys(people).map((id) => {

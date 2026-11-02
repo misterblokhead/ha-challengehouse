@@ -86,6 +86,27 @@ def current(history: list, monday: date) -> dict | None:
     return next((e for e in reversed(history) if e["from"] <= start), None)
 
 
+def applies_from(history: list, today: date, start: date | None) -> date:
+    """The Monday a save takes effect: this week's at first setup or before the challenge starts, else next week's,
+    so nobody lowers a goal mid-week to meet it."""
+    monday = monday_of(today)
+    if current(history, monday) is None or (start is not None and today < start):
+        return monday
+    return monday + timedelta(days=7)
+
+
+def pending(history: list, monday: date) -> dict | None:
+    """The change waiting for a later week than monday's, if any."""
+    start = monday.isoformat()
+    return next((e for e in history if e["from"] > start), None)
+
+
+def cancel(history: list, monday: date) -> list:
+    """History without the changes waiting for a later week than monday's."""
+    start = monday.isoformat()
+    return [e for e in history if e["from"] <= start]
+
+
 def monday_of(day: date) -> date:
     return day - timedelta(days=day.weekday())
 

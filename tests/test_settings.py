@@ -3,7 +3,7 @@ from datetime import date
 
 import pytest
 
-from custom_components.fitbridge.settings import current, monday_of, put, validate
+from custom_components.fitbridge.settings import applies_from, cancel, current, monday_of, pending, put, validate
 
 P = {"runs": 2, "workouts": 1, "active_days": 3, "steps": 10000}
 BODY = {"people": {"p1": P, "p2": {**P, "runs": 0}}, "couple": {"mode": "team", "together": 2, "team": 8, "reward": "Pizza night"}}
@@ -61,6 +61,26 @@ def test_current_is_the_last_entry_not_after_the_week():
     history = [{"from": "2026-10-12"}, {"from": "2026-10-26"}]
     assert current(history, MON) == history[1] and current(history, date(2026, 10, 19)) == history[0]
     assert current(history, date(2026, 10, 5)) is None and current([], MON) is None
+
+
+def test_applies_from_this_monday_without_an_entry_or_before_the_start():
+    wed = date(2026, 11, 4)
+    assert applies_from([], wed, MON) == NEXT
+    assert applies_from([{"from": "2026-11-09"}], wed, None) == NEXT  # only a waiting entry: nothing covers this week
+    assert applies_from([{"from": "2026-10-26"}], wed, date(2026, 11, 5)) == NEXT
+
+
+def test_applies_from_next_monday_once_an_entry_covers_the_week():
+    covered = [{"from": "2026-10-26"}]
+    assert applies_from(covered, date(2026, 11, 4), MON) == date(2026, 11, 9)
+    assert applies_from(covered, date(2026, 11, 8), None) == date(2026, 11, 9)  # Sunday: tomorrow
+    assert applies_from(covered, NEXT, NEXT) == date(2026, 11, 9)  # the start day itself counts as started
+
+
+def test_pending_and_cancel_only_see_entries_after_the_week():
+    h = [{"from": "2026-10-26"}, {"from": "2026-11-09"}]
+    assert pending(h, NEXT) == h[1] and pending(h[:1], NEXT) is None
+    assert cancel(h, NEXT) == h[:1] and cancel(h[:1], NEXT) == h[:1]
 
 
 def test_monday_of():

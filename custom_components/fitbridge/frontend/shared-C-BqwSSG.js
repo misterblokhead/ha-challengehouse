@@ -2808,7 +2808,7 @@ function Ja(e, t) {
 	return Math.min(r, Math.max(n, Math.round(t / i) * i));
 }
 function Ya(e, t) {
-	let n = e.current, r = (t) => n?.people?.[t] ?? e.defaults?.[t] ?? {};
+	let n = e.pending ?? e.current, r = (t) => n?.people?.[t] ?? e.defaults?.[t] ?? {};
 	return {
 		people: Object.fromEntries(Object.keys(t).map((e) => {
 			let t = r(e);

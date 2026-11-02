@@ -1,11 +1,12 @@
 <script>
   import { onMount } from "svelte";
-  import { saveGoals } from "../actions.svelte.js";
+  import { cancelGoals, saveGoals } from "../actions.svelte.js";
   import { get } from "../api.js";
-  import { clampGoal, goalsDraft, isoWeek, LIMITS, maxHrText, PERSON_GOALS } from "../model.js";
+  import { clampGoal, goalsDraft, isoWeek, LIMITS, maxHrText, PERSON_GOALS, shortDate } from "../model.js";
 
-  // The weekly goals per person, the couple mode with its number, and the reward, set together from a phone. They apply from this
-  // week's Monday. `readOnly` (an unmapped viewer, the wall iPad): everything shows, nothing changes and there is no Save.
+  // The weekly goals per person, the couple mode with its number, and the reward, set together from a phone. A change applies from
+  // next Monday (this week's only at first setup or before the start), and until then it can be changed again or cancelled.
+  // `readOnly` (an unmapped viewer, the wall iPad): everything shows, nothing changes and there is no Save.
   // `people`: the payload as scored (names, and what a Save compares against). `onsaved`: after the integration took a Save.
   let { people, readOnly, onsaved } = $props();
   const uid = $props.id();
@@ -37,7 +38,14 @@
 
   async function save() {
     saving = true;
-    const ok = await saveGoals($state.snapshot(draft), people);
+    const ok = await saveGoals($state.snapshot(draft), people, res.week_start);
+    saving = false;
+    if (ok) onsaved();
+  }
+
+  async function cancel() {
+    saving = true;
+    const ok = await cancelGoals();
     saving = false;
     if (ok) onsaved();
   }
@@ -57,7 +65,11 @@
 {#if !draft}
   <p class="msg" role="status">{failure ? (failure.status === 503 ? "Waiting for fitbridge" : "Couldn't reach Home Assistant") : "Loading…"}</p>
 {:else}
-  <p class="caption">Applies from this week (week {isoWeek(res.week_start)})</p>
+  <p class="caption">
+    {#if res.pending}New goals from Monday {shortDate(res.pending.from)} are saved
+    {:else if res.applies_from > res.week_start}Changes apply from Monday {shortDate(res.applies_from)} (week {isoWeek(res.applies_from)})
+    {:else}Applies from this week (week {isoWeek(res.week_start)}){/if}
+  </p>
 
   {#each Object.keys(draft.people) as id (id)}
     {@const name = people[id]?.name ?? id}
@@ -90,6 +102,7 @@
   </section>
 
   {#if !readOnly}<button type="button" class="btn save" disabled={saving} onclick={save}>Save</button>{/if}
+  {#if !readOnly && res.pending}<button type="button" class="btn" disabled={saving} onclick={cancel}>Cancel change</button>{/if}
 {/if}
 
 <style>

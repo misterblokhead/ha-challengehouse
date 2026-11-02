@@ -19,6 +19,7 @@ from custom_components.fitbridge.const import (
     OPT_OPENGYM_URL,
     OPT_PEOPLE,
     OPT_PHONES,
+    OPT_START,
     OPT_STEPS,
     OPT_VIEWERS,
     WEBHOOKS,
@@ -273,18 +274,61 @@ async def test_settings_store_this_mondays_entry(hass, client, send, hass_storag
     assert hass_storage["fitbridge.settings"]["data"] == {"history": history, "profiles": {}}
 
 
-async def test_second_save_in_a_week_replaces_and_a_later_week_appends(hass, client, send, hass_storage):
+def _next_monday():
+    return (monday_of(dt_util.now().date()) + timedelta(days=7)).isoformat()
+
+
+def _mode(mode):
+    return {**SETTINGS, "couple": {**SETTINGS["couple"], "mode": mode}}
+
+
+async def test_a_save_after_the_first_waits_for_next_monday(hass, client, send, hass_storage):
     await send(SCORES)
     c = await client("sam")
     await c.post(f"{UI}/settings", json=SETTINGS)
-    again = {**SETTINGS, "couple": {**SETTINGS["couple"], "mode": "own"}}
-    assert (await c.post(f"{UI}/settings", json=again)).status == 202
+    resp = await c.post(f"{UI}/settings", json=_mode("own"))
+    assert resp.status == 202 and await resp.json() == {"ok": True, "from": _next_monday()}
+    assert (await c.post(f"{UI}/settings", json=_mode("team"))).status == 202  # still waiting: replaced, not appended
     saved = hass_storage["fitbridge.settings"]["data"]["history"]
-    assert [(e["from"], e["couple"]["mode"]) for e in saved] == [(_this_monday(), "own")]
+    assert [(e["from"], e["couple"]["mode"]) for e in saved] == [(_this_monday(), "together"), (nxt := _next_monday(), "team")]
     with patch("custom_components.fitbridge.views.dt_util.now", return_value=dt_util.now() + timedelta(days=7)):  # not freezegun: it expires the token
-        assert (await c.post(f"{UI}/settings", json=SETTINGS)).status == 202
-    saved = hass_storage["fitbridge.settings"]["data"]["history"]
-    assert len(saved) == 2 and saved[0]["from"] < saved[1]["from"] and saved[1]["couple"]["mode"] == "together"
+        assert (await (await c.post(f"{UI}/settings", json=_mode("own"))).json())["from"] > nxt  # next week, covered: the one after
+    assert len(hass_storage["fitbridge.settings"]["data"]["history"]) == 3
+
+
+async def test_before_the_start_a_save_applies_this_week_and_drops_a_waiting_change(hass, entry, client, send, hass_storage):
+    await send(SCORES)
+    c = await client("alex")
+    await c.post(f"{UI}/settings", json=SETTINGS)
+    await c.post(f"{UI}/settings", json=_mode("own"))  # started: waits for next Monday
+    later = (dt_util.now().date() + timedelta(days=3)).isoformat()
+    hass.config_entries.async_update_entry(entry, options={**entry.options, OPT_START: later})
+    assert (await (await c.post(f"{UI}/settings", json=_mode("team"))).json())["from"] == _this_monday()
+    assert [(e["from"], e["couple"]["mode"]) for e in hass_storage["fitbridge.settings"]["data"]["history"]] == [(_this_monday(), "team")]
+
+
+async def test_a_save_without_a_goal_change_applies_now_and_drops_the_waiting_change(hass, client, send, hass_storage):
+    await send(SCORES)
+    c = await client("alex")
+    await c.post(f"{UI}/settings", json=SETTINGS)
+    resp = await c.post(f"{UI}/settings", json={**SETTINGS, "profiles": {"p1": {"birth_year": 1990}}})  # only a birth year
+    assert await resp.json() == {"ok": True, "from": _this_monday()}
+    await c.post(f"{UI}/settings", json=_mode("own"))
+    assert (await (await c.post(f"{UI}/settings", json=SETTINGS)).json())["from"] == _this_monday()  # this week's goals back
+    assert hass_storage["fitbridge.settings"]["data"] == {"history": [{"from": _this_monday(), **SETTINGS}], "profiles": {"p1": {"birth_year": 1990}}}
+
+
+async def test_cancel_drops_the_waiting_change_and_keeps_profiles(hass, client, send, hass_storage):
+    await send(SCORES)
+    c = await client("alex")
+    profiles = {"p1": {"birth_year": 1990}}
+    await c.post(f"{UI}/settings", json={**SETTINGS, "profiles": profiles})
+    await c.post(f"{UI}/settings", json=_mode("own"))
+    assert (await (await client("robin")).post(f"{UI}/settings", json={"action": "cancel"})).status == 403
+    for cancelled in (True, False):  # the second has nothing left to drop (already in force, or cancelled elsewhere)
+        resp = await c.post(f"{UI}/settings", json={"action": "cancel"})
+        assert resp.status == 202 and await resp.json() == {"ok": True, "cancelled": cancelled}
+        assert hass_storage["fitbridge.settings"]["data"] == {"history": [{"from": _this_monday(), **SETTINGS}], "profiles": profiles}
 
 
 
@@ -319,11 +363,16 @@ async def test_settings_get_returns_current_week_start_and_defaults(hass, client
     await send({"people": {"p1": p1, "p2": {"name": "Sam", "feed": []}}})
     c = await client("alex")
     body = await (await c.get(f"{UI}/settings")).json()
-    assert body == {"history": [], "profiles": {}, "current": None, "week_start": _this_monday(),
+    assert body == {"history": [], "profiles": {}, "current": None, "pending": None, "week_start": _this_monday(),
+                    "applies_from": _this_monday(),
                     "defaults": {"p1": {"runs": 1, "workouts": 2, "active_days": 0, "steps": 8000}}}  # old gym key still read
     await c.post(f"{UI}/settings", json=SETTINGS)
     body = await (await c.get(f"{UI}/settings")).json()
     assert body["current"] == {"from": _this_monday(), **SETTINGS} and body["history"] == [body["current"]]
+    assert body["pending"] is None and body["applies_from"] == _next_monday()
+    await c.post(f"{UI}/settings", json=_mode("own"))
+    body = await (await c.get(f"{UI}/settings")).json()
+    assert body["pending"] == {"from": _next_monday(), **_mode("own")} and body["current"] == {"from": _this_monday(), **SETTINGS}
 
 
 async def test_birth_years_are_stored_returned_kept_and_cleared(hass, client, send, hass_storage):
