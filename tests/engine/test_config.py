@@ -193,8 +193,13 @@ class ConfigTests(unittest.TestCase):
     def test_badge_plan_must_be_known(self):
         badge = DEFAULT + "\n[[badges]]\nid = 'b'\ncounter = 'plan_weeks'\nthresholds = [1]\ntitle = 'B {t}'\nicon = 'mdi:x'\ncategory = 'plan'\n"
         load_config(badge + "plan = 'c25k'\n", TWO)
-        with self.assertRaisesRegex(ConfigError, "plan"):
+        with self.assertRaisesRegex(ConfigError, "unknown plan"):
             load_config(badge + "plan = 'nope'\n", TWO)
+
+    def test_wrong_shaped_plans_or_badges_are_config_errors(self):
+        for text in ("plans = 5\n", "badges = 5\n"):
+            with self.subTest(text), self.assertRaisesRegex(ConfigError, "malformed config"):
+                load_config(text, TWO)
 
     def test_shipped_plans_win_over_the_users_copy(self):
         text = (DEFAULT.replace('name = "Couch to 5K"', 'name = "Mine"') + "\n[plans.extra]\nname = 'Extra'\n"

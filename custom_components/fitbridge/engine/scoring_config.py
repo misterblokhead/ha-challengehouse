@@ -309,7 +309,10 @@ def load_config(text, overlay=None):
         cfg = tomllib.loads(text)
     except tomllib.TOMLDecodeError as e:
         raise ConfigError(f"invalid TOML: {e}") from e
-    _merge_shipped(cfg)
+    try:
+        _merge_shipped(cfg)
+    except (AttributeError, TypeError, KeyError) as e:  # `plans` or `badges` of the wrong shape
+        raise ConfigError(f"malformed config: {e!r}") from e
     if overlay is not None:
         try:
             _apply_overlay(cfg, overlay)
