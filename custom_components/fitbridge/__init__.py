@@ -11,7 +11,7 @@ from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.storage import Store
 
-from . import people, settings, webhooks
+from . import people, plans, settings, webhooks
 from .const import DATA_DIR, DOMAIN, OPT_PEOPLE
 from .panel import async_register_http, async_register_panel, remove_panel
 from .runner import Runner
@@ -36,6 +36,8 @@ class Data:
     settings_history: list = field(default_factory=list)  # weekly goals history, oldest first
     settings_profiles: dict = field(default_factory=dict)  # {person: {"birth_year": int}}, kept next to the history
     settings_store: Store | None = None
+    plans_store: Store | None = None
+    custom_plans: dict = field(default_factory=dict)  # {id: plan} built on the page, as the runner hands them to the engine
     steps: StepsCollector | None = None
     runner: Runner | None = None
 
@@ -95,11 +97,12 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    data = hass.data[DOMAIN] = Data(entry, settings_store=Store(hass, 1, "fitbridge.settings"))
+    data = hass.data[DOMAIN] = Data(entry, settings_store=Store(hass, 1, "fitbridge.settings"), plans_store=Store(hass, 1, "fitbridge.plans"))
     data.settings_history, data.settings_profiles = await settings.load(data.settings_store)
+    data.custom_plans = await plans.load(data.plans_store)
     data.steps = StepsCollector(hass, entry, Store(hass, 1, "fitbridge.steps"))
     await data.steps.async_start(entry)
-    data.runner = Runner(hass, entry)
+    data.runner = Runner(hass, entry, data.custom_plans)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)  # before the first cycle: they listen for it
     await data.runner.async_start()
     entry.async_on_unload(data.runner.async_stop)

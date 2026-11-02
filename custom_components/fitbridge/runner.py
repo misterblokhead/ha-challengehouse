@@ -41,8 +41,9 @@ def received_key(person: str) -> str:
 class Runner:
     """After each cycle SIGNAL_SCORES carries the Cycle; handlers must be @callback, as commit() follows them."""
 
-    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry, custom_plans: dict | None = None) -> None:
         self.hass, self.entry = hass, entry
+        self.custom_plans = custom_plans or {}
         self.dir = Path(hass.config.path(DATA_DIR))
         self.folders: dict[str, Path] = {p: Path(f) for p, f in entry.options.get(OPT_FOLDERS, {}).items()}  # scanned every minute
         self.store: Store | None = None
@@ -92,6 +93,19 @@ class Runner:
         folders and openGym users go by them."""
         config, _ = await self.hass.async_add_executor_job(self.holder.get)  # racing a cycle's get() only loads it twice
         return config["people"] if config else {}
+
+    async def async_plans(self) -> dict:
+        """The plans of the last good config: scoring.toml's, the shipped ones and the custom ones."""
+        config, _ = await self.hass.async_add_executor_job(self.holder.get)
+        return config["plans"] if config else {}
+
+    async def async_reconfigure(self, custom_plans: dict) -> None:
+        """New custom plans or people options without a reload: the config reloads with them, then a cycle."""
+        self.custom_plans = custom_plans
+        if self.holder is not None:
+            self.holder.overlay = people.overlay(self.entry.options, self.hass.config.time_zone, custom_plans)
+            self.holder.mtime = None  # after the overlay: a get() running meanwhile then loads it again with the new one
+        await self.async_score_now()
 
     async def async_types(self) -> dict:
         """scoring.toml's type table (its last good config), for the shoe changes that must tell a run."""
@@ -265,7 +279,7 @@ class Runner:
         config = self.dir / "scoring.toml"
         if not config.exists():  # the user's copy is never overwritten
             shutil.copyfile(DEFAULT_CONFIG, config)
-        self.holder = ConfigHolder(config, people.overlay(self.entry.options, self.hass.config.time_zone))
+        self.holder = ConfigHolder(config, people.overlay(self.entry.options, self.hass.config.time_zone, self.custom_plans))
         return Store(self.dir / "fitbridge.db")
 
     def _cycle(self, og, inputs):

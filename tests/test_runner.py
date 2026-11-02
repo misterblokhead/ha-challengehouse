@@ -325,3 +325,15 @@ async def test_runner_uses_options_people(hass, setup, caplog):
     assert set(await _runner(hass).async_people()) == {"mine"}
     assert _runner(hass).scores["people"].keys() == {"mine"}
     assert not [r for r in caplog.records if "Configure" in r.message]  # the migration said it, once
+
+
+async def test_custom_plans_reach_the_config_and_a_reconfigure_swaps_them(hass, setup, hass_storage):
+    plan = {"name": "Mine", "by": "person1", "weeks": [{"sessions": [{"warmup_s": 0, "target": {"type": "none"}}]}]}
+    hass_storage["fitbridge.plans"] = {"version": 1, "key": "fitbridge.plans", "data": {"plans": {"my_mine": plan}}}
+    await setup()
+    runner = _runner(hass)
+    assert (await runner.async_plans())["my_mine"]["name"] == "Mine" and "c25k" in await runner.async_plans()
+    with patch.object(runner, "_score", wraps=runner._score) as score:
+        await runner.async_reconfigure({})
+    score.assert_awaited_once()
+    assert "my_mine" not in await runner.async_plans() and _runner(hass) is runner
