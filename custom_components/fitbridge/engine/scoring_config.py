@@ -1,5 +1,6 @@
 """Loads and validates scoring.toml."""
 import copy
+import functools
 import math
 import re
 import tomllib
@@ -89,6 +90,8 @@ def _check_session(errs, where, s):
         if not (isinstance(iv, list) and len(iv) == 2 and iv[0] in ("run", "walk")
                 and finite(iv[1]) and iv[1] > 0):
             errs.append(f"{where}.intervals entry {iv!r} must be [\"run\"|\"walk\", seconds > 0]")
+    if "note" in s and not (isinstance(s["note"], str) and len(s["note"]) <= 80):
+        errs.append(f"{where}.note must be text of at most 80 characters")
     t = s.get("target")
     if not isinstance(t, dict) or t.get("type") not in TARGET_TYPES:
         return errs.append(f"{where}: unknown target type {t.get('type') if isinstance(t, dict) else t!r}")
@@ -100,26 +103,47 @@ def _check_session(errs, where, s):
         errs.append(f"{where}.target distance requires km > 0")
 
 
+def _check_plan(errs, where, plan):
+    if not isinstance(plan, dict):
+        return errs.append(f"{where} must be a table")
+    if not isinstance(plan.get("name"), str) or not plan["name"].strip():
+        errs.append(f"{where}.name must be a non-empty string")
+    if "loop" in plan and not isinstance(plan["loop"], bool):
+        errs.append(f"{where}.loop must be true or false")
+    if "source" in plan and not (isinstance(plan["source"], str) and plan["source"].startswith("https://")):
+        errs.append(f"{where}.source must be a URL starting with https://")
+    weeks = plan.get("weeks")
+    if not isinstance(weeks, list) or not weeks:
+        return errs.append(f"{where}.weeks must be a non-empty list")
+    for wi, wk in enumerate(weeks, 1):
+        sessions = wk.get("sessions")
+        at = f"{where} week {wi}"
+        if not isinstance(sessions, list) or not sessions:
+            errs.append(f"{at}: sessions must be a non-empty list")
+            continue
+        rep = wk.get("repeat")
+        if rep is not None and (not isinstance(rep, int) or rep < 1 or len(sessions) != 1):
+            errs.append(f"{at}: repeat needs an integer >= 1 and exactly one session")
+        for si, s in enumerate(sessions, 1):
+            _check_session(errs, f"{at} session {si}", s)
+
+
 def _check_plans(errs, plans):
     for pid, plan in plans.items():
-        weeks = plan.get("weeks")
-        if not isinstance(weeks, list) or not weeks:
-            errs.append(f"plans.{pid}.weeks must be a non-empty list")
-            continue
-        for wi, wk in enumerate(weeks, 1):
-            sessions = wk.get("sessions")
-            where = f"plans.{pid} week {wi}"
-            if not isinstance(sessions, list) or not sessions:
-                errs.append(f"{where}: sessions must be a non-empty list")
-                continue
-            rep = wk.get("repeat")
-            if rep is not None and (not isinstance(rep, int) or rep < 1 or len(sessions) != 1):
-                errs.append(f"{where}: repeat needs an integer >= 1 and exactly one session")
-            for si, s in enumerate(sessions, 1):
-                _check_session(errs, f"{where} session {si}", s)
+        _check_plan(errs, f"plans.{pid}", plan)
 
 
-def _check_badges(errs, badges):
+def check_plan(plan):
+    """The errors of one plan (a custom plan before it is stored); empty when valid."""
+    errs = []
+    try:
+        _check_plan(errs, "plan", plan)
+    except (AttributeError, TypeError, KeyError) as e:  # wrong-shaped weeks or sessions
+        errs.append(f"plan: malformed: {e!r}")
+    return errs
+
+
+def _check_badges(errs, badges, plans):
     seen = set()
     for i, b in enumerate(badges, 1):
         where = f"badge {b.get('id', i)}"
@@ -129,6 +153,8 @@ def _check_badges(errs, badges):
         for k in ("id", "counter", "title", "icon", "category"):
             if not isinstance(b.get(k), str) or not b[k]:
                 errs.append(f"{where}: {k} must be a non-empty string")
+        if "plan" in b and b["plan"] not in plans:
+            errs.append(f"{where}: unknown plan {b['plan']!r}")
         if b.get("counter") not in COUNTERS:
             errs.append(f"{where}: unknown counter {b.get('counter')!r}")
         th = b.get("thresholds")
@@ -234,39 +260,63 @@ def _validate(cfg, errs):
                 errs.append(f"people.{p}.plan_history entry needs a date `from`")
             if h.get("plan") is not None and h["plan"] not in cfg.get("plans", {}):
                 errs.append(f"people.{p}: unknown plan {h.get('plan')!r}")
+            elif "start_week" in h and h.get("plan") is not None:
+                if not _int_in(h["start_week"], 1, len(cfg["plans"][h["plan"]]["weeks"])):
+                    errs.append(f"people.{p}.plan_history start_week must be an integer from 1 to the plan's week count")
     if not cfg.get("people"):
         errs.append("missing table [people]")
     _check_group(errs, cfg.get("group"), cfg.get("people", {}))
 
-    _check_badges(errs, cfg.get("badges", []))
+    _check_badges(errs, cfg.get("badges", []), cfg.get("plans", {}))
     if not cfg.get("badges"):
         errs.append("missing [[badges]]")
 
 
 def _apply_overlay(cfg, overlay):
-    """People, group, start and timezone come from the integration's settings, not the TOML."""
+    """People, group, start and timezone come from the integration's settings, not the TOML; custom plans come on top of the file's."""
     overlay = copy.deepcopy(overlay)  # validation edits people in place
     for person in overlay["people"].values():
         for h in person.get("plan_history", []):
             h["from"] = date.fromisoformat(h["from"])
     cfg["people"], cfg["group"] = overlay["people"], overlay.get("group")
+    cfg["plans"] = {**cfg.get("plans", {}), **overlay.get("plans", {})}
     cfg.setdefault("rules", {}).update(start=date.fromisoformat(overlay["start"]), timezone=overlay["timezone"])
+
+
+@functools.cache
+def _shipped():
+    return tomllib.loads(Path(__file__).with_name("scoring.toml").read_text(encoding="utf-8"))
+
+
+def _merge_shipped(cfg):
+    """The shipped plans and plan badges win by id over the user's copy, which is never overwritten."""
+    shipped = copy.deepcopy(_shipped())
+    cfg["plans"] = {**cfg.get("plans", {}), **shipped["plans"]}
+    badges = cfg.setdefault("badges", [])
+    for sb in (b for b in shipped["badges"] if b["category"] == "plan"):
+        i = next((i for i, b in enumerate(badges) if isinstance(b, dict) and b.get("id") == sb["id"]), None)
+        if i is None:
+            badges.append(sb)
+        else:
+            badges[i] = sb
 
 
 def load_config(text, overlay=None):
     """Parse and validate scoring.toml text; per-person goals default from [goal]. `overlay`
-    ({people, group, start, timezone}) replaces the file's people, group, start and timezone."""
+    ({people, group, start, timezone, plans?}) replaces the file's people, group, start and timezone
+    and adds custom plans. The shipped plans and plan badges override the file's by id."""
     try:
         cfg = tomllib.loads(text)
     except tomllib.TOMLDecodeError as e:
         raise ConfigError(f"invalid TOML: {e}") from e
+    _merge_shipped(cfg)
     if overlay is not None:
         try:
             _apply_overlay(cfg, overlay)
         except (ValueError, KeyError, TypeError, AttributeError) as e:  # a bad date or shape in the settings
             raise ConfigError(f"invalid people settings: {e!r}") from e
     if "types" not in cfg:  # a copy from before the type table: use the shipped one
-        cfg["types"] = tomllib.loads(Path(__file__).with_name("scoring.toml").read_text(encoding="utf-8"))["types"]
+        cfg["types"] = copy.deepcopy(_shipped()["types"])
     errs = []
     try:
         _validate(cfg, errs)
@@ -295,7 +345,7 @@ def plan_sessions(config, plan_id):
         for di, s in enumerate(sessions, 1):
             steps = [(k, sec) for k, sec in s.get("intervals", [])]
             intervals = steps * s.get("times", 1)
-            out.append({"week": wi, "day": di, "warmup_s": s["warmup_s"], "cooldown_s": s.get("cooldown_s", 0),
+            out.append({"week": wi, "day": di, "warmup_s": s["warmup_s"], "cooldown_s": s.get("cooldown_s", 0), "note": s.get("note"),
                         "intervals": intervals, "steps": steps, "times": s.get("times", 1),
                         "target": s["target"],
                         "total_s": s["warmup_s"] + sum(sec for _, sec in intervals)})

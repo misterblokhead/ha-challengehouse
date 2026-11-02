@@ -4,14 +4,19 @@ import unittest
 from datetime import date
 from pathlib import Path
 
-from custom_components.fitbridge.engine.scoring_config import COUNTERS, ConfigError, load_config, parse_settings, parse_steps, pause_titles, plan_sessions
+from custom_components.fitbridge.engine.scoring_config import COUNTERS, ConfigError, check_plan, load_config, parse_settings, parse_steps, pause_titles, plan_sessions
 
 from . import LEGACY_PEOPLE, ONE, TWO, overlay
 
 DEFAULT = (Path(__file__).parents[2] / "custom_components" / "fitbridge" / "engine" / "scoring.toml").read_text()
 
 
-LEGACY = DEFAULT + LEGACY_PEOPLE  # a copy that still has its own people: the TOML's checks keep applying
+# The shipped plans win by id, so a test that edits a plan edits this renamed copy of c25k.
+OWN = DEFAULT.replace("plans.c25k", "plans.own")
+LEGACY = OWN + LEGACY_PEOPLE  # a copy that still has its own people: the TOML's checks keep applying
+
+
+MY_PLAN = {"name": "Mine", "weeks": [{"sessions": [{"warmup_s": 300, "target": {"type": "none"}}]}]}
 
 
 class ConfigTests(unittest.TestCase):
@@ -29,14 +34,14 @@ class ConfigTests(unittest.TestCase):
         s = plan_sessions(load_config(DEFAULT, TWO), "c25k")
         self.assertEqual({x["cooldown_s"] for x in s}, {300})
         self.assertEqual(s[0]["total_s"], 1500)
-        cfg = load_config(DEFAULT.replace("cooldown_s = 300, ", "", 1), TWO)
-        self.assertEqual(plan_sessions(cfg, "c25k")[0]["cooldown_s"], 0)
-        self.assertEqual(plan_sessions(cfg, "c25k")[0]["total_s"], 1500)
+        cfg = load_config(OWN.replace("cooldown_s = 300, ", "", 1), TWO)
+        self.assertEqual(plan_sessions(cfg, "own")[0]["cooldown_s"], 0)
+        self.assertEqual(plan_sessions(cfg, "own")[0]["total_s"], 1500)
 
     def test_cooldown_negative_rejected(self):
         for bad in ("-1", '"x"'):
             with self.subTest(bad=bad), self.assertRaisesRegex(ConfigError, r"cooldown_s must be a number >= 0"):
-                load_config(DEFAULT.replace("cooldown_s = 300", f"cooldown_s = {bad}", 1), TWO)
+                load_config(OWN.replace("cooldown_s = 300", f"cooldown_s = {bad}", 1), TWO)
 
     def test_plan_sessions_steps_times(self):
         w1 = plan_sessions(load_config(DEFAULT, TWO), "c25k")[0]
@@ -151,6 +156,64 @@ class ConfigTests(unittest.TestCase):
         ov = overlay()
         load_config(DEFAULT, ov)
         self.assertEqual(ov, overlay())
+
+    def test_session_note_loop_and_source_validate(self):
+        plan = {**MY_PLAN, "loop": True, "source": "https://example.org/p"}
+        plan["weeks"] = [{"sessions": [{**MY_PLAN["weeks"][0]["sessions"][0], "note": "easy"}]}]
+        cfg = load_config(DEFAULT, {**TWO, "plans": {"my_x": plan}})
+        self.assertEqual(plan_sessions(cfg, "my_x")[0]["note"], "easy")
+        self.assertIsNone(plan_sessions(cfg, "c25k")[0]["note"])
+
+    def test_bad_note_loop_source_name_are_errors(self):
+        session = MY_PLAN["weeks"][0]["sessions"][0]
+        for field, plan in {
+            "note": {**MY_PLAN, "weeks": [{"sessions": [{**session, "note": "x" * 81}]}]},
+            "loop": {**MY_PLAN, "loop": "yes"},
+            "source": {**MY_PLAN, "source": "http://x"},
+            "name": {**MY_PLAN, "name": ""},
+        }.items():
+            with self.subTest(field), self.assertRaisesRegex(ConfigError, field):
+                load_config(DEFAULT, {**TWO, "plans": {"my_x": plan}})
+
+    def test_check_plan_returns_errors_of_one_plan(self):
+        self.assertEqual(check_plan(MY_PLAN), [])
+        self.assertNotEqual(check_plan({"name": "X", "weeks": []}), [])
+        self.assertTrue(all(e.startswith("plan") for e in check_plan({"name": "X", "weeks": []})))
+
+    def test_start_week_validates(self):
+        def history(**h):
+            ov = overlay()
+            ov["people"]["person1"]["plan_history"][0].update(h)
+            return ov
+        self.assertEqual(load_config(DEFAULT, history(start_week=2))["people"]["person1"]["plan_history"][0]["start_week"], 2)
+        for bad in (0, 10, True, "2"):  # c25k has 9 weeks
+            with self.subTest(bad=bad), self.assertRaisesRegex(ConfigError, "start_week"):
+                load_config(DEFAULT, history(start_week=bad))
+
+    def test_badge_plan_must_be_known(self):
+        badge = DEFAULT + "\n[[badges]]\nid = 'b'\ncounter = 'plan_weeks'\nthresholds = [1]\ntitle = 'B {t}'\nicon = 'mdi:x'\ncategory = 'plan'\n"
+        load_config(badge + "plan = 'c25k'\n", TWO)
+        with self.assertRaisesRegex(ConfigError, "plan"):
+            load_config(badge + "plan = 'nope'\n", TWO)
+
+    def test_shipped_plans_win_over_the_users_copy(self):
+        text = (DEFAULT.replace('name = "Couch to 5K"', 'name = "Mine"') + "\n[plans.extra]\nname = 'Extra'\n"
+                "[[plans.extra.weeks]]\nsessions = [{ warmup_s = 0, target = { type = 'none' } }]\n")
+        plans = load_config(text, TWO)["plans"]
+        self.assertEqual(plans["c25k"]["name"], "Couch to 5K")
+        self.assertIn("extra", plans)  # Task 3 adds: "higdon_10k" in plans
+
+    def test_shipped_plan_badges_replace_the_users(self):
+        text = DEFAULT.replace('title = "C25K week {t}"', 'title = "Old {t}"')
+        badges = {b["id"]: b for b in load_config(text, TWO)["badges"]}
+        self.assertEqual(badges["plan_week"]["title"], "C25K week {t}")
+        text = text.replace('id = "plan_week"', 'id = "plan_week_gone"')  # a user copy without the shipped id: it is added
+        self.assertIn("plan_week", {b["id"] for b in load_config(text, TWO)["badges"]})
+
+    def test_overlay_plans_are_merged(self):
+        cfg = load_config(DEFAULT, {**TWO, "plans": {"my_x": MY_PLAN}})
+        self.assertIn("my_x", cfg["plans"])
+        self.assertIn("c25k", cfg["plans"])
 
 
 PEOPLE = ("person1", "person2")
