@@ -92,7 +92,14 @@ def state(b, session=W1_DAY):
 
 
 def test_match_w1():
-    assert state(det(*[60] * 8)) == {"state": "match", "found": 8, "planned": 8, "run_s": 480, "planned_run_s": 480}
+    assert state(det(*[60] * 8)) == {"state": "match", "found": 8, "planned": 8, "run_s": 480, "planned_run_s": 480,
+                                     "planned_km": None}
+
+
+def test_check_reports_planned_km():
+    dist = {"intervals": [], "target": {"type": "distance", "km": 4.8, "fraction": 0.9}}
+    assert (check(det(), dist)["planned_km"], check(det(), dist)["state"]) == (4.8, "match")
+    assert check(None, {**W1_DAY, "target": {"type": "duration", "fraction": 0.8}})["planned_km"] is None
 
 
 def test_match_tolerates_two_missing():

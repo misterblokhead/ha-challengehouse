@@ -1,6 +1,6 @@
 """The page API through Home Assistant's own HTTP: HA authenticates, the payload in memory answers."""
 import json
-from datetime import date
+from datetime import date, timedelta
 from http import HTTPStatus
 
 from aiohttp import web
@@ -8,14 +8,16 @@ from homeassistant.components.http import HomeAssistantView
 from homeassistant.helpers.http import KEY_HASS
 from homeassistant.util import dt as dt_util
 
+from . import people, plans
 from . import settings
 from . import webhooks
-from .const import DOMAIN, OPT_INVITES, OPT_OPENGYM_LINK, OPT_OPENGYM_URL, OPT_PHONES, OPT_START, OPT_STEPS, OPT_VIEWERS, WEBHOOKS
+from .const import DOMAIN, OPT_INVITES, OPT_OPENGYM_LINK, OPT_OPENGYM_URL, OPT_PEOPLE, OPT_PHONES, OPT_START, OPT_STEPS, OPT_VIEWERS, WEBHOOKS
 from .core import can_connect, can_edit, find_workout, older_feed, shape, viewer_person
 from .engine import shoes as shoe_engine
 from .steps import parse, week
 
 MAX_UI_BODY = 4 * 1024
+MAX_PLAN_BODY = 512 * 1024  # a 52-week plan at every builder limit is about 270 KB of JSON
 
 
 def _reject_constant(name: str):
@@ -37,13 +39,13 @@ def _detail(view: HomeAssistantView, detail: str, status: HTTPStatus) -> web.Res
     return view.json({"detail": detail}, status_code=status)
 
 
-async def _json_body(view: HomeAssistantView, request: web.Request):
+async def _json_body(view: HomeAssistantView, request: web.Request, limit: int = MAX_UI_BODY):
     """(parsed JSON, None), or (None, the error response)."""
-    if (request.content_length or 0) > MAX_UI_BODY or (raw := await _read_limited(request.content, MAX_UI_BODY)) is None:
+    if (request.content_length or 0) > limit or (raw := await _read_limited(request.content, limit)) is None:
         return None, _detail(view, "body too large", HTTPStatus.REQUEST_ENTITY_TOO_LARGE)
     try:
         return json.loads(raw, parse_constant=_reject_constant), None
-    except ValueError:  # includes bad UTF-8
+    except (ValueError, RecursionError):  # bad UTF-8; nesting deeper than the parser goes
         return None, _detail(view, "invalid JSON", HTTPStatus.BAD_REQUEST)
 
 
@@ -109,7 +111,7 @@ class UiView(HomeAssistantView):
     requires_auth = True
 
     async def get(self, request: web.Request, path: str) -> web.Response:
-        if path not in ("scores", "settings", "shoes", "feed", "workout", "connect"):
+        if path not in ("scores", "settings", "shoes", "feed", "workout", "connect", "plans"):
             return _detail(self, "not found", HTTPStatus.NOT_FOUND)
         data = request.app[KEY_HASS].data.get(DOMAIN)
         if data is None or data.scores is None:
@@ -133,6 +135,8 @@ class UiView(HomeAssistantView):
             if (body := await data.runner.async_details(person, request.query.get("key", ""))) is None:
                 return _detail(self, "not found", HTTPStatus.NOT_FOUND)
             return self.json(body)
+        if path == "plans":
+            return await self._get_plans(data)
         if path == "settings":
             today = dt_util.now().date()
             monday, history = settings.monday_of(today), data.settings_history
@@ -161,6 +165,14 @@ class UiView(HomeAssistantView):
             "last_received": await hass.async_add_executor_job(data.runner.last_received, person),
             "opengym": {"url": gym, "invite": options.get(OPT_INVITES, {}).get(person), "in_ha": bool(link)} if gym else None})
 
+    async def _get_plans(self, data) -> web.Response:
+        """Every plan of the config: scoring.toml's and the shipped ones in config order, then the custom ones by name."""
+        in_use = plans.used(data.entry.options)
+        out = [{"id": pid, "name": p["name"], "source": p.get("source"), "by": p.get("by"), "loop": p.get("loop", False),
+                "custom": pid in data.runner.custom_plans, "used": pid in in_use, "weeks": p["weeks"]}
+               for pid, p in (await data.runner.async_plans()).items()]
+        return self.json({"plans": sorted(out, key=lambda p: (p["custom"], p["name"].casefold() if p["custom"] else ""))})
+
     def _scores(self, request: web.Request, data) -> dict:
         user, hass = request["hass_user"], request.app[KEY_HASS]
         person = viewer_person(user.id, data.entry.options.get(OPT_VIEWERS, {}), data.scores)
@@ -173,11 +185,13 @@ class UiView(HomeAssistantView):
         return shape(data.scores, person, user.is_admin, steps, weeks)
 
     async def post(self, request: web.Request, path: str) -> web.Response:
-        if path not in ("workouts", "settings", "shoes"):
+        if path not in ("workouts", "settings", "shoes", "plans"):
             return _detail(self, "not found", HTTPStatus.NOT_FOUND)
-        body, error = await _json_body(self, request)
+        body, error = await _json_body(self, request, MAX_PLAN_BODY if path == "plans" else MAX_UI_BODY)
         if error is not None:
             return error
+        if path == "plans":
+            return await self._post_plans(request, body)
         if path == "settings":
             return await self._post_settings(request, body)
         if path == "shoes":
@@ -235,6 +249,76 @@ class UiView(HomeAssistantView):
         await data.settings_store.async_save({"history": history, "profiles": profiles})
         data.settings_history, data.settings_profiles = history, profiles  # only once stored: a failed save leaves GET on the old goals
         return self.json({"ok": True, "from": monday.isoformat()}, status_code=HTTPStatus.ACCEPTED)
+
+    async def _post_plans(self, request: web.Request, body) -> web.Response:
+        """{"op": "save", "id"?, "plan"} | {"op": "delete", "id"}: custom plans, by any viewer with a person, an existing one
+        only while no plan_history names it. {"op": "start", "person", "plan", "start_week"?} | {"op": "stop", "person"}:
+        a new plan_history entry from today, rights as Remove. The options change without a reload."""
+        data = request.app[KEY_HASS].data.get(DOMAIN)
+        if data is None or data.scores is None:
+            return _detail(self, "waiting", HTTPStatus.SERVICE_UNAVAILABLE)
+        async with data.plans_lock:  # one op's checks, store save and options update never interleave with another's
+            return await self._plan_op(request.app[KEY_HASS], data, request["hass_user"], body)
+
+    async def _plan_op(self, hass, data, user, body) -> web.Response:
+        viewer = viewer_person(user.id, data.entry.options.get(OPT_VIEWERS, {}), data.scores)
+        op = body.get("op") if isinstance(body, dict) else None
+        if op in ("start", "stop"):
+            return await self._switch_plan(hass, data, viewer, user.is_admin, body)
+        if op not in ("save", "delete"):
+            return _detail(self, "op: save, delete, start or stop", HTTPStatus.BAD_REQUEST)
+        if viewer is None:
+            return _detail(self, "not allowed", HTTPStatus.FORBIDDEN)
+        pid, mine = body.get("id"), data.runner.custom_plans
+        if (op == "delete" or "id" in body) and not (isinstance(pid, str) and pid in mine):
+            return _detail(self, "no such plan", HTTPStatus.NOT_FOUND)
+        if pid in plans.used(data.entry.options):
+            return _detail(self, "plan: in use, make a copy", HTTPStatus.CONFLICT)
+        custom = {k: v for k, v in mine.items() if k != pid}
+        if op == "save":
+            try:
+                plan = plans.validate(body.get("plan"))
+            except ValueError as err:
+                return _detail(self, str(err), HTTPStatus.BAD_REQUEST)
+            if pid is None:  # scoring.toml's own plans are taken too: a custom one would replace it by id
+                pid, by = plans.new_id(plan["name"], {*custom, *data.skipped_plans, *await data.runner.async_plans()}), viewer
+            else:
+                by = mine[pid].get("by")
+            custom[pid] = {**plan, "by": by}
+        await data.plans_store.async_save({"plans": {**data.skipped_plans, **custom}})  # a skipped plan stays as it was
+        await data.runner.async_reconfigure(custom)  # only once stored: a failed save leaves the old plans
+        return self.json({"ok": True, **({"id": pid} if op == "save" else {})})
+
+    async def _switch_plan(self, hass, data, viewer: str | None, is_admin: bool, body: dict) -> web.Response:
+        """A new plan_history entry from today; from tomorrow when a run of today already completed a session of the current
+        plan, which would otherwise move to the new entry (history goes by date) and lose its progress and badges."""
+        person, start_week = body.get("person"), body.get("start_week", 1)
+        if not (isinstance(person, str) and person in data.entry.options.get(OPT_PEOPLE, {})):
+            return _detail(self, "person: not a person", HTTPStatus.BAD_REQUEST)
+        if not can_edit(viewer, is_admin, person):
+            return _detail(self, "not allowed", HTTPStatus.FORBIDDEN)
+        if body["op"] == "stop":
+            if "start_week" in body:
+                return _detail(self, "start_week: not with stop", HTTPStatus.BAD_REQUEST)
+            pick = None
+        else:
+            if not isinstance(pick := body.get("plan"), str):
+                return _detail(self, "plan: a plan id", HTTPStatus.BAD_REQUEST)
+            if (plan := (await data.runner.async_plans()).get(pick)) is None:
+                return _detail(self, "no such plan", HTTPStatus.NOT_FOUND)
+            if type(start_week) is not int or not 1 <= start_week <= len(plan["weeks"]):  # with_plan compares it; a bool is no week
+                return _detail(self, f"start_week: a whole number 1-{len(plan['weeks'])}", HTTPStatus.BAD_REQUEST)
+        options = data.entry.options  # read after the await: another change meanwhile is kept
+        if person not in options.get(OPT_PEOPLE, {}):  # removed in Configure meanwhile
+            return _detail(self, "unknown person", HTTPStatus.NOT_FOUND)
+        today = dt_util.now().date()
+        feed = data.scores["people"].get(person, {}).get("feed", [])  # a person added meanwhile has no scores yet
+        counted = any(i.get("plan") and not i.get("excluded") and i["start"][:10] == today.isoformat() for i in feed)  # local date
+        day = today + timedelta(days=1) if counted else today
+        record = people.with_plan(options[OPT_PEOPLE][person], pick, day, start_week)
+        hass.config_entries.async_update_entry(data.entry, options={**options, OPT_PEOPLE: {**options[OPT_PEOPLE], person: record}})
+        await data.runner.async_reconfigure()
+        return self.json({"ok": True, "from": day.isoformat()}, status_code=HTTPStatus.ACCEPTED)
 
     def _shoe_gate(self, request: web.Request):
         """(data, may_edit(person), None) for a shoe change, or (None, None, the refusing response)."""

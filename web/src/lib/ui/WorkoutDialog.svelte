@@ -114,7 +114,7 @@
     {#if check || review}
       <h3>Programme</h3>
       {#if check}
-        <p class="check" class:warn={item.needs_review}>{checkLine(check, kmh)}</p>
+        <p class="check" class:warn={item.needs_review}>{checkLine(check, kmh, item.km)}</p>
       {:else if review.decision === "type"}
         <p class="check">Changed to {types.find((t) => t.match === review.type_match)?.name ?? review.type_match}</p>
       {/if}

@@ -10,6 +10,15 @@ of running shoes and shows each workout in detail, with a map of the route, grap
 One person on their own works too. Goals, plans, XP values and badges are rules you can change; nothing about a
 household is hard-coded.
 
+## Plans
+
+Three running plans come with it: [Couch to 5K](https://www.nhs.uk/better-health/get-active/get-running-with-couch-to-5k/couch-to-5k-running-plan/),
+[Novice 10K](https://www.halhigdon.com/training-programs/10k-training/novice-10k/) and Keep running, a looping plan
+based on [NHS Couch to 5K+](https://www.nhs.uk/better-health/get-active/get-running-with-couch-to-5k/). Build your own
+plans on the Fitness page, or copy one of these and change it. A plan can start at any week, so you can pick up where
+you already are. Changing or stopping a plan on a day your run already counted for it starts the change tomorrow, so that
+run keeps its place in the old plan.
+
 ## Install
 
 [![Open your Home Assistant instance and open this repository in HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=misterblokhead&repository=ha-challengehouse&category=integration)

@@ -4,14 +4,19 @@ import unittest
 from datetime import date
 from pathlib import Path
 
-from custom_components.fitbridge.engine.scoring_config import COUNTERS, ConfigError, load_config, parse_settings, parse_steps, pause_titles, plan_sessions
+from custom_components.fitbridge.engine.scoring_config import COUNTERS, ConfigError, check_plan, load_config, parse_settings, parse_steps, pause_titles, plan_sessions
 
 from . import LEGACY_PEOPLE, ONE, TWO, overlay
 
-DEFAULT = (Path(__file__).parents[2] / "custom_components" / "fitbridge" / "engine" / "scoring.toml").read_text()
+DEFAULT = (Path(__file__).parents[2] / "custom_components" / "fitbridge" / "engine" / "scoring.toml").read_text(encoding="utf-8")
 
 
-LEGACY = DEFAULT + LEGACY_PEOPLE  # a copy that still has its own people: the TOML's checks keep applying
+# The shipped plans win by id, so a test that edits a plan edits this renamed copy of c25k.
+OWN = DEFAULT.replace("plans.c25k", "plans.own")
+LEGACY = OWN + LEGACY_PEOPLE  # a copy that still has its own people: the TOML's checks keep applying
+
+
+MY_PLAN = {"name": "Mine", "weeks": [{"sessions": [{"warmup_s": 300, "target": {"type": "none"}}]}]}
 
 
 class ConfigTests(unittest.TestCase):
@@ -29,14 +34,14 @@ class ConfigTests(unittest.TestCase):
         s = plan_sessions(load_config(DEFAULT, TWO), "c25k")
         self.assertEqual({x["cooldown_s"] for x in s}, {300})
         self.assertEqual(s[0]["total_s"], 1500)
-        cfg = load_config(DEFAULT.replace("cooldown_s = 300, ", "", 1), TWO)
-        self.assertEqual(plan_sessions(cfg, "c25k")[0]["cooldown_s"], 0)
-        self.assertEqual(plan_sessions(cfg, "c25k")[0]["total_s"], 1500)
+        cfg = load_config(OWN.replace("cooldown_s = 300, ", "", 1), TWO)
+        self.assertEqual(plan_sessions(cfg, "own")[0]["cooldown_s"], 0)
+        self.assertEqual(plan_sessions(cfg, "own")[0]["total_s"], 1500)
 
     def test_cooldown_negative_rejected(self):
         for bad in ("-1", '"x"'):
             with self.subTest(bad=bad), self.assertRaisesRegex(ConfigError, r"cooldown_s must be a number >= 0"):
-                load_config(DEFAULT.replace("cooldown_s = 300", f"cooldown_s = {bad}", 1), TWO)
+                load_config(OWN.replace("cooldown_s = 300", f"cooldown_s = {bad}", 1), TWO)
 
     def test_plan_sessions_steps_times(self):
         w1 = plan_sessions(load_config(DEFAULT, TWO), "c25k")[0]
@@ -76,7 +81,7 @@ class ConfigTests(unittest.TestCase):
             (LEGACY.replace('type = "duration"', 'type = "pace"', 1), "target type"),
             (LEGACY.replace('counter = "runs"', 'counter = "nope"', 1), "unknown counter"),
             (LEGACY.replace("[1, 5, 10, 25, 50, 100]", "[5, 1]", 1), "ascending"),
-            (LEGACY.replace('plan = "c25k"', 'plan = "missing"', 1), "unknown plan"),
+            (LEGACY.replace('{ plan = "c25k"', '{ plan = "missing"', 1), "unknown plan"),
             (LEGACY.replace("Europe/Amsterdam", "Nope/Nope"), "timezone"),
             (LEGACY.replace("start = 2026-10-26", "start = 2026-10-26T00:00:00"), "rules.start"),
             (LEGACY.replace("from = 2026-10-26", "from = 2026-10-26T00:00:00", 1), "plan_history"),
@@ -151,6 +156,119 @@ class ConfigTests(unittest.TestCase):
         ov = overlay()
         load_config(DEFAULT, ov)
         self.assertEqual(ov, overlay())
+
+    def test_session_note_loop_and_source_validate(self):
+        plan = {**MY_PLAN, "loop": True, "source": "https://example.org/p"}
+        plan["weeks"] = [{"sessions": [{**MY_PLAN["weeks"][0]["sessions"][0], "note": "easy"}]}]
+        cfg = load_config(DEFAULT, {**TWO, "plans": {"my_x": plan}})
+        self.assertEqual(plan_sessions(cfg, "my_x")[0]["note"], "easy")
+        self.assertIsNone(plan_sessions(cfg, "c25k")[0]["note"])
+
+    def test_bad_note_loop_source_name_are_errors(self):
+        session = MY_PLAN["weeks"][0]["sessions"][0]
+        for field, plan in {
+            "note": {**MY_PLAN, "weeks": [{"sessions": [{**session, "note": "x" * 81}]}]},
+            "loop": {**MY_PLAN, "loop": "yes"},
+            "source": {**MY_PLAN, "source": "http://x"},
+            "name": {**MY_PLAN, "name": ""},
+        }.items():
+            with self.subTest(field), self.assertRaisesRegex(ConfigError, field):
+                load_config(DEFAULT, {**TWO, "plans": {"my_x": plan}})
+
+    def test_check_plan_returns_errors_of_one_plan(self):
+        self.assertEqual(check_plan(MY_PLAN), [])
+        self.assertNotEqual(check_plan({"name": "X", "weeks": []}), [])
+        self.assertTrue(all(e.startswith("plan") for e in check_plan({"name": "X", "weeks": []})))
+
+    def test_start_week_validates(self):
+        def history(**h):
+            ov = overlay()
+            ov["people"]["person1"]["plan_history"][0].update(h)
+            return ov
+        self.assertEqual(load_config(DEFAULT, history(start_week=2))["people"]["person1"]["plan_history"][0]["start_week"], 2)
+        for bad in (0, 10, True, "2"):  # c25k has 9 weeks
+            with self.subTest(bad=bad), self.assertRaisesRegex(ConfigError, "start_week"):
+                load_config(DEFAULT, history(start_week=bad))
+
+    def test_badge_plan_must_be_known(self):
+        badge = DEFAULT + "\n[[badges]]\nid = 'b'\ncounter = 'plan_weeks'\nthresholds = [1]\ntitle = 'B {t}'\nicon = 'mdi:x'\ncategory = 'plan'\n"
+        load_config(badge + "plan = 'c25k'\n", TWO)
+        with self.assertRaisesRegex(ConfigError, "unknown plan"):
+            load_config(badge + "plan = 'nope'\n", TWO)
+
+    def test_badge_plan_only_on_plan_weeks(self):
+        badge = DEFAULT + "\n[[badges]]\nid = 'b'\ncounter = 'runs'\nplan = 'c25k'\nthresholds = [1]\ntitle = 'B {t}'\nicon = 'mdi:x'\ncategory = 'plan'\n"
+        with self.assertRaisesRegex(ConfigError, "badge b: plan"):
+            load_config(badge, TWO)
+
+    def test_wrong_shaped_plans_or_badges_are_config_errors(self):
+        for text in ("plans = 5\n", "badges = 5\n"):
+            with self.subTest(text), self.assertRaisesRegex(ConfigError, "malformed config"):
+                load_config(text, TWO)
+
+    def test_higdon_10k_sessions(self):
+        it = plan_sessions(load_config(DEFAULT, TWO), "higdon_10k")
+        self.assertEqual(len(it), 24)
+        self.assertEqual([s["target"]["km"] for s in it][:3], [4.0, 3.2, 4.8])
+        self.assertEqual(it[-1]["target"]["km"], 10.0)
+        self.assertEqual({s["target"]["fraction"] for s in it}, {0.9})
+        self.assertEqual({s["target"]["type"] for s in it}, {"distance"})
+        self.assertTrue(all(s["intervals"] == [] and s["warmup_s"] == 0 for s in it))
+
+    def test_c25k_plus_is_a_loop_of_three(self):
+        plan = load_config(DEFAULT, TWO)["plans"]["c25k_plus"]
+        self.assertIs(plan["loop"], True)
+        it = plan_sessions(load_config(DEFAULT, TWO), "c25k_plus")
+        self.assertEqual(len(it), 3)
+        self.assertEqual([sum(sec for _, sec in s["intervals"]) for s in it], [2100, 1020, 2400])
+        self.assertEqual({(s["warmup_s"], s["cooldown_s"]) for s in it}, {(300, 300)})
+        self.assertEqual([s["note"] for s in it], ["10 min easy, 20 min at your usual pace, 5 min push",
+                                                   "5 min easy, then 12 × (1 min fast, 1 min easy)", "40 min steady"])
+
+    def test_every_shipped_plan_has_an_https_source(self):
+        for pid, plan in load_config(DEFAULT, TWO)["plans"].items():
+            self.assertTrue(plan["source"].startswith("https://"), pid)
+
+    def test_c25k_unchanged(self):
+        it = plan_sessions(load_config(DEFAULT, TWO), "c25k")
+        self.assertEqual(len(it), 27)
+        self.assertEqual([s["total_s"] for s in it][:3] + [it[14]["total_s"], it[15]["total_s"], it[26]["total_s"]],
+                         [1500, 1500, 1500, 1500, 1740, 2100])
+        self.assertTrue(all(s["note"] is None for s in it))
+
+    def test_shipped_plan_badges(self):
+        badges = {b["id"]: b for b in load_config(DEFAULT, TWO)["badges"]}
+        self.assertEqual(badges["plan_week"]["plan"], "c25k")
+        self.assertEqual((badges["plan_week_10k"]["plan"], badges["plan_week_10k"]["thresholds"]), ("higdon_10k", list(range(1, 9))))
+        self.assertEqual((badges["kept_running"]["plan"], badges["kept_running"]["thresholds"]), ("c25k_plus", [4, 12, 26, 52]))
+        self.assertEqual((badges["plans_finished"]["counter"], badges["plans_finished"]["thresholds"]), ("plan_graduated", [1, 3, 5]))
+        self.assertNotIn("plan", badges["plans_finished"])
+        for i in ("plan_week", "plan_week_10k", "kept_running", "plans_finished"):
+            self.assertEqual(badges[i]["category"], "plan", i)
+
+    def test_shipped_plans_win_over_the_users_copy(self):
+        text = (DEFAULT.replace('name = "Couch to 5K"', 'name = "Mine"') + "\n[plans.extra]\nname = 'Extra'\n"
+                "[[plans.extra.weeks]]\nsessions = [{ warmup_s = 0, target = { type = 'none' } }]\n")
+        plans = load_config(text, TWO)["plans"]
+        self.assertEqual(plans["c25k"]["name"], "Couch to 5K")
+        self.assertIn("extra", plans)
+        self.assertIn("higdon_10k", plans)
+
+    def test_a_users_plan_without_a_name_is_named_by_its_id(self):
+        text = DEFAULT + "\n[[plans.old.weeks]]\nsessions = [{ warmup_s = 0, target = { type = 'none' } }]\n"  # a copy from before names
+        self.assertEqual(load_config(text, TWO)["plans"]["old"]["name"], "old")
+
+    def test_shipped_plan_badges_replace_the_users(self):
+        text = DEFAULT.replace('title = "C25K week {t}"', 'title = "Old {t}"')
+        badges = {b["id"]: b for b in load_config(text, TWO)["badges"]}
+        self.assertEqual(badges["plan_week"]["title"], "C25K week {t}")
+        text = text.replace('id = "plan_week"', 'id = "plan_week_gone"')  # a user copy without the shipped id: it is added
+        self.assertIn("plan_week", {b["id"] for b in load_config(text, TWO)["badges"]})
+
+    def test_overlay_plans_are_merged(self):
+        cfg = load_config(DEFAULT, {**TWO, "plans": {"my_x": MY_PLAN}})
+        self.assertIn("my_x", cfg["plans"])
+        self.assertIn("c25k", cfg["plans"])
 
 
 PEOPLE = ("person1", "person2")

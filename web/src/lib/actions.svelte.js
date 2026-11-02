@@ -132,3 +132,14 @@ export async function moveRun(person, key, shoe_id) {
   say("Moved to the other shoe");
   return true;
 }
+
+// A plan change (POST plans: save, delete, start, stop): the integration's answer, or {error} with the reason to show. A success reloads.
+export async function planOp(body) {
+  try {
+    const r = await send("POST", "plans", body);
+    refresh.n++;
+    return r;
+  } catch (e) {
+    return { error: why(e) };
+  }
+}

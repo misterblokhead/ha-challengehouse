@@ -73,6 +73,11 @@ class ConfigHolder:
     def __init__(self, path: Path, overlay: dict | None = None):
         self.path, self.overlay, self.mtime, self.config, self.error = path, overlay, None, None, None
 
+    def set_overlay(self, overlay: dict | None) -> None:
+        """A new overlay: the next get() loads the config again with it."""
+        self.overlay = overlay
+        self.mtime = None  # after the overlay: a get() running meanwhile then loads it again with the new one
+
     def get(self):
         """(last good config or None, current error or None)."""
         try:

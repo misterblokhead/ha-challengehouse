@@ -1,3 +1,4 @@
+import asyncio
 from datetime import date, timedelta
 from unittest.mock import patch
 
@@ -16,6 +17,7 @@ from custom_components.fitbridge.const import (
     OPT_INVITES,
     OPT_OPENGYM_LINK,
     OPT_OPENGYM_URL,
+    OPT_PEOPLE,
     OPT_PHONES,
     OPT_START,
     OPT_STEPS,
@@ -725,3 +727,246 @@ async def test_connect_no_external_url(hass, entry, client, send):
 async def test_connect_without_a_webhook_id_has_no_url(hass, client, send):
     await send(SCORES)
     assert (await (await (await client("alex")).get(f"{UI}/connect", params={"person": "p1"})).json())["url"] is None
+
+
+# ---------- plans (live: the shipped plans, custom ones in fitbridge.plans) ----------
+
+EASY = {"name": "Easy runs", "weeks": [{"sessions": [{"warmup_s": 300, "intervals": [["run", 600]], "times": 1, "target": {"type": "duration"}}]},
+                                       {"sessions": [{"warmup_s": 0, "target": {"type": "distance", "km": 5}}]}]}
+
+
+async def _plans(c):
+    return {p["id"]: p for p in (await (await c.get(f"{UI}/plans")).json())["plans"]}
+
+
+async def _save(c, plan=EASY, **body):
+    resp = await c.post(f"{UI}/plans", json={"op": "save", "plan": plan, **body})
+    assert resp.status == 200, await resp.text()
+    return (await resp.json())["id"]
+
+
+def _custom(hass_storage):
+    return hass_storage.get("fitbridge.plans", {}).get("data", {}).get("plans", {})
+
+
+def _history(hass, person="person1"):
+    return hass.config_entries.async_entries(DOMAIN)[0].options[OPT_PEOPLE][person]["plan_history"]
+
+
+async def test_plans_get_lists_shipped_and_custom(hass, live):
+    c = await live("person1")
+    await _save(c, {**EASY, "name": "zed"})
+    await _save(c, {**EASY, "name": "Apple", "loop": True})
+    body = (await (await c.get(f"{UI}/plans")).json())["plans"]
+    assert [p["id"] for p in body] == ["c25k", "higdon_10k", "c25k_plus", "my_apple", "my_zed"]  # config order, then by name
+    c25k, apple = body[0], body[3]
+    assert {k: c25k[k] for k in ("name", "by", "loop", "custom", "used")} == {"name": "Couch to 5K", "by": None, "loop": False, "custom": False, "used": True}
+    assert c25k["source"].startswith("https://") and c25k["weeks"][0]["repeat"] == 3  # weeks as stored: the page expands repeat
+    assert apple == {"id": "my_apple", "name": "Apple", "source": None, "by": "person1", "loop": True, "custom": True, "used": False,
+                     "weeks": [{"sessions": [{"warmup_s": 300, "intervals": [["run", 600]], "times": 1, "target": {"type": "duration", "fraction": 0.8}}]},
+                               {"sessions": [{"warmup_s": 0, "target": {"type": "distance", "km": 5, "fraction": 0.9}}]}]}
+
+
+async def test_save_creates_a_custom_plan_and_rescores(hass, live, hass_storage):
+    c, admin = await live("person1"), await live("person2")
+    runner = hass.data[DOMAIN].runner
+    with patch.object(runner, "_score", wraps=runner._score) as score:
+        assert await _save(c) == "my_easy_runs"
+    score.assert_awaited_once()
+    assert _custom(hass_storage)["my_easy_runs"]["by"] == "person1" and "my_easy_runs" in await runner.async_plans()
+    assert await _save(c) == "my_easy_runs_2"  # the same name again: a new id
+    assert await _save(admin, {**EASY, "name": "Easier"}, id="my_easy_runs") == "my_easy_runs"  # an edit keeps id and maker
+    assert _custom(hass_storage)["my_easy_runs"]["name"] == "Easier" and _custom(hass_storage)["my_easy_runs"]["by"] == "person1"
+    assert (await runner.async_plans())["my_easy_runs"]["name"] == "Easier"
+    resp = await c.post(f"{UI}/plans", json={"op": "delete", "id": "my_easy_runs_2"})
+    assert resp.status == 200 and await resp.json() == {"ok": True}
+    assert set(_custom(hass_storage)) == {"my_easy_runs"} and "my_easy_runs_2" not in await runner.async_plans()
+
+
+@pytest.mark.parametrize("body,detail", [
+    ({"op": "save", "plan": {**EASY, "name": ""}}, "name: must be text of 1-40 characters"),
+    ({"op": "save"}, "body: must be an object"),
+    ({"op": "rename"}, "op: save, delete, start or stop"),
+    pytest.param("[" * 200000 + "]" * 200000, "invalid JSON", id="deep-nesting"),  # deeper than the parser goes: RecursionError
+])
+async def test_a_bad_plan_body_is_400(hass, live, hass_storage, body, detail):
+    raw = {"data": body, "headers": {"Content-Type": "application/json"}} if isinstance(body, str) else {"json": body}
+    resp = await (await live("person1")).post(f"{UI}/plans", **raw)
+    assert resp.status == 400 and (await resp.json())["detail"] == detail
+    assert _custom(hass_storage) == {}
+
+
+async def test_a_failed_store_save_changes_nothing(hass, live):
+    c, data = await live("person1"), hass.data[DOMAIN]
+    with patch.object(data.plans_store, "async_save", side_effect=OSError("disk full")):
+        assert (await c.post(f"{UI}/plans", json={"op": "save", "plan": EASY})).status == 500
+    assert data.runner.custom_plans == {} and "my_easy_runs" not in await data.runner.async_plans()
+
+
+async def test_edit_or_delete_of_a_used_plan_is_409(hass, live, hass_storage):
+    c = await live("person1")
+    pid = await _save(c)
+    assert (await c.post(f"{UI}/plans", json={"op": "start", "person": "person2", "plan": pid})).status == 403  # not the partner's
+    assert (await c.post(f"{UI}/plans", json={"op": "start", "person": "person1", "plan": pid})).status == 202
+    before = _custom(hass_storage)
+    for body in ({"op": "save", "id": pid, "plan": {**EASY, "name": "Other"}}, {"op": "delete", "id": pid}):
+        assert (await c.post(f"{UI}/plans", json=body)).status == 409, body
+    assert _custom(hass_storage) == before and (await _plans(c))[pid]["used"] is True
+
+
+@pytest.mark.parametrize("who,body,status", [
+    ("person1", {"op": "save", "id": "c25k", "plan": EASY}, 404),  # shipped plans are not custom
+    ("person1", {"op": "delete", "id": "c25k"}, 404),
+    ("person1", {"op": "delete", "id": "my_nothing"}, 404),
+    ("person1", {"op": "delete", "id": ["c25k"]}, 404),
+    ("robin", {"op": "delete", "id": "c25k"}, 403),  # admin, but no person
+])
+async def test_edit_or_delete_of_a_shipped_plan_is_403_or_404(hass, live, hass_storage, who, body, status):
+    assert (await (await live(who)).post(f"{UI}/plans", json=body)).status == status
+    assert "c25k" in await hass.data[DOMAIN].runner.async_plans() and _custom(hass_storage) == {}
+
+
+async def test_start_sets_plan_history_with_start_week_without_reload(hass, live):
+    c = await live("person1")
+    runner, today = hass.data[DOMAIN].runner, dt_util.now().date().isoformat()
+    resp = await c.post(f"{UI}/plans", json={"op": "start", "person": "person1", "plan": "higdon_10k", "start_week": 3})
+    assert resp.status == 202 and await resp.json() == {"ok": True, "from": today}
+    assert _history(hass)[-1] == {"plan": "higdon_10k", "from": today, "start_week": 3}
+    assert hass.data[DOMAIN].runner is runner  # the options changed without a reload
+    plan = (await (await c.get(f"{UI}/scores")).json())["people"]["person1"]["plan"]
+    assert (plan["plan"], plan["week"]) == ("higdon_10k", 3)
+    assert (await c.post(f"{UI}/plans", json={"op": "start", "person": "person1", "plan": "c25k"})).status == 202  # no start_week: 1
+    assert _history(hass)[-1] == {"plan": "c25k", "from": today}
+    resp = await c.post(f"{UI}/plans", json={"op": "stop", "person": "person1", "start_week": 1})
+    assert resp.status == 400 and (await resp.json())["detail"] == "start_week: not with stop"
+    assert (await c.post(f"{UI}/plans", json={"op": "stop", "person": "person1"})).status == 202
+    assert _history(hass)[-1] == {"plan": None, "from": today} and hass.data[DOMAIN].runner is runner
+    assert (await (await c.get(f"{UI}/scores")).json())["people"]["person1"]["plan"] is None
+
+
+async def _graduating(hass):
+    """person1 on C25K from week 9 since three days ago, its three sessions run the last two days and today: today's graduates."""
+    entry, today = hass.config_entries.async_entries(DOMAIN)[0], dt_util.now().date()
+    team = entry.options[OPT_PEOPLE]
+    history = [{"plan": "c25k", "from": (today - timedelta(days=3)).isoformat(), "start_week": 9}]
+    hass.config_entries.async_update_entry(entry, options={**entry.options, OPT_PEOPLE: {**team, "person1": {**team["person1"], "plan_history": history}}})
+    for key, days_ago in (("r1", 2), ("r2", 1), ("r3", 0)):
+        _run(hass, "person1", key, 5, days_ago)
+    await hass.data[DOMAIN].runner.async_reconfigure()
+    return (today + timedelta(days=1)).isoformat()
+
+
+async def _me(c):
+    return (await (await c.get(f"{UI}/scores")).json())["people"]["person1"]
+
+
+@pytest.mark.parametrize("body", [{"op": "start", "plan": "higdon_10k"}, {"op": "stop"}])
+async def test_a_switch_or_stop_on_graduation_day_starts_tomorrow_and_keeps_the_graduation(hass, live, body):
+    c = await live("person1")
+    tomorrow = await _graduating(hass)
+    before = await _me(c)
+    assert before["plan"]["state"] == "Graduated" and before["plan"]["completed"] == 27  # every C25K session, W9D3 today
+    assert "plans_finished_1" in {b["id"] for b in before["badges"]["unlocked"]}
+    resp = await c.post(f"{UI}/plans", json={**body, "person": "person1"})
+    assert resp.status == 202 and await resp.json() == {"ok": True, "from": tomorrow}
+    assert _history(hass)[-1] == {"plan": body.get("plan"), "from": tomorrow}
+    after = await _me(c)
+    assert after["plan"] == before["plan"] and after["badges"]["unlocked"] == before["badges"]["unlocked"]  # today stays C25K's
+    assert [i["plan"] for i in after["feed"] if i["key"].startswith("r")] == ["W9D3", "W9D2", "W9D1"]
+
+
+async def test_a_switch_the_day_after_a_session_starts_today(hass, live):
+    c, today = await live("person1"), dt_util.now().date().isoformat()
+    _run(hass, "person1", "r1", 5, 1)
+    await hass.data[DOMAIN].runner.async_score_now()
+    assert [i["plan"] for i in (await _me(c))["feed"] if i["key"] == "r1"] == ["W1D1"]  # yesterday's: today has none
+    resp = await c.post(f"{UI}/plans", json={"op": "start", "person": "person1", "plan": "higdon_10k"})
+    assert resp.status == 202 and await resp.json() == {"ok": True, "from": today}
+    assert _history(hass)[-1] == {"plan": "higdon_10k", "from": today} and (await _me(c))["plan"]["plan"] == "higdon_10k"
+
+
+@pytest.mark.parametrize("body,status", [
+    ({"start_week": 0}, 400), ({"start_week": 10}, 400), ({"start_week": True}, 400), ({"start_week": "2"}, 400),  # c25k has 9 weeks
+    ({"plan": "nothing"}, 404), ({"plan": 7}, 400), ({"person": "nobody"}, 400),
+])
+async def test_start_refuses_a_bad_start_week(hass, live, body, status):
+    c = await live("person1")
+    before = _history(hass)
+    resp = await c.post(f"{UI}/plans", json={"op": "start", "person": "person1", "plan": "c25k", **body})
+    assert resp.status == status
+    assert _history(hass) == before
+
+
+async def test_start_for_partner_needs_admin(hass, live):
+    person1, person2, robin = await live("person1"), await live("person2"), await live("robin")
+    for who in (person1, robin):  # not admin; admin but no person
+        assert (await who.post(f"{UI}/plans", json={"op": "stop", "person": "person2"})).status == 403
+    assert _history(hass, "person2")[-1]["plan"] == "c25k"
+    assert (await person2.post(f"{UI}/plans", json={"op": "stop", "person": "person1"})).status == 202
+    assert _history(hass)[-1]["plan"] is None
+
+
+async def test_viewerless_user_may_not_save(hass, live, hass_storage):
+    resp = await (await live("robin")).post(f"{UI}/plans", json={"op": "save", "plan": EASY})
+    assert resp.status == 403 and _custom(hass_storage) == {}
+
+
+async def test_a_full_size_plan_fits_the_body_limit(hass, live):
+    session = {"warmup_s": 10800, "cooldown_s": 10800, "intervals": [["walk", 10800]] * 30, "times": 50,
+               "target": {"type": "distance", "km": 99.95}, "note": "x" * 80}
+    assert await _save(await live("person1"), {"name": "x" * 40, "weeks": [{"sessions": [session] * 7}] * 52}) == f"my_{'x' * 40}"
+
+
+async def test_custom_plans_survive_a_reload(hass, live, hass_storage):
+    c = await live("person1")
+    pid = await _save(c)
+    entry = hass.config_entries.async_entries(DOMAIN)[0]
+    await hass.config_entries.async_reload(entry.entry_id)
+    await hass.async_block_till_done(wait_background_tasks=True)
+    assert (await _plans(c))[pid]["by"] == "person1" and pid in hass.data[DOMAIN].runner.custom_plans
+
+
+async def test_a_bad_stored_plan_survives_a_save_of_another(hass, live, hass_storage):
+    c, bad = await live("person1"), {"name": "", "weeks": "junk"}  # e.g. written by a later version
+    hass_storage["fitbridge.plans"] = {"version": 1, "key": "fitbridge.plans", "data": {"plans": {"my_bad": bad}}}
+    await hass.config_entries.async_reload(hass.config_entries.async_entries(DOMAIN)[0].entry_id)
+    await hass.async_block_till_done(wait_background_tasks=True)
+    assert "my_bad" not in await _plans(c)  # skipped: scoring goes on
+    pid = await _save(c, {**EASY, "name": "my bad"})
+    assert pid != "my_bad" and _custom(hass_storage) == {"my_bad": bad, pid: {**_custom(hass_storage)[pid]}}
+    await c.post(f"{UI}/plans", json={"op": "delete", "id": pid})
+    assert _custom(hass_storage) == {"my_bad": bad}
+
+
+async def test_a_start_waits_for_a_delete_in_progress(hass, live, hass_storage):
+    c, data = await live("person1"), hass.data[DOMAIN]
+    pid = await _save(c)
+    saving, release, save = asyncio.Event(), asyncio.Event(), data.plans_store.async_save
+
+    async def slow_save(stored):
+        saving.set()
+        await release.wait()
+        await save(stored)
+    with patch.object(data.plans_store, "async_save", side_effect=slow_save):
+        delete = asyncio.ensure_future(c.post(f"{UI}/plans", json={"op": "delete", "id": pid}))
+        await saving.wait()  # the delete passed its used check and is storing
+        start = asyncio.ensure_future(c.post(f"{UI}/plans", json={"op": "start", "person": "person1", "plan": pid}))
+        await asyncio.sleep(0.1)  # without the lock the start would finish here, naming the plan being deleted
+        assert not start.done()
+        release.set()
+        assert (await delete).status == 200 and (await start).status == 404
+    assert _custom(hass_storage) == {} and _history(hass)[-1]["plan"] == "c25k"
+
+
+async def test_a_person_removed_during_a_start_is_404(hass, live):
+    c, data = await live("person1"), hass.data[DOMAIN]
+    entry, plans_of = data.entry, data.runner.async_plans
+
+    async def removed_meanwhile():  # Configure drops person1 while the start awaits the config
+        people = {p: r for p, r in entry.options[OPT_PEOPLE].items() if p != "person1"}
+        hass.config_entries.async_update_entry(entry, options={**entry.options, OPT_PEOPLE: people})
+        return await plans_of()
+    with patch.object(data.runner, "async_plans", side_effect=removed_meanwhile):
+        resp = await c.post(f"{UI}/plans", json={"op": "start", "person": "person1", "plan": "c25k"})
+    assert resp.status == 404 and (await resp.json())["detail"] == "unknown person"
+    assert "person1" not in entry.options[OPT_PEOPLE]
