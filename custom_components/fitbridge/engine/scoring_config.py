@@ -155,6 +155,8 @@ def _check_badges(errs, badges, plans):
                 errs.append(f"{where}: {k} must be a non-empty string")
         if "plan" in b and b["plan"] not in plans:
             errs.append(f"{where}: unknown plan {b['plan']!r}")
+        if "plan" in b and b.get("counter") != "plan_weeks":  # only plan_weeks has a per-plan counter
+            errs.append(f"{where}: plan needs counter 'plan_weeks'")
         if b.get("counter") not in COUNTERS:
             errs.append(f"{where}: unknown counter {b.get('counter')!r}")
         th = b.get("thresholds")

@@ -196,6 +196,11 @@ class ConfigTests(unittest.TestCase):
         with self.assertRaisesRegex(ConfigError, "unknown plan"):
             load_config(badge + "plan = 'nope'\n", TWO)
 
+    def test_badge_plan_only_on_plan_weeks(self):
+        badge = DEFAULT + "\n[[badges]]\nid = 'b'\ncounter = 'runs'\nplan = 'c25k'\nthresholds = [1]\ntitle = 'B {t}'\nicon = 'mdi:x'\ncategory = 'plan'\n"
+        with self.assertRaisesRegex(ConfigError, "badge b: plan"):
+            load_config(badge, TWO)
+
     def test_wrong_shaped_plans_or_badges_are_config_errors(self):
         for text in ("plans = 5\n", "badges = 5\n"):
             with self.subTest(text), self.assertRaisesRegex(ConfigError, "malformed config"):
