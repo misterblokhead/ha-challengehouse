@@ -128,12 +128,14 @@ export function programmeText(plan) {
   return [plan.warmup_s > 0 && `${mins(plan.warmup_s)} warm-up walk`, main, plan.cooldown_s > 0 && `${mins(plan.cooldown_s)} cool-down walk`, plan.note].filter(Boolean).join(" · ");
 }
 
-// The plan check of a run in the pop-up: "8 of 8 run blocks · 9.5 of 8 min running · matches W1D2". `kmh`: the run's average speed, which
-// an indoor run has no blocks to show instead (the feed row's km over its minutes).
-export function checkLine(c, kmh = null) {
+// The plan check of a run in the pop-up: "8 of 8 run blocks · 9.5 of 8 min running · matches W1D2"; a distance session "3.3 of 3.2 km ·
+// matches W1D3". `kmh`: the run's average speed, which an indoor run has no blocks to show instead (the feed row's km over its minutes);
+// `km`: the run's km.
+export function checkLine(c, kmh = null, km = null) {
   if (c.state === "none") return "No track to check · counts by duration";
   if (c.state === "indoor") return kmh == null ? "Indoor run" : `Indoor: ${kmh.toFixed(1)} km/h average`;
   const fit = c.state === "match" ? "matches" : "doesn't match";
+  if (c.planned === 0 && c.planned_km) return `${km1(km ?? 0)} of ${km1(c.planned_km)} km · ${fit} ${c.label}`;
   return `${c.found} of ${c.planned} run blocks · ${half(c.run_s)} of ${mins(c.planned_run_s)} running · ${fit} ${c.label}`;
 }
 
@@ -154,8 +156,9 @@ export function planSummary(p) {
 }
 
 // A plan's weeks for the builder, which only saves `sessions` lists: a `repeat = n` week becomes its session n times. Deep copies, so an
-// edit changes one session only.
-export const expandWeeks = (weeks) => weeks.map((w) => ({ sessions: Array.from({ length: w.repeat ?? 1 }, () => w.sessions).flat().map((s) => structuredClone(s)) }));
+// edit changes one session only (through JSON: the page's plans are $state proxies, which structuredClone refuses).
+const copy = (x) => JSON.parse(JSON.stringify(x));
+export const expandWeeks = (weeks) => weeks.map((w) => ({ sessions: Array.from({ length: w.repeat ?? 1 }, () => w.sessions).flat().map(copy) }));
 
 // A stored session's length in seconds (the builder's preview); a distance session's is its warm-up and cool-down.
 export const sessionSeconds = (s) => (s.warmup_s ?? 0) + (s.times ?? 1) * (s.intervals ?? []).reduce((t, [, x]) => t + x, 0) + (s.cooldown_s ?? 0);
@@ -168,7 +171,7 @@ export const sessionPlan = (s) => ({
 
 // The builder edits a session with every field there (a km kept for a switch to distance); the server sets the fractions itself.
 export const sessionDraft = (s) => ({
-  warmup_s: s.warmup_s ?? 0, cooldown_s: s.cooldown_s ?? 0, intervals: structuredClone(s.intervals ?? []), times: s.times ?? 1,
+  warmup_s: s.warmup_s ?? 0, cooldown_s: s.cooldown_s ?? 0, intervals: copy(s.intervals ?? []), times: s.times ?? 1,
   target: { type: s.target?.type ?? "duration", km: s.target?.km ?? 5 }, note: s.note ?? "",
 });
 

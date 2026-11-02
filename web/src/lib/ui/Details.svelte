@@ -1,4 +1,5 @@
 <script>
+  import { tick } from "svelte";
   import Badges from "./Badges.svelte";
   import Connect from "./Connect.svelte";
   import Feed from "./Feed.svelte";
@@ -21,19 +22,26 @@
   const manage = $derived(shoesManageable(p, canEdit)); // live data and this viewer may edit: Manage, and each run's shoe
   let shoesDialog = $state(), workout = $state();
   const openWorkout = (item) => workout.open(item);
-  let plans = $state(null); // null: the details; "pick": the plan list; {from, mode}: the builder
+  let plans = $state(null); // null: the details; {pick, reopen?}: the plan list; {from, mode}: the builder
+  let planSection = $state();
+  async function closePlans() { // focus back on "Change plan" / "Choose a plan", the section's only button
+    plans = null;
+    await tick();
+    planSection?.querySelector("button")?.focus();
+  }
 </script>
 
-{#if plans === "pick"}
-  <PlanPicker person={id} current={p.plan} {viewer} {people} onback={() => (plans = null)} onbuild={(from, mode) => (plans = { from, mode })} />
+{#if plans?.pick}
+  <PlanPicker person={id} current={p.plan} {viewer} {people} reopen={plans.reopen ?? null}
+    onback={closePlans} onbuild={(from, mode) => (plans = { from, mode })} />
 {:else if plans}
-  <PlanBuilder from={plans.from} mode={plans.mode} onback={() => (plans = "pick")} />
+  <PlanBuilder from={plans.from} mode={plans.mode} onback={() => (plans = { pick: true, reopen: { id: plans.from?.id, mode: plans.mode } })} />
 {:else}
 {#if p.plan || canEdit}
-  <section aria-labelledby="{uid}-plan">
+  <section aria-labelledby="{uid}-plan" bind:this={planSection}>
     <h2 id="{uid}-plan">Plan</h2>
-    {#if p.plan}<PlanBar plan={p.plan} {canEdit} onchange={() => (plans = "pick")} />
-    {:else}<button type="button" class="btn choose press" onclick={() => (plans = "pick")}>Choose a plan</button>{/if}
+    {#if p.plan}<PlanBar plan={p.plan} {canEdit} onchange={() => (plans = { pick: true })} />
+    {:else}<button type="button" class="btn choose press" onclick={() => (plans = { pick: true })}>Choose a plan</button>{/if}
   </section>
 {/if}
 <section aria-labelledby="{uid}-feed">

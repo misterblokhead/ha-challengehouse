@@ -1,5 +1,5 @@
 <script>
-  import { onMount } from "svelte";
+  import { onMount, tick } from "svelte";
   import { planOp, say } from "../actions.svelte.js";
   import { get } from "../api.js";
   import { planSummary } from "../model.js";
@@ -7,17 +7,22 @@
   // Every plan, to start one for `person` at a chosen week, or stop the current one (the viewer may edit this person). A viewer who is
   // a person may also build plans: "New plan", "Copy & edit", and "Edit" / "Delete" of a custom plan nobody has used.
   // `current`: the person's plan block (null: none). `onbuild(plan, mode)`: open the builder, mode "new" | "copy" | "edit".
-  let { person, current, viewer, people = {}, onback, onbuild } = $props();
+  // `reopen` {id, mode}: back from the builder, that plan open again and focus on the button that opened it.
+  let { person, current, viewer, people = {}, reopen = null, onback, onbuild } = $props();
   const uid = $props.id();
   const maker = $derived(viewer?.person != null);
   let plans = $state(null), failure = $state(null);
   let chosen = $state(null), week = $state(1), busy = $state(false), deleting = $state(null);
-  let back;
+  let back, root;
 
   const load = () => get("plans").then((r) => (plans = r.plans), (e) => (failure = e));
-  onMount(() => {
-    back.focus();
-    load();
+  onMount(async () => {
+    if (!reopen) back.focus();
+    await load();
+    if (!reopen) return;
+    chosen = reopen.id ?? null;
+    await tick();
+    (root?.querySelector(`[data-op="${reopen.mode}"]`) ?? back)?.focus(); // Edit is gone once the plan is used; none once Back was hit
   });
 
   const host = (url) => { try { return new URL(url).hostname.replace(/^www\./, ""); } catch { return "Source"; } };
@@ -38,7 +43,7 @@
   const remove = (p) => op({ op: "delete", id: p.id }, `Deleted ${p.name}`, () => { chosen = deleting = null; load(); });
 </script>
 
-<div class="picker">
+<div class="picker" bind:this={root}>
   <button type="button" class="back press" bind:this={back} onclick={onback}><span aria-hidden="true">‹</span> Back</button>
   <h2 id="{uid}-t">{current ? "Change plan" : "Choose a plan"}</h2>
   {#if current}<button type="button" class="btn danger press" disabled={busy} onclick={stop}>Stop plan</button>{/if}
@@ -70,9 +75,9 @@
               </div>
               <button type="button" class="btn primary press wide" disabled={busy} onclick={() => start(p)}>Start today</button>
               {#if maker}
-                <button type="button" class="btn press" onclick={() => onbuild(p, "copy")}>Copy & edit</button>
+                <button type="button" class="btn press" data-op="copy" onclick={() => onbuild(p, "copy")}>Copy & edit</button>
                 {#if p.custom && !p.used}
-                  <button type="button" class="btn press" onclick={() => onbuild(p, "edit")}>Edit</button>
+                  <button type="button" class="btn press" data-op="edit" onclick={() => onbuild(p, "edit")}>Edit</button>
                   {#if deleting === p.id}
                     <span class="ask">Delete {p.name}?</span>
                     <button type="button" class="btn press" onclick={() => (deleting = null)}>Cancel</button>
@@ -87,7 +92,7 @@
         </li>
       {/each}
     </ul>
-    {#if maker}<button type="button" class="btn press" onclick={() => onbuild(null, "new")}>New plan</button>{/if}
+    {#if maker}<button type="button" class="btn press" data-op="new" onclick={() => onbuild(null, "new")}>New plan</button>{/if}
   {/if}
 </div>
 

@@ -68,7 +68,7 @@
         {/each}
         <div class="acts">
           <button type="button" class="btn press" disabled={w.sessions.length >= 7} onclick={() => w.sessions.push(fresh())}>Add session</button>
-          <button type="button" class="btn press" disabled={draft.weeks.length >= 52} onclick={() => addWeek(wi + 1, structuredClone($state.snapshot(w)))}>Duplicate week</button>
+          <button type="button" class="btn press" disabled={draft.weeks.length >= 52} onclick={() => addWeek(wi + 1, $state.snapshot(w))}>Duplicate week</button>
           <button type="button" class="btn danger press" disabled={draft.weeks.length <= 1} onclick={() => { draft.weeks.splice(wi, 1); open = -1; }}>Delete week</button>
         </div>
       {/if}

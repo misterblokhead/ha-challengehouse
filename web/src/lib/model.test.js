@@ -664,3 +664,16 @@ test("sessionBody: what POST plans takes; a distance session has no intervals, a
   assert.deepEqual(sessionBody({ ...s, target: { type: "distance", km: 4.8 }, note: " steady " }), { warmup_s: 300, cooldown_s: 300, target: { type: "distance", km: 4.8 }, note: "steady" });
   assert.deepEqual(sessionBody({ ...s, intervals: [], target: { type: "none", km: 5 } }), { warmup_s: 300, cooldown_s: 300, target: { type: "none" } });
 });
+
+test("expandWeeks: copies a plan the page holds in $state (a Proxy, which structuredClone refuses)", () => {
+  const weeks = [wk(1, { repeat: 2 })];
+  const out = expandWeeks(new Proxy(weeks, {}));
+  assert.deepEqual(out, [{ sessions: [weeks[0].sessions[0], weeks[0].sessions[0]] }]);
+  assert.deepEqual(sessionDraft(new Proxy({ warmup_s: 0, intervals: new Proxy([["run", 60]], {}), target: { type: "duration" } }, {})).intervals, [["run", 60]]);
+});
+
+test("checkLine: a distance session is the km run of the km planned", () => {
+  const c = { state: "match", found: 0, planned: 0, run_s: 1680, planned_run_s: 0, label: "W1D2", planned_km: 3.2 };
+  assert.equal(checkLine(c, 7, 3.27), "3.3 of 3.2 km · matches W1D2");
+  assert.equal(checkLine({ ...c, state: "review" }, null, null), "0 of 3.2 km · doesn't match W1D2");
+});

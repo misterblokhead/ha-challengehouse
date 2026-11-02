@@ -686,14 +686,13 @@
           "indoor": false,
           "start": "2026-10-26T07:30:00+01:00",
           "minutes": 28,
-          "km": 3.27,
+          "km": 3.1,
           "avg_hr": 147,
-          "plan": "W1D2",
+          "plan": null,
           "joint": true,
           "excluded": false,
           "url": "https://endurain.example/activity/201",
-          "xp": 24,
-          "check": {"state": "match", "found": 0, "planned": 0, "run_s": 1680, "planned_run_s": 0, "label": "W1D2", "planned_km": 3.2}
+          "xp": 24
         },
         {
           "key": "opengym:61",
@@ -737,13 +736,14 @@
           "indoor": false,
           "start": "2026-10-26T07:30:00+01:00",
           "minutes": 28,
-          "km": 3.1,
+          "km": 3.27,
           "avg_hr": 147,
-          "plan": null,
+          "plan": "W1D2",
           "joint": true,
           "excluded": false,
           "url": "https://endurain.example/activity/201",
-          "xp": 24
+          "xp": 24,
+          "check": {"state": "match", "found": 0, "planned": 0, "run_s": 1680, "planned_run_s": 0, "label": "W1D2", "planned_km": 3.2}
         },
         {
           "key": "opengym:61",

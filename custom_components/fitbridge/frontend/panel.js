@@ -1,4 +1,4 @@
-import { $ as e, $t as t, A as n, At as r, B as i, Bt as a, C as o, Ct as s, D as c, Dt as l, E as u, Et as d, F as f, Ft as p, G as m, Gt as h, H as g, Ht as _, I as v, It as y, J as b, Jt as x, K as S, Kt as C, L as w, Lt as T, M as E, Mt as D, N as O, Nt as k, O as A, Ot as j, P as M, Pt as N, Q as ee, Qt as P, R as F, Rt as I, S as te, St as ne, T as L, Tt as re, U as ie, Ut as R, V as ae, Vt as oe, W as se, Wt as z, X as ce, Xt as le, Y as ue, Yt as B, Z as de, Zt as fe, _ as pe, _n as me, _t as he, a as ge, an as _e, at as ve, b as ye, bt as V, c as be, cn as H, ct as xe, d as Se, dn as Ce, dt as we, en as U, et as Te, f as Ee, fn as W, ft as G, g as De, gn as Oe, gt as ke, h as Ae, ht as je, i as Me, in as K, it as Ne, j as Pe, jt as q, k as Fe, kt as Ie, l as Le, ln as Re, lt as ze, m as Be, mn as Ve, mt as He, n as Ue, nn as We, nt as Ge, o as Ke, on as J, ot as qe, p as Je, pn as Ye, pt as Xe, q as Ze, qt as Qe, rn as Y, rt as $e, s as et, sn as X, st as tt, t as nt, tn as Z, tt as rt, u as it, un as at, ut as ot, v as st, vn as ct, vt as lt, w as ut, wt as dt, x as ft, xt as Q, y as pt, yt as mt, z as ht, zt as $ } from "./shared-dm47Tgzx.js";
+import { $ as e, $t as t, A as n, At as r, B as i, Bt as a, C as o, Ct as s, D as c, Dt as l, E as u, Et as d, F as f, Ft as p, G as m, Gt as h, H as g, Ht as _, I as v, It as y, J as b, Jt as x, K as S, Kt as C, L as w, Lt as T, M as E, Mt as D, N as O, Nt as k, O as A, Ot as j, P as M, Pt as N, Q as P, Qt as F, R as ee, Rt as I, S as te, St as ne, T as L, Tt as re, U as ie, Ut as R, V as ae, Vt as oe, W as se, Wt as z, X as ce, Xt as le, Y as ue, Yt as B, Z as de, Zt as fe, _ as pe, _n as me, _t as he, a as ge, an as _e, at as ve, b as ye, bt as V, c as be, cn as H, ct as xe, d as Se, dn as Ce, dt as we, en as U, et as Te, f as Ee, fn as W, ft as G, g as De, gn as Oe, gt as ke, h as Ae, ht as je, i as Me, in as K, it as Ne, j as Pe, jt as q, k as Fe, kt as Ie, l as Le, ln as Re, lt as ze, m as Be, mn as Ve, mt as He, n as Ue, nn as We, nt as Ge, o as Ke, on as J, ot as qe, p as Je, pn as Ye, pt as Xe, q as Ze, qt as Qe, rn as Y, rt as $e, s as et, sn as X, st as tt, t as nt, tn as Z, tt as rt, u as it, un as at, ut as ot, v as st, vn as ct, vt as lt, w as ut, wt as dt, x as ft, xt as Q, y as pt, yt as mt, z as ht, zt as $ } from "./shared-C75nvFUK.js";
 // src/lib/actions.svelte.js
 var gt = 5e3, _t = We({}), vt = We({}), yt = We({
 	on: !1,
@@ -112,7 +112,7 @@ function Wt(e, r) {
 		var n = Vt(), i = t(n);
 		let a;
 		var o = U(i, !0), g = Z(i, 2), _ = (e) => {
-			var t = Ft(), n = P(t);
+			var t = Ft(), n = F(t);
 			V(n), je(n, (e) => Y(p, e), () => C(p));
 			var i = Z(n, 2);
 			W(t), B(() => ne(n, r.info.url)), h("focus", n, (e) => e.currentTarget.select()), z("click", i, m), T(e, t);
@@ -128,7 +128,7 @@ function Wt(e, r) {
 			r.info.external || e(b);
 		});
 		var x = Z(v, 2), S = (e) => {
-			var n = Lt(), r = t(n), i = U(r, !0), a = Z(r, 2), o = P(a), c = Z(o, 2);
+			var n = Lt(), r = t(n), i = U(r, !0), a = Z(r, 2), o = F(a), c = Z(o, 2);
 			W(a), B(() => y(i, C(u).title)), z("click", o, () => Y(s, "iphone")), z("click", c, () => Y(s, "android")), T(e, n);
 		}, w = (e) => {
 			var t = zt();
@@ -141,7 +141,7 @@ function Wt(e, r) {
 			C(c) ? e(w, -1) : e(S);
 		});
 		var E = Z(x, 2), D = (e) => {
-			var t = Bt(), n = P(t, !0), r = Z(n), i = U(r, !0), a = Z(r, 1, !0);
+			var t = Bt(), n = F(t, !0), r = Z(n), i = U(r, !0), a = Z(r, 1, !0);
 			W(t), B(() => {
 				y(n, C(f).before), y(i, C(f).code), y(a, C(f).after);
 			}), T(e, t);
@@ -165,12 +165,12 @@ function Wt(e, r) {
 		Tt(e ? "Copied" : "Select and copy the address");
 	}
 	var g = I(), _ = t(g), v = (e) => {
-		var t = Ht(), n = P(t), r = Z(P(n)), a = U(r, !0);
+		var t = Ht(), n = F(t), r = Z(F(n)), a = U(r, !0);
 		W(n);
-		var o = Z(n, 2), s = P(o);
+		var o = Z(n, 2), s = F(o);
 		i(s), W(o), W(t), B(() => y(a, C(d).state === "connected" ? "Connected" : "Waiting")), T(e, t);
 	}, b = (e) => {
-		var t = Ut(), n = P(t), r = Z(P(n));
+		var t = Ut(), n = F(t), r = Z(F(n));
 		i(r), W(n), W(t), T(e, t);
 	};
 	N(_, (e) => {
@@ -203,10 +203,10 @@ function Xt(e, t) {
 		yoga: "🧘",
 		"shoe-print": "👟"
 	}, r = (e) => n[String(e.icon).replace(/^mdi:/, "")] ?? "🏅", i = (e) => e.toLocaleString(void 0, { maximumFractionDigits: 1 });
-	var a = Yt(), o = P(a), s = (e) => {
+	var a = Yt(), o = F(a), s = (e) => {
 		var n = Kt();
 		q(n, 21, () => t.badges.recent, (e) => e.id, (e, t) => {
-			var n = Gt(), i = P(n), a = U(i, !0), o = Z(i, 2), s = U(o, !0), c = Z(o, 2), l = U(c, !0);
+			var n = Gt(), i = F(n), a = U(i, !0), o = Z(i, 2), s = U(o, !0), c = Z(o, 2), l = U(c, !0);
 			W(n), B((e, n) => {
 				y(a, e), y(s, C(t).title), y(l, n);
 			}, [() => r(C(t)), () => $e(C(t).unlocked_at)]), T(e, n);
@@ -218,7 +218,7 @@ function Xt(e, t) {
 	var c = Z(o, 2), l = (e) => {
 		var n = Kt();
 		q(n, 21, () => t.badges.next, (e) => e.id, (e, t) => {
-			var n = qt(), a = P(n), o = U(a, !0), s = Z(a, 2), c = U(s, !0), l = Z(s, 2), u = U(l), f = Z(l, 2), p = P(f);
+			var n = qt(), a = F(n), o = U(a, !0), s = Z(a, 2), c = U(s, !0), l = Z(s, 2), u = U(l), f = Z(l, 2), p = F(f);
 			let m;
 			W(f), W(n), B((e, n, r, i) => {
 				y(o, e), y(c, C(t).title), y(u, `${n ?? ""} of ${r ?? ""}`), m = d(p, "", m, { width: i });
@@ -246,7 +246,7 @@ var Zt = $("<span class=\"mini svelte-69s4be\"> </span>"), Qt = $("<span> </span
 function sn(e, n) {
 	H(n, !0);
 	let r = (e) => {
-		var r = nn(), s = t(r), c = U(s, !0), u = Z(s, 2), d = P(u), f = P(d), p = Z(f), m = (e) => {
+		var r = nn(), s = t(r), c = U(s, !0), u = Z(s, 2), d = F(u), f = F(d), p = Z(f), m = (e) => {
 			var t = Zt(), n = U(t, !0);
 			B(() => y(n, C(o).plan)), T(e, t);
 		};
@@ -280,7 +280,7 @@ function sn(e, n) {
 		}), W(d);
 		var S = Z(d, 2), w = U(S);
 		W(u);
-		var E = Z(u, 2), D = P(E), O = (e) => {
+		var E = Z(u, 2), D = F(E), O = (e) => {
 			var t = tn();
 			T(e, t);
 		};
@@ -303,11 +303,11 @@ function sn(e, n) {
 	} : n.item)), s = J(() => C(a)?.want === null), c = J(() => n.item.kind !== "active_day");
 	var u = on();
 	let d;
-	var f = P(u), p = (e) => {
-		var t = rn(), i = P(t);
+	var f = F(u), p = (e) => {
+		var t = rn(), i = F(t);
 		r(i), W(t), z("click", t, () => n.onopen(n.item)), T(e, t);
 	}, m = (e) => {
-		var t = an(), n = P(t);
+		var t = an(), n = F(t);
 		r(n), W(t), T(e, t);
 	};
 	N(f, (e) => {
@@ -325,8 +325,8 @@ function fn(e, n) {
 	let r = K(We([])), i = K(!0), a = K(!1), o = null, s = J(() => w(n.items, ht(C(r), n.person, vt)));
 	async function c() {
 		Y(a, !0);
-		let e = o ?? C(s).at(-1)?.start.slice(0, 10) ?? F(f(), 88), t = await At(n.person, e);
-		Y(a, !1), t && (Y(r, w(C(r), t.items), !0), o = F(e, 90), Y(i, t.more, !0));
+		let e = o ?? C(s).at(-1)?.start.slice(0, 10) ?? ee(f(), 88), t = await At(n.person, e);
+		Y(a, !1), t && (Y(r, w(C(r), t.items), !0), o = ee(e, 90), Y(i, t.more, !0));
 	}
 	var l = dn(), u = t(l), d = (e) => {
 		var t = cn();
@@ -370,8 +370,8 @@ var pn = $("<p class=\"caption name svelte-1y5m0aq\"> <!></p>"), mn = $("<span> 
 function xn(e, n) {
 	H(n, !0);
 	let r = G(n, "canEdit", 3, !1), i = J(() => n.plan.week != null), a = J(() => n.plan.target?.type === "distance" ? [] : g(n.plan)), o = J(() => Math.round(((n.plan.warmup_s ?? 0) + n.plan.intervals.reduce((e, [, t]) => e + t, 0) + (n.plan.cooldown_s ?? 0)) / 60)), s = J(() => se(n.plan));
-	var c = bn(), u = P(c), f = (e) => {
-		var t = pn(), r = P(t, !0), i = Z(r), a = (e) => {
+	var c = bn(), u = F(c), f = (e) => {
+		var t = pn(), r = F(t, !0), i = Z(r), a = (e) => {
 			var t = _();
 			B(() => y(t, `· Round ${n.plan.round ?? ""}`)), T(e, t);
 		};
@@ -382,7 +382,7 @@ function xn(e, n) {
 	N(u, (e) => {
 		n.plan.name && e(f);
 	});
-	var p = Z(u, 2), m = P(p), h = U(m, !0), v = Z(m, 2), b = (e) => {
+	var p = Z(u, 2), m = F(p), h = U(m, !0), v = Z(m, 2), b = (e) => {
 		var t = mn();
 		let r;
 		var i = U(t, !0);
@@ -403,7 +403,7 @@ function xn(e, n) {
 				background: `var(--${C(t).kind === "run" ? "run" : "fill"})`
 			})), T(e, n);
 		}), W(r);
-		var i = Z(r, 2), s = P(i), c = P(s);
+		var i = Z(r, 2), s = F(i), c = F(s);
 		d(c, "", {}, { background: "var(--run)" });
 		var l = Z(c, 2);
 		d(l, "", {}, { background: "var(--fill)" }), Ce(), W(s);
@@ -416,7 +416,7 @@ function xn(e, n) {
 		C(a).length && e(S);
 	});
 	var w = Z(x, 2), E = (e) => {
-		var t = vn(), r = P(t, !0), i = Z(r), a = (e) => {
+		var t = vn(), r = F(t, !0), i = Z(r), a = (e) => {
 			var t = _n(), r = U(t);
 			B(() => y(r, `${C(s) ? " · " : ""}${n.plan.review_pending ?? ""} ${n.plan.review_pending === 1 ? "run" : "runs"} to review`)), T(e, t);
 		};
@@ -444,7 +444,7 @@ function Mn(e, n) {
 	let r = oe();
 	H(n, !0);
 	let i = [], a = (e, t = Ye, n = Ye) => {
-		var r = Sn(), i = P(r), a = U(i, !0), s = Z(i, 2);
+		var r = Sn(), i = F(r), a = U(i, !0), s = Z(i, 2);
 		V(s), Ce(), W(r), B(() => {
 			y(a, n()), ne(s, o()[t()] / 60);
 		}), z("change", s, (e) => o(o()[t()] = h(e.currentTarget.valueAsNumber * 60), !0)), T(e, r);
@@ -465,7 +465,7 @@ function Mn(e, n) {
 			hint: "Any run counts."
 		}
 	], f = J(() => o().target.type === "distance"), p = J(() => de(Re(o()))), m = J(() => C(f) ? [] : g(C(p))), h = (e) => Math.max(0, Math.round(e)) || 0, v = (e, t, n) => e[1] = h(t) * 60 + h(n);
-	var b = jn(), x = P(b), S = U(x, !0), w = Z(x, 2), E = (e) => {
+	var b = jn(), x = F(b), S = U(x, !0), w = Z(x, 2), E = (e) => {
 		var t = Cn();
 		B(() => Q(t, "aria-label", `Delete ${n.label ?? ""}`)), z("click", t, function(...e) {
 			c()?.apply(this, e);
@@ -481,9 +481,9 @@ function Mn(e, n) {
 		q(r, 17, () => o().intervals, D, (e, t, n) => {
 			var r = wn();
 			Q(r, "aria-label", `Interval ${n + 1}`);
-			var i = P(r);
+			var i = F(r);
 			Q(i, "aria-label", `Interval ${n + 1} kind`);
-			var a = P(i);
+			var a = F(i);
 			a.value = a.__value = "run";
 			var c = Z(a);
 			c.value = c.__value = "walk", W(i), dt(i);
@@ -497,7 +497,7 @@ function Mn(e, n) {
 			}, [() => Math.floor(C(t)[1] / 60)]), s(i, () => C(t)[0], (e) => C(t)[0] = e), z("change", l, (e) => v(C(t), e.currentTarget.valueAsNumber, C(t)[1] % 60)), z("change", u, (e) => v(C(t), Math.floor(C(t)[1] / 60), e.currentTarget.valueAsNumber)), z("click", d, () => o().intervals.splice(n, 1)), T(e, r);
 		});
 		var i = Z(r, 2), a = Z(i, 2), c = (e) => {
-			var t = Tn(), n = Z(P(t), 2), r = Z(n, 2), i = U(r, !0), a = Z(r, 2);
+			var t = Tn(), n = Z(F(t), 2), r = Z(n, 2), i = U(r, !0), a = Z(r, 2);
 			W(t), B(() => {
 				n.disabled = o().times <= 1, y(i, o().times), a.disabled = o().times >= 50;
 			}), z("click", n, () => o(o().times--, !0)), z("click", a, () => o(o().times++, !0)), T(e, t);
@@ -515,23 +515,23 @@ function Mn(e, n) {
 	q(M, 21, () => u, (e) => e.type, (e, t) => {
 		var n = Dn();
 		let a;
-		var s = P(n);
+		var s = F(n);
 		V(s);
 		var c, u = Z(s, 1, !0);
 		W(n), B(() => {
 			a = l(n, 1, "svelte-dinfsf", null, a, { on: o().target.type === C(t).type }), Q(s, "name", `${r}-done`), c !== (c = C(t).type) && (s.value = (s.__value = c) ?? ""), y(u, C(t).label);
 		}), lt(i, [], s, () => (C(t).type, o().target.type), (e) => o(o().target.type = e, !0)), T(e, n);
 	}), W(M);
-	var F = Z(M, 2), I = U(F, !0), te = Z(F, 2), L = (e) => {
-		var t = On(), n = Z(P(t), 2);
+	var ee = Z(M, 2), I = U(ee, !0), te = Z(ee, 2), L = (e) => {
+		var t = On(), n = Z(F(t), 2);
 		V(n), Ce(), W(t), B(() => ne(n, o().target.km)), z("change", n, (e) => o(o().target.km = Math.round(e.currentTarget.valueAsNumber * 10) / 10 || 0, !0)), T(e, t);
 	};
 	N(te, (e) => {
 		C(f) && e(L);
 	});
-	var re = Z(te, 2), ie = Z(P(re), 2);
+	var re = Z(te, 2), ie = Z(F(re), 2);
 	V(ie), W(re);
-	var R = Z(re, 2), ae = P(R), ce = (e) => {
+	var R = Z(re, 2), ae = F(R), ce = (e) => {
 		var t = An();
 		q(t, 21, () => C(m), D, (e, t) => {
 			var n = kn();
@@ -545,9 +545,9 @@ function Mn(e, n) {
 	N(ae, (e) => {
 		C(m).length && e(ce);
 	});
-	var le = Z(ae, 2), ue = P(le, !0), fe = Z(ue), pe = (e) => {
+	var le = Z(ae, 2), ue = F(le, !0), fe = Z(ue), pe = (e) => {
 		var t = _();
-		B((e) => y(t, `· ${e ?? ""} min`), [() => Math.round(ee(o()) / 60)]), T(e, t);
+		B((e) => y(t, `· ${e ?? ""} min`), [() => Math.round(P(o()) / 60)]), T(e, t);
 	};
 	N(fe, (e) => {
 		C(f) || e(pe);
@@ -595,15 +595,15 @@ function Ln(e, n) {
 		let a = /^weeks\.(\d+)/.exec(C(p) ?? "");
 		a && Y(d, a[1] - 1), C(p) || (Tt(`Saved ${t.name}`), n.onback());
 	}
-	var v = In(), b = P(v);
+	var v = In(), b = F(v);
 	je(b, (e) => m = e, () => m);
-	var S = Z(b, 2), w = U(S, !0), E = Z(S, 2), D = P(E), O = Z(P(D), 2);
+	var S = Z(b, 2), w = U(S, !0), E = Z(S, 2), D = F(E), O = Z(F(D), 2);
 	V(O), W(D);
-	var k = Z(D, 2), A = Z(P(k), 2);
+	var k = Z(D, 2), A = Z(F(k), 2);
 	V(A), W(k), W(E);
 	var j = Z(E, 2);
 	q(j, 18, () => u.weeks, (e) => e, (e, n, i) => {
-		var o = Pn(), s = P(o), c = P(s), l = P(c), f = Z(l), p = U(f), m = Z(f), _ = U(m, !0);
+		var o = Pn(), s = F(o), c = F(s), l = F(c), f = Z(l), p = U(f), m = Z(f), _ = U(m, !0);
 		W(c), W(s);
 		var v = Z(s, 2), b = (e) => {
 			var r = Nn(), o = t(r);
@@ -626,10 +626,10 @@ function Ln(e, n) {
 					});
 				}
 			});
-			var s = Z(o, 2), c = P(s), l = Z(c, 2), f = Z(l, 2);
+			var s = Z(o, 2), c = F(s), l = Z(c, 2), f = Z(l, 2);
 			W(s), B(() => {
 				c.disabled = n.sessions.length >= 7, l.disabled = u.weeks.length >= 52, f.disabled = u.weeks.length <= 1;
-			}), z("click", c, () => n.sessions.push(a())), z("click", l, () => g(C(i) + 1, structuredClone(Re(n)))), z("click", f, () => {
+			}), z("click", c, () => n.sessions.push(a())), z("click", l, () => g(C(i) + 1, Re(n))), z("click", f, () => {
 				u.weeks.splice(C(i), 1), Y(d, -1);
 			}), T(e, r);
 		};
@@ -639,14 +639,14 @@ function Ln(e, n) {
 			Q(o, "aria-labelledby", `${r}-w${C(i) ?? ""}`), Q(c, "id", `${r}-w${C(i) ?? ""}`), Q(c, "aria-expanded", C(d) === C(i)), y(l, `Week ${C(i) + 1} `), y(p, `· ${e ?? ""}`), y(_, C(d) === C(i) ? "▾" : "▸");
 		}, [() => h(n.sessions.length)]), z("click", c, () => Y(d, C(d) === C(i) ? -1 : C(i), !0)), T(e, o);
 	});
-	var M = Z(j, 2), ee = Z(M, 2), F = (e) => {
+	var M = Z(j, 2), P = Z(M, 2), ee = (e) => {
 		var t = Fn(), n = U(t, !0);
 		B(() => y(n, C(p))), T(e, t);
 	};
-	N(ee, (e) => {
-		C(p) && e(F);
+	N(P, (e) => {
+		C(p) && e(ee);
 	});
-	var I = Z(ee, 2);
+	var I = Z(P, 2);
 	W(v), B(() => {
 		y(w, n.mode === "edit" ? "Edit plan" : "New plan"), M.disabled = u.weeks.length >= 52, I.disabled = C(f);
 	}), z("click", b, function(...e) {
@@ -655,80 +655,80 @@ function Ln(e, n) {
 }
 R(["click"]);
 // src/lib/ui/PlanPicker.svelte
-var Rn = $("<button type=\"button\" class=\"btn danger press\">Stop plan</button>"), zn = $("<p class=\"msg\" role=\"status\"> </p>"), Bn = $("<span role=\"img\" aria-label=\"In use\">🔒</span>"), Vn = $("<span class=\"mini svelte-1kupfy5\">Current</span>"), Hn = $("<a class=\"caption by svelte-1kupfy5\" target=\"_blank\" rel=\"noopener noreferrer\"> </a>"), Un = $("<span class=\"caption by svelte-1kupfy5\"> </span>"), Wn = $("<span class=\"ask svelte-1kupfy5\"> </span> <button type=\"button\" class=\"btn press\">Cancel</button> <button type=\"button\" class=\"btn danger press\">Delete</button>", 1), Gn = $("<button type=\"button\" class=\"btn danger press\">Delete</button>"), Kn = $("<button type=\"button\" class=\"btn press\">Edit</button> <!>", 1), qn = $("<button type=\"button\" class=\"btn press\">Copy & edit</button> <!>", 1), Jn = $("<div class=\"acts svelte-1kupfy5\"><div class=\"stepper svelte-1kupfy5\" role=\"group\" aria-label=\"Start week\"><span class=\"lbl svelte-1kupfy5\" aria-hidden=\"true\">Start at week</span> <button type=\"button\" class=\"pm press\" aria-label=\"Earlier start week\">−</button> <output aria-live=\"polite\" class=\"svelte-1kupfy5\"> </output> <button type=\"button\" class=\"pm press\" aria-label=\"Later start week\">+</button></div> <button type=\"button\" class=\"btn primary press wide svelte-1kupfy5\">Start today</button> <!></div>"), Yn = $("<li class=\"svelte-1kupfy5\"><button type=\"button\" class=\"row svelte-1kupfy5\"><span class=\"name svelte-1kupfy5\"> <!> <!></span> <span class=\"caption\"> </span></button> <!> <!></li>"), Xn = $("<button type=\"button\" class=\"btn press\">New plan</button>"), Zn = $("<ul class=\"card svelte-1kupfy5\"></ul> <!>", 1), Qn = $("<div class=\"picker svelte-1kupfy5\"><button type=\"button\" class=\"back press svelte-1kupfy5\"><span aria-hidden=\"true\">‹</span> Back</button> <h2 class=\"svelte-1kupfy5\"> </h2> <!> <!></div>");
+var Rn = $("<button type=\"button\" class=\"btn danger press\">Stop plan</button>"), zn = $("<p class=\"msg\" role=\"status\"> </p>"), Bn = $("<span role=\"img\" aria-label=\"In use\">🔒</span>"), Vn = $("<span class=\"mini svelte-1kupfy5\">Current</span>"), Hn = $("<a class=\"caption by svelte-1kupfy5\" target=\"_blank\" rel=\"noopener noreferrer\"> </a>"), Un = $("<span class=\"caption by svelte-1kupfy5\"> </span>"), Wn = $("<span class=\"ask svelte-1kupfy5\"> </span> <button type=\"button\" class=\"btn press\">Cancel</button> <button type=\"button\" class=\"btn danger press\">Delete</button>", 1), Gn = $("<button type=\"button\" class=\"btn danger press\">Delete</button>"), Kn = $("<button type=\"button\" class=\"btn press\" data-op=\"edit\">Edit</button> <!>", 1), qn = $("<button type=\"button\" class=\"btn press\" data-op=\"copy\">Copy & edit</button> <!>", 1), Jn = $("<div class=\"acts svelte-1kupfy5\"><div class=\"stepper svelte-1kupfy5\" role=\"group\" aria-label=\"Start week\"><span class=\"lbl svelte-1kupfy5\" aria-hidden=\"true\">Start at week</span> <button type=\"button\" class=\"pm press\" aria-label=\"Earlier start week\">−</button> <output aria-live=\"polite\" class=\"svelte-1kupfy5\"> </output> <button type=\"button\" class=\"pm press\" aria-label=\"Later start week\">+</button></div> <button type=\"button\" class=\"btn primary press wide svelte-1kupfy5\">Start today</button> <!></div>"), Yn = $("<li class=\"svelte-1kupfy5\"><button type=\"button\" class=\"row svelte-1kupfy5\"><span class=\"name svelte-1kupfy5\"> <!> <!></span> <span class=\"caption\"> </span></button> <!> <!></li>"), Xn = $("<button type=\"button\" class=\"btn press\" data-op=\"new\">New plan</button>"), Zn = $("<ul class=\"card svelte-1kupfy5\"></ul> <!>", 1), Qn = $("<div class=\"picker svelte-1kupfy5\"><button type=\"button\" class=\"back press svelte-1kupfy5\"><span aria-hidden=\"true\">‹</span> Back</button> <h2 class=\"svelte-1kupfy5\"> </h2> <!> <!></div>");
 function $n(e, n) {
 	let r = oe();
 	H(n, !0);
-	let i = G(n, "people", 19, () => ({})), a = J(() => n.viewer?.person != null), o = K(null), s = K(null), c = K(null), l = K(1), u = K(!1), d = K(null), f, p = () => Oe("plans").then((e) => Y(o, e.plans, !0), (e) => Y(s, e, !0));
-	we(() => {
-		f.focus(), p();
+	let i = G(n, "people", 19, () => ({})), a = G(n, "reopen", 3, null), o = J(() => n.viewer?.person != null), s = K(null), c = K(null), l = K(null), u = K(1), d = K(!1), f = K(null), p, m, h = () => Oe("plans").then((e) => Y(s, e.plans, !0), (e) => Y(c, e, !0));
+	we(async () => {
+		a() || p.focus(), await h(), a() && (Y(l, a().id ?? null, !0), await Qe(), (m?.querySelector(`[data-op="${a().mode}"]`) ?? p)?.focus());
 	});
-	let m = (e) => {
+	let g = (e) => {
 		try {
 			return new URL(e).hostname.replace(/^www\./, "");
 		} catch {
 			return "Source";
 		}
 	};
-	function h(e) {
-		Y(c, C(c) === e.id ? null : e.id, !0), Y(l, 1), Y(d, null);
+	function _(e) {
+		Y(l, C(l) === e.id ? null : e.id, !0), Y(u, 1), Y(f, null);
 	}
-	async function g(e, t, n) {
-		Y(u, !0);
+	async function v(e, t, n) {
+		Y(d, !0);
 		let r = await Pt(e);
-		Y(u, !1), Tt(r.error ?? t), r.error || n();
+		Y(d, !1), Tt(r.error ?? t), r.error || n();
 	}
-	let _ = (e) => g({
+	let b = (e) => v({
 		op: "start",
 		person: n.person,
 		plan: e.id,
-		start_week: C(l)
-	}, `Started ${e.name}`, n.onback), v = () => g({
+		start_week: C(u)
+	}, `Started ${e.name}`, n.onback), x = () => v({
 		op: "stop",
 		person: n.person
-	}, "Plan stopped", n.onback), b = (e) => g({
+	}, "Plan stopped", n.onback), S = (e) => v({
 		op: "delete",
 		id: e.id
 	}, `Deleted ${e.name}`, () => {
-		Y(c, Y(d, null), !0), p();
+		Y(l, Y(f, null), !0), h();
 	});
-	var x = Qn(), S = P(x);
-	je(S, (e) => f = e, () => f);
-	var w = Z(S, 2), E = U(w, !0), D = Z(w, 2), O = (e) => {
+	var w = Qn(), E = F(w);
+	je(E, (e) => p = e, () => p);
+	var D = Z(E, 2), O = U(D, !0), k = Z(D, 2), A = (e) => {
 		var t = Rn();
-		B(() => t.disabled = C(u)), z("click", t, v), T(e, t);
+		B(() => t.disabled = C(d)), z("click", t, x), T(e, t);
 	};
-	N(D, (e) => {
-		n.current && e(O);
+	N(k, (e) => {
+		n.current && e(A);
 	});
-	var k = Z(D, 2), A = (e) => {
+	var j = Z(k, 2), M = (e) => {
 		var t = zn(), n = U(t, !0);
-		B(() => y(n, C(s) ? C(s).status === 503 ? "Waiting for fitbridge" : "Couldn't reach Home Assistant" : "Loading…")), T(e, t);
-	}, j = (e) => {
-		var s = Zn(), f = t(s);
-		q(f, 21, () => C(o), (e) => e.id, (e, r) => {
-			let o = J(() => C(c) === C(r).id);
-			var s = Yn(), f = P(s), p = P(f), g = P(p), v = Z(g), x = (e) => {
+		B(() => y(n, C(c) ? C(c).status === 503 ? "Waiting for fitbridge" : "Couldn't reach Home Assistant" : "Loading…")), T(e, t);
+	}, P = (e) => {
+		var a = Zn(), c = t(a);
+		q(c, 21, () => C(s), (e) => e.id, (e, r) => {
+			let a = J(() => C(l) === C(r).id);
+			var s = Yn(), c = F(s), p = F(c), m = F(p), h = Z(m), v = (e) => {
 				var t = Bn();
 				T(e, t);
 			};
-			N(v, (e) => {
-				C(r).used && e(x);
+			N(h, (e) => {
+				C(r).used && e(v);
 			});
-			var S = Z(v, 2), w = (e) => {
+			var x = Z(h, 2), w = (e) => {
 				var t = Vn();
 				T(e, t);
 			};
-			N(S, (e) => {
+			N(x, (e) => {
 				C(r).id === n.current?.plan && e(w);
 			}), W(p);
 			var E = Z(p, 2), D = U(E, !0);
-			W(f);
-			var O = Z(f, 2), k = (e) => {
+			W(c);
+			var O = Z(c, 2), k = (e) => {
 				var t = Hn(), n = U(t, !0);
 				B((e) => {
 					Q(t, "href", C(r).source), y(n, e);
-				}, [() => m(C(r).source)]), T(e, t);
+				}, [() => g(C(r).source)]), T(e, t);
 			}, A = (e) => {
 				var t = Un(), n = U(t);
 				B(() => y(n, `by ${i()[C(r).by]?.name ?? C(r).by ?? ""}`)), T(e, t);
@@ -737,21 +737,21 @@ function $n(e, n) {
 				C(r).source ? e(k) : C(r).by && e(A, 1);
 			});
 			var j = Z(O, 2), M = (e) => {
-				var i = Jn(), o = P(i), s = Z(P(o), 2), c = Z(s, 2), f = U(c, !0), p = Z(c, 2);
-				W(o);
-				var m = Z(o, 2), h = Z(m, 2), g = (e) => {
+				var i = Jn(), a = F(i), s = Z(F(a), 2), c = Z(s, 2), l = U(c, !0), p = Z(c, 2);
+				W(a);
+				var m = Z(a, 2), h = Z(m, 2), g = (e) => {
 					var i = qn(), a = t(i), o = Z(a, 2), s = (e) => {
 						var i = Kn(), a = t(i), o = Z(a, 2), s = (e) => {
 							var n = Wn(), i = t(n), a = U(i), o = Z(i, 2), s = Z(o, 2);
 							B(() => {
-								y(a, `Delete ${C(r).name ?? ""}?`), s.disabled = C(u);
-							}), z("click", o, () => Y(d, null)), z("click", s, () => b(C(r))), T(e, n);
+								y(a, `Delete ${C(r).name ?? ""}?`), s.disabled = C(d);
+							}), z("click", o, () => Y(f, null)), z("click", s, () => S(C(r))), T(e, n);
 						}, c = (e) => {
 							var t = Gn();
-							z("click", t, () => Y(d, C(r).id, !0)), T(e, t);
+							z("click", t, () => Y(f, C(r).id, !0)), T(e, t);
 						};
 						N(o, (e) => {
-							C(d) === C(r).id ? e(s) : e(c, -1);
+							C(f) === C(r).id ? e(s) : e(c, -1);
 						}), z("click", a, () => n.onbuild(C(r), "edit")), T(e, i);
 					};
 					N(o, (e) => {
@@ -759,32 +759,32 @@ function $n(e, n) {
 					}), z("click", a, () => n.onbuild(C(r), "copy")), T(e, i);
 				};
 				N(h, (e) => {
-					C(a) && e(g);
+					C(o) && e(g);
 				}), W(i), B(() => {
-					s.disabled = C(l) <= 1, y(f, C(l)), p.disabled = C(l) >= C(r).weeks.length, m.disabled = C(u);
-				}), z("click", s, () => _e(l, -1)), z("click", p, () => _e(l)), z("click", m, () => _(C(r))), T(e, i);
+					s.disabled = C(u) <= 1, y(l, C(u)), p.disabled = C(u) >= C(r).weeks.length, m.disabled = C(d);
+				}), z("click", s, () => _e(u, -1)), z("click", p, () => _e(u)), z("click", m, () => b(C(r))), T(e, i);
 			};
 			N(j, (e) => {
-				C(o) && e(M);
+				C(a) && e(M);
 			}), W(s), B((e) => {
-				Q(f, "aria-expanded", C(o)), y(g, `${C(r).name ?? ""} `), y(D, e);
-			}, [() => ie(C(r))]), z("click", f, () => h(C(r))), T(e, s);
-		}), W(f);
-		var p = Z(f, 2), g = (e) => {
+				Q(c, "aria-expanded", C(a)), y(m, `${C(r).name ?? ""} `), y(D, e);
+			}, [() => ie(C(r))]), z("click", c, () => _(C(r))), T(e, s);
+		}), W(c);
+		var p = Z(c, 2), m = (e) => {
 			var t = Xn();
 			z("click", t, () => n.onbuild(null, "new")), T(e, t);
 		};
 		N(p, (e) => {
-			C(a) && e(g);
-		}), B(() => Q(f, "aria-labelledby", `${r}-t`)), T(e, s);
+			C(o) && e(m);
+		}), B(() => Q(c, "aria-labelledby", `${r}-t`)), T(e, a);
 	};
-	N(k, (e) => {
-		C(o) ? e(j, -1) : e(A);
-	}), W(x), B(() => {
-		Q(w, "id", `${r}-t`), y(E, n.current ? "Change plan" : "Choose a plan");
-	}), z("click", S, function(...e) {
+	N(j, (e) => {
+		C(s) ? e(P, -1) : e(M);
+	}), W(w), je(w, (e) => m = e, () => m), B(() => {
+		Q(D, "id", `${r}-t`), y(O, n.current ? "Change plan" : "Choose a plan");
+	}), z("click", E, function(...e) {
 		n.onback?.apply(this, e);
-	}), T(e, x), X();
+	}), T(e, w), X();
 }
 R(["click"]);
 // src/lib/gesture.js
@@ -840,17 +840,17 @@ function cr(e, n) {
 		close: x
 	}, k = sr();
 	let A, j;
-	var M = P(k), ee = (e) => {
-		var t = ar(), n = P(t);
+	var M = F(k), P = (e) => {
+		var t = ar(), n = F(t);
 		a(n), W(t), z("pointerdown", t, w), z("pointermove", t, E), z("pointerup", t, D), h("pointercancel", t, D), T(e, t);
-	}, F = (e) => {
-		var t = or(), n = P(t);
+	}, ee = (e) => {
+		var t = or(), n = F(t);
 		a(n), W(t), T(e, t);
 	};
 	N(M, (e) => {
-		o() ? e(ee) : e(F, -1);
+		o() ? e(P) : e(ee, -1);
 	});
-	var I = Z(M, 2), te = P(I);
+	var I = Z(M, 2), te = F(I);
 	return r(te, () => n.children), W(I), je(I, (e) => f = e, () => f), W(k), je(k, (e) => u = e, () => u), B(() => {
 		Q(k, "aria-labelledby", `${i}-t`), A = l(k, 1, "svelte-9pi54v", null, A, {
 			wide: s(),
@@ -883,7 +883,7 @@ function dr(e, n) {
 			q(a, 17, () => n.groups, (e) => e.group, (e, n) => {
 				var r = ur(), i = t(r), a = U(i, !0), o = Z(i, 2);
 				q(o, 21, () => C(n).lifts, (e) => e.id, (e, t) => {
-					var n = lr(), r = P(n), i = P(r), a = Z(i), o = U(a, !0), s = Z(a);
+					var n = lr(), r = F(n), i = F(r), a = Z(i), o = U(a, !0), s = Z(a);
 					W(r), W(n), B((e, n) => {
 						y(i, `${C(t).name ?? ""} · `), y(o, e), y(s, ` · ${n ?? ""}`);
 					}, [() => M(C(t)), () => $e(C(t).date)]), T(e, n);
@@ -903,11 +903,11 @@ function hr(e, t) {
 		weekday: "long",
 		timeZone: "UTC"
 	}), r = (e) => `${n(e.date)} ${e.steps.toLocaleString("en-US")} steps`;
-	var i = mr(), a = P(i);
+	var i = mr(), a = F(i);
 	q(a, 21, () => t.bars, (e) => e.date, (e, t) => {
 		var n = fr();
 		let i;
-		var a = P(n), o = P(a);
+		var a = F(n), o = F(a);
 		let s, c;
 		W(a);
 		var u = Z(a, 2), f = U(u, !0);
@@ -933,7 +933,7 @@ function Tr(e, n) {
 	H(n, !0);
 	let r = J(() => n.person.week.goal.steps ?? 0), a = J(() => xe(n.person.steps_week, C(r), f())), o = J(() => n.person.pbs.lifts ?? []), s = J(() => A(C(o))), c, l = J(() => n.person.pbs.fastest_1k), u = J(() => n.person.pbs.gym_tonnes.toLocaleString(void 0, { maximumFractionDigits: 1 }));
 	var d = wr(), p = t(d), m = (e) => {
-		var t = gr(), n = P(t);
+		var t = gr(), n = F(t);
 		hr(n, {
 			get bars() {
 				return C(a).bars;
@@ -948,10 +948,10 @@ function Tr(e, n) {
 	N(p, (e) => {
 		C(a) && e(m);
 	});
-	var h = Z(p, 2), g = P(h), _ = (e) => {
+	var h = Z(p, 2), g = F(h), _ = (e) => {
 		var n = vr(), r = t(n);
 		q(r, 21, () => C(s), (e) => e.group, (e, t) => {
-			var n = _r(), r = P(n), i = P(r), a = U(i, !0), o = Z(i), s = P(o), l = Z(s), u = U(l, !0);
+			var n = _r(), r = F(n), i = F(r), a = U(i, !0), o = Z(i), s = F(o), l = Z(s), u = U(l, !0);
 			W(o), W(r), W(n), B((e) => {
 				y(a, C(t).group), y(s, `${C(t).lift.name ?? ""} · `), y(u, e);
 			}, [() => M(C(t).lift)]), z("click", r, () => c.open(C(t).group)), T(e, n);
@@ -965,16 +965,16 @@ function Tr(e, n) {
 	N(g, (e) => {
 		C(o).length ? e(_) : e(v, -1);
 	}), W(h);
-	var b = Z(h, 2), x = P(b), S = (e) => {
+	var b = Z(h, 2), x = F(b), S = (e) => {
 		let r = (e) => {
 			var n = br(), r = Z(t(n), 2), a = U(r);
 			B((e, t) => y(a, `${e ?? ""} · ${t ?? ""}`), [() => i(C(l).seconds), () => $e(C(l).date)]), T(e, n);
 		};
 		var a = I(), o = t(a), s = (e) => {
-			var t = xr(), i = P(t);
+			var t = xr(), i = F(t);
 			r(i), W(t), z("click", t, () => n.onopen({ key: C(l).key })), T(e, t);
 		}, c = (e) => {
-			var t = Sr(), n = P(t);
+			var t = Sr(), n = F(t);
 			r(n), W(t), T(e, t);
 		};
 		N(o, (e) => {
@@ -987,19 +987,19 @@ function Tr(e, n) {
 	N(x, (e) => {
 		C(l) ? e(S) : e(w, -1);
 	});
-	var E = Z(x, 2), D = Z(P(E)), O = U(D);
+	var E = Z(x, 2), D = Z(F(E)), O = U(D);
 	W(E);
-	var k = Z(E, 2), j = Z(P(k)), ee = U(j);
+	var k = Z(E, 2), j = Z(F(k)), P = U(j);
 	W(k), W(b);
-	var F = Z(b, 2);
+	var ee = Z(b, 2);
 	{
 		let e = J(() => Fe(C(o)));
-		je(dr(F, { get groups() {
+		je(dr(ee, { get groups() {
 			return C(e);
 		} }), (e) => c = e, () => c);
 	}
 	B((e) => {
-		y(O, `${e ?? ""} km`), y(ee, `${C(u) ?? ""} t`);
+		y(O, `${e ?? ""} km`), y(P, `${C(u) ?? ""} t`);
 	}, [() => n.person.pbs.longest_session_km.toFixed(1)]), T(e, d), X();
 }
 R(["click"]);
@@ -1010,12 +1010,12 @@ function kr(e, t) {
 	let n = J(() => t.shoes.map(rt));
 	var r = Or();
 	q(r, 23, () => C(n), (e, n) => t.shoes[n].id, (e, t) => {
-		var n = Dr(), r = P(n), i = P(r), a = U(i, !0), o = Z(i), s = U(o, !0);
+		var n = Dr(), r = F(n), i = F(r), a = U(i, !0), o = Z(i), s = U(o, !0);
 		W(r);
-		var c = Z(r, 2), u = P(c);
+		var c = Z(r, 2), u = F(c);
 		let f;
 		W(c);
-		var p = Z(c, 2), m = P(p), h = U(m, !0), g = Z(m, 2), _ = (e) => {
+		var p = Z(c, 2), m = F(p), h = U(m, !0), g = Z(m, 2), _ = (e) => {
 			var n = Er(), r = U(n, !0);
 			B(() => y(r, C(t).label)), T(e, n);
 		};
@@ -1078,7 +1078,7 @@ function Br(n, r) {
 			var a = zr(), d = t(a), f = (e) => {
 				var n = Ir(), a = t(n);
 				q(a, 21, () => C(i), (e) => e.id, (e, n) => {
-					var i = Pr(), a = P(i), o = P(a), s = P(o, !0), c = Z(s), d = (e) => {
+					var i = Pr(), a = F(i), o = F(a), s = F(o, !0), c = Z(s), d = (e) => {
 						var t = Ar();
 						T(e, t);
 					};
@@ -1087,7 +1087,7 @@ function Br(n, r) {
 					}), W(o);
 					var f = Z(o, 2), m = U(f, !0);
 					W(a);
-					var h = Z(a, 2), v = P(h), b = Z(P(v));
+					var h = Z(a, 2), v = F(h), b = Z(F(v));
 					V(b), Ce(), W(v);
 					var x = Z(v, 2), S = (e) => {
 						var r = jr(), i = t(r), a = U(i), o = Z(i, 2), s = Z(o, 2);
@@ -1129,9 +1129,9 @@ function Br(n, r) {
 			N(d, (e) => {
 				C(i).length ? e(f) : e(v, -1);
 			});
-			var b = Z(d, 2), x = Z(P(b), 2), S = Z(P(x));
+			var b = Z(d, 2), x = Z(F(b), 2), S = Z(F(x));
 			V(S), W(x);
-			var w = Z(x, 2), E = Z(P(w));
+			var w = Z(x, 2), E = Z(F(w));
 			V(E), W(w);
 			var D = Z(w, 2), O = (e) => {
 				var t = Rr(), n = U(t, !0);
@@ -1154,7 +1154,7 @@ var Vr = $("<p class=\"msg\" role=\"status\"> </p>"), Hr = $("<p class=\"msg\" r
 function yi(e, n) {
 	let r = oe();
 	H(n, !0);
-	let i = G(n, "shoes", 3, null), a = G(n, "reviewTypes", 19, () => ({})), o = () => import("./viz-Ciaz47cb.js"), s, c = K(null), u = K(null), f = K(null), p = K(null), m = K(null), h = K(!1), g = K(!1), _ = 0;
+	let i = G(n, "shoes", 3, null), a = G(n, "reviewTypes", 19, () => ({})), o = () => import("./viz-DqYFk3FV.js"), s, c = K(null), u = K(null), f = K(null), p = K(null), m = K(null), h = K(!1), g = K(!1), _ = 0;
 	async function v(e) {
 		let t = s.show();
 		if (!t) return;
@@ -1185,7 +1185,7 @@ function yi(e, n) {
 	}), E = J(() => C(u) && C(w) ? Me(n.viewer, n.person, C(w)) : {
 		remove: null,
 		shoe: !1
-	}), O = J(() => C(E).shoe && i() ? Te(i(), n.runShoes?.[C(c).key]) : null), k = J(() => C(u) && et(C(u).summary)), A = J(() => C(u) ? ge(C(u)).filter(([e]) => !(e === "Shoe" && C(O)?.options.length)) : []), j = J(() => C(u) && Ue(C(u))), M = J(() => C(u) && Ee(C(u).zones, C(u).max_hr)), ee = J(() => C(u) ? Se(C(u)) : []), F = J(() => C(u) && Ke(C(u).gym)), te = J(() => C(u) && it(C(u))), ne = J(() => C(w)?.check ?? null), L = J(() => C(w)?.review ?? null), ie = J(() => a()[C(w)?.source] ?? []), R = J(() => C(w)?.km && C(w).minutes ? C(w).km / (C(w).minutes / 60) : null), ae = (e) => e.status === 404 ? "Workout not found" : e.status === 503 ? "Waiting for fitbridge" : "Couldn't reach Home Assistant";
+	}), O = J(() => C(E).shoe && i() ? Te(i(), n.runShoes?.[C(c).key]) : null), k = J(() => C(u) && et(C(u).summary)), A = J(() => C(u) ? ge(C(u)).filter(([e]) => !(e === "Shoe" && C(O)?.options.length)) : []), j = J(() => C(u) && Ue(C(u))), M = J(() => C(u) && Ee(C(u).zones, C(u).max_hr)), P = J(() => C(u) ? Se(C(u)) : []), ee = J(() => C(u) && Ke(C(u).gym)), te = J(() => C(u) && it(C(u))), ne = J(() => C(w)?.check ?? null), L = J(() => C(w)?.review ?? null), ie = J(() => a()[C(w)?.source] ?? []), R = J(() => C(w)?.km && C(w).minutes ? C(w).km / (C(w).minutes / 60) : null), ae = (e) => e.status === 404 ? "Workout not found" : e.status === 503 ? "Waiting for fitbridge" : "Couldn't reach Home Assistant";
 	async function se(e) {
 		let t = e.currentTarget;
 		await Nt(n.person, C(c).key, Number(t.value)) || (t.value = String(C(O).value));
@@ -1221,7 +1221,7 @@ function yi(e, n) {
 					var t = Hr();
 					T(e, t);
 				}, b = (e) => {
-					var i = vi(), a = t(i), o = P(a), f = Z(o), _ = (e) => {
+					var i = vi(), a = t(i), o = F(a), f = Z(o), _ = (e) => {
 						var t = Ur(), n = U(t, !0);
 						B(() => y(n, C(k).plan)), T(e, t);
 					};
@@ -1236,17 +1236,17 @@ function yi(e, n) {
 						C(x) && e(b);
 					}), W(a);
 					var ae = Z(a, 2), oe = (e) => {
-						var t = Yr(), n = P(t);
+						var t = Yr(), n = F(t);
 						q(n, 17, () => C(A), ([e, t]) => e, (e, t) => {
 							var n = J(() => Ve(C(t), 2));
 							let r = () => C(n)[0], i = () => C(n)[1];
-							var a = Gr(), o = P(a), s = U(o, !0), c = Z(o), l = U(c, !0);
+							var a = Gr(), o = F(a), s = U(o, !0), c = Z(o), l = U(c, !0);
 							W(a), B(() => {
 								y(s, r()), y(l, i());
 							}), T(e, a);
 						});
 						var i = Z(n, 2), a = (e) => {
-							var t = Jr(), n = P(t), i = U(n), a = Z(n), o = P(a), s = P(o), c = (e) => {
+							var t = Jr(), n = F(t), i = U(n), a = Z(n), o = F(a), s = F(o), c = (e) => {
 								var t = Kr(), n = U(t, !0);
 								t.value = t.__value = "", B(() => y(n, C(O).extra)), T(e, t);
 							};
@@ -1286,7 +1286,7 @@ function yi(e, n) {
 							var r = U(t, !0);
 							B((e) => {
 								n = l(t, 1, "check svelte-1uaoa1p", null, n, { warn: C(w).needs_review }), y(r, e);
-							}, [() => De(C(ne), C(R))]), T(e, t);
+							}, [() => De(C(ne), C(R), C(w).km)]), T(e, t);
 						}, a = (e) => {
 							var t = Qr(), n = U(t);
 							B((e) => y(n, `Changed to ${e ?? ""}`), [() => C(ie).find((e) => e.match === C(L).type_match)?.name ?? C(L).type_match]), T(e, t);
@@ -1295,7 +1295,7 @@ function yi(e, n) {
 							C(ne) ? e(i) : C(L).decision === "type" && e(a, 1);
 						});
 						var o = Z(r, 2), s = (e) => {
-							var t = ni(), n = P(t);
+							var t = ni(), n = F(t);
 							let r;
 							var i = Z(n, 2);
 							let a;
@@ -1310,7 +1310,7 @@ function yi(e, n) {
 								C(ie).length && e(s);
 							});
 							var c = Z(o, 2), u = (e) => {
-								var t = ei(), n = P(t);
+								var t = ei(), n = F(t);
 								n.value = n.__value = "";
 								var r = Z(n), i = (e) => {
 									var t = qr(), n = U(t, !0), r = {};
@@ -1416,9 +1416,9 @@ function yi(e, n) {
 					var ye = Z(_e, 2), V = (e) => {
 						var n = li(), r = Z(t(n), 2);
 						q(r, 21, () => C(M), (e) => e.zone, (e, t) => {
-							var n = ci(), r = P(n), i = P(r), a = Z(i), o = U(a, !0);
+							var n = ci(), r = F(n), i = F(r), a = Z(i), o = U(a, !0);
 							W(r);
-							var s = Z(r, 2), c = P(s);
+							var s = Z(r, 2), c = F(s);
 							let l;
 							W(s);
 							var u = Z(s, 2), f = U(u);
@@ -1431,23 +1431,23 @@ function yi(e, n) {
 						C(M) && e(V);
 					});
 					var H = Z(ye, 2), xe = (e) => {
-						var n = di(), r = Z(t(n), 2), i = P(r), a = P(i), o = Z(P(a), 2), s = U(o, !0);
+						var n = di(), r = Z(t(n), 2), i = F(r), a = F(i), o = Z(F(a), 2), s = U(o, !0);
 						Ce(2), W(a), W(i);
 						var c = Z(i);
-						q(c, 21, () => C(ee), D, (e, t) => {
-							var n = ui(), r = P(n), i = U(r, !0), a = Z(r), o = U(a, !0), s = Z(a), c = U(s, !0), l = Z(s), u = U(l, !0), d = Z(l), f = U(d, !0);
+						q(c, 21, () => C(P), D, (e, t) => {
+							var n = ui(), r = F(n), i = U(r, !0), a = Z(r), o = U(a, !0), s = Z(a), c = U(s, !0), l = Z(s), u = U(l, !0), d = Z(l), f = U(d, !0);
 							W(n), B(() => {
 								y(i, C(t).km), y(o, C(t).time), y(c, C(t).pace), y(u, C(t).hr), y(f, C(t).climb);
 							}), T(e, n);
 						}), W(c), W(r), B(() => y(s, C(te) ? "km/h" : "Pace")), T(e, n);
 					};
 					N(H, (e) => {
-						C(ee).length && e(xe);
+						C(P).length && e(xe);
 					});
 					var Se = Z(H, 2), we = (e) => {
-						var n = mi(), r = Z(t(n), 2), i = P(r);
-						q(i, 17, () => C(F).exercises, D, (e, t) => {
-							var n = pi(), r = P(n), i = Z(r), a = U(i, !0), o = Z(i), s = (e) => {
+						var n = mi(), r = Z(t(n), 2), i = F(r);
+						q(i, 17, () => C(ee).exercises, D, (e, t) => {
+							var n = pi(), r = F(n), i = Z(r), a = U(i, !0), o = Z(i), s = (e) => {
 								var t = fi();
 								T(e, t);
 							};
@@ -1457,14 +1457,14 @@ function yi(e, n) {
 								y(r, `${C(t).name ?? ""} · `), y(a, C(t).set);
 							}), T(e, n);
 						});
-						var a = Z(i, 2), o = Z(P(a)), s = U(o, !0);
-						W(a), W(r), B(() => y(s, C(F).volume)), T(e, n);
+						var a = Z(i, 2), o = Z(F(a)), s = U(o, !0);
+						W(a), W(r), B(() => y(s, C(ee).volume)), T(e, n);
 					};
 					N(Se, (e) => {
-						C(F) && e(we);
+						C(ee) && e(we);
 					});
 					var Te = Z(Se, 2), Ee = (e) => {
-						var r = _i(), i = P(r), a = (e) => {
+						var r = _i(), i = F(r), a = (e) => {
 							var r = hi(), i = Z(t(r), 2), a = Z(i, 2);
 							z("click", i, () => Y(h, !1)), z("click", a, () => (Ot(n.person, C(c).key, "remove"), s.close())), T(e, r);
 						}, o = (e) => {
@@ -1498,28 +1498,37 @@ var bi = $("<button type=\"button\" class=\"btn choose press svelte-1341oik\">Ch
 function Ei(e, n) {
 	let r = oe();
 	H(n, !0);
-	let i = G(n, "people", 19, () => ({})), a = G(n, "connect", 3, null), o = G(n, "reviewTypes", 19, () => ({})), s = J(() => m(n.person.pbs)), c = J(() => Ge(n.person, n.canEdit)), l = K(void 0), u = K(void 0), d = (e) => C(u).open(e), f = K(null);
-	var p = I(), h = t(p), g = (e) => {
-		$n(e, {
-			get person() {
-				return n.id;
-			},
-			get current() {
-				return n.person.plan;
-			},
-			get viewer() {
-				return n.viewer;
-			},
-			get people() {
-				return i();
-			},
-			onback: () => Y(f, null),
-			onbuild: (e, t) => Y(f, {
-				from: e,
-				mode: t
-			}, !0)
-		});
-	}, _ = (e) => {
+	let i = G(n, "people", 19, () => ({})), a = G(n, "connect", 3, null), o = G(n, "reviewTypes", 19, () => ({})), s = J(() => m(n.person.pbs)), c = J(() => Ge(n.person, n.canEdit)), l = K(void 0), u = K(void 0), d = (e) => C(u).open(e), f = K(null), p = K(void 0);
+	async function h() {
+		Y(f, null), await Qe(), C(p)?.querySelector("button")?.focus();
+	}
+	var g = I(), _ = t(g), v = (e) => {
+		{
+			let t = J(() => C(f).reopen ?? null);
+			$n(e, {
+				get person() {
+					return n.id;
+				},
+				get current() {
+					return n.person.plan;
+				},
+				get viewer() {
+					return n.viewer;
+				},
+				get people() {
+					return i();
+				},
+				get reopen() {
+					return C(t);
+				},
+				onback: h,
+				onbuild: (e, t) => Y(f, {
+					from: e,
+					mode: t
+				}, !0)
+			});
+		}
+	}, b = (e) => {
 		Ln(e, {
 			get from() {
 				return C(f).from;
@@ -1527,11 +1536,17 @@ function Ei(e, n) {
 			get mode() {
 				return C(f).mode;
 			},
-			onback: () => Y(f, "pick")
+			onback: () => Y(f, {
+				pick: !0,
+				reopen: {
+					id: C(f).from?.id,
+					mode: C(f).mode
+				}
+			}, !0)
 		});
-	}, v = (e) => {
-		var i = Ti(), p = t(i), m = (e) => {
-			var t = xi(), i = P(t), a = Z(i, 2), o = (e) => {
+	}, x = (e) => {
+		var i = Ti(), m = t(i), h = (e) => {
+			var t = xi(), i = F(t), a = Z(i, 2), o = (e) => {
 				xn(e, {
 					get plan() {
 						return n.person.plan;
@@ -1539,23 +1554,23 @@ function Ei(e, n) {
 					get canEdit() {
 						return n.canEdit;
 					},
-					onchange: () => Y(f, "pick")
+					onchange: () => Y(f, { pick: !0 }, !0)
 				});
 			}, s = (e) => {
 				var t = bi();
-				z("click", t, () => Y(f, "pick")), T(e, t);
+				z("click", t, () => Y(f, { pick: !0 }, !0)), T(e, t);
 			};
 			N(a, (e) => {
 				n.person.plan ? e(o) : e(s, -1);
-			}), W(t), B(() => {
+			}), W(t), je(t, (e) => Y(p, e), () => C(p)), B(() => {
 				Q(t, "aria-labelledby", `${r}-plan`), Q(i, "id", `${r}-plan`);
 			}), T(e, t);
 		};
-		N(p, (e) => {
-			(n.person.plan || n.canEdit) && e(m);
+		N(m, (e) => {
+			(n.person.plan || n.canEdit) && e(h);
 		});
-		var h = Z(p, 2), g = P(h), _ = Z(g, 2);
-		k(_, () => n.id, (e) => {
+		var g = Z(m, 2), _ = F(g), v = Z(_, 2);
+		k(v, () => n.id, (e) => {
 			fn(e, {
 				get person() {
 					return n.id;
@@ -1568,22 +1583,22 @@ function Ei(e, n) {
 				},
 				onopen: d
 			});
-		}), W(h);
-		var v = Z(h, 2), b = P(v), x = Z(P(b)), S = U(x);
-		W(b), Xt(Z(b, 2), { get badges() {
+		}), W(g);
+		var b = Z(g, 2), x = F(b), S = Z(F(x)), w = U(S);
+		W(x), Xt(Z(x, 2), { get badges() {
 			return n.person.badges;
-		} }), W(v);
-		var w = Z(v, 2), E = P(w);
-		Tr(Z(E, 2), {
+		} }), W(b);
+		var E = Z(b, 2), D = F(E);
+		Tr(Z(D, 2), {
 			get person() {
 				return n.person;
 			},
 			onopen: d
-		}), W(w);
-		var D = Z(w, 2);
+		}), W(E);
+		var O = Z(E, 2);
 		{
 			let e = J(() => C(c) ? n.person.shoes : null);
-			je(yi(D, {
+			je(yi(O, {
 				get person() {
 					return n.id;
 				},
@@ -1604,8 +1619,8 @@ function Ei(e, n) {
 				}
 			}), (e) => Y(u, e, !0), () => C(u));
 		}
-		var O = Z(D, 2), A = (e) => {
-			var i = wi(), a = t(i), o = P(a), s = Z(P(o)), u = (e) => {
+		var A = Z(O, 2), j = (e) => {
+			var i = wi(), a = t(i), o = F(a), s = Z(F(o)), u = (e) => {
 				var t = Si();
 				z("click", t, () => C(l).open()), T(e, t);
 			};
@@ -1639,10 +1654,10 @@ function Ei(e, n) {
 				Q(a, "aria-labelledby", `${r}-shoes`), Q(o, "id", `${r}-shoes`);
 			}), T(e, i);
 		};
-		N(O, (e) => {
-			(n.person.shoes?.length || C(c)) && e(A);
+		N(A, (e) => {
+			(n.person.shoes?.length || C(c)) && e(j);
 		});
-		var j = Z(O, 2), M = (e) => {
+		var M = Z(A, 2), P = (e) => {
 			Wt(e, {
 				get info() {
 					return a();
@@ -1656,15 +1671,15 @@ function Ei(e, n) {
 				collapsed: !0
 			});
 		};
-		N(j, (e) => {
-			a() && e(M);
+		N(M, (e) => {
+			a() && e(P);
 		}), B(() => {
-			Q(h, "aria-labelledby", `${r}-feed`), Q(g, "id", `${r}-feed`), Q(v, "aria-labelledby", `${r}-badges`), Q(b, "id", `${r}-badges`), y(S, `${n.person.badges.count ?? ""} unlocked`), Q(w, "aria-labelledby", `${r}-pbs`), Q(E, "id", `${r}-pbs`);
+			Q(g, "aria-labelledby", `${r}-feed`), Q(_, "id", `${r}-feed`), Q(b, "aria-labelledby", `${r}-badges`), Q(x, "id", `${r}-badges`), y(w, `${n.person.badges.count ?? ""} unlocked`), Q(E, "aria-labelledby", `${r}-pbs`), Q(D, "id", `${r}-pbs`);
 		}), T(e, i);
 	};
-	N(h, (e) => {
-		C(f) === "pick" ? e(g) : C(f) ? e(_, 1) : e(v, -1);
-	}), T(e, p), X();
+	N(_, (e) => {
+		C(f)?.pick ? e(v) : C(f) ? e(b, 1) : e(x, -1);
+	}), T(e, g), X();
 }
 R(["click"]);
 // src/lib/ui/Goals.svelte
@@ -1681,7 +1696,7 @@ function Pi(e, n) {
 				step: n
 			};
 		});
-		var o = Di(), s = P(o), c = U(s, !0), l = Z(s, 2), u = Z(l, 2), d = U(u, !0), f = Z(u, 2);
+		var o = Di(), s = F(o), c = U(s, !0), l = Z(s, 2), u = Z(l, 2), d = U(u, !0), f = Z(u, 2);
 		W(o), B((e, s, u, p) => {
 			Q(o, "aria-label", i()), y(c, e), Q(l, "aria-label", `Fewer ${s ?? ""}`), l.disabled = n.readOnly || t()[r()] <= C(a).lo, y(d, u), Q(f, "aria-label", `More ${p ?? ""}`), f.disabled = n.readOnly || t()[r()] >= C(a).hi;
 		}, [
@@ -1733,22 +1748,22 @@ function Pi(e, n) {
 		var s = Mi(), c = t(s), h = U(c), g = Z(c, 2);
 		q(g, 16, () => Object.keys(C(u).people), (e) => e, (e, t) => {
 			let i = J(() => n.people[t]?.name ?? t);
-			var o = ki(), s = P(o), c = U(s, !0), l = Z(s, 2);
+			var o = ki(), s = F(o), c = U(s, !0), l = Z(s, 2);
 			q(l, 16, () => Be, (e) => e, (e, n) => {
 				a(e, () => C(u).people[t], () => n, () => `${f[n]}, ${C(i)}`);
 			});
-			var d = Z(l, 2), p = Z(P(d), 2);
+			var d = Z(l, 2), p = Z(F(d), 2);
 			V(p), W(d);
 			var m = Z(d, 2), h = U(m, !0);
 			W(o), B((e, a) => {
 				Q(o, "aria-labelledby", `${r}-${t ?? ""}`), Q(s, "id", `${r}-${t ?? ""}`), y(c, C(i)), Q(p, "max", e), p.disabled = n.readOnly, y(h, a);
 			}, [() => (/* @__PURE__ */ new Date()).getFullYear(), () => v(n.people[t]?.max_hr)]), mt(p, () => C(u).profiles[t].birth_year, (e) => C(u).profiles[t].birth_year = e), T(e, o);
 		});
-		var b = Z(g, 2), x = P(b), S = Z(x, 2);
+		var b = Z(g, 2), x = F(b), S = Z(x, 2);
 		q(S, 21, () => p, (e) => e.mode, (e, t) => {
 			var a = Ai();
 			let o;
-			var s = P(a);
+			var s = F(a);
 			V(s);
 			var c, d = Z(s, 1, !0);
 			W(a), B(() => {
@@ -1761,7 +1776,7 @@ function Pi(e, n) {
 		N(D, (e) => {
 			m[C(u).couple.mode] && e(O);
 		});
-		var k = Z(D, 2), A = Z(P(k), 2);
+		var k = Z(D, 2), A = Z(F(k), 2);
 		V(A), W(k), W(b);
 		var j = Z(b, 2), M = (e) => {
 			var t = ji();
@@ -1784,7 +1799,7 @@ function zi(e, t) {
 	let n = G(t, "subtitle", 3, ""), r = G(t, "actionLabel", 3, ""), i = G(t, "brand", 3, !1), a = K(0);
 	var o = Ri();
 	let s;
-	var c = P(o), u = P(c), d = (e) => {
+	var c = F(o), u = F(c), d = (e) => {
 		var n = Fi();
 		z("click", n, function(...e) {
 			t.onback?.apply(this, e);
@@ -1793,7 +1808,7 @@ function zi(e, t) {
 	N(u, (e) => {
 		t.onback && e(d);
 	});
-	var f = Z(u, 2), p = P(f), m = P(p), h = (e) => {
+	var f = Z(u, 2), p = F(f), m = F(p), h = (e) => {
 		var t = Ii();
 		T(e, t);
 	};
@@ -1938,12 +1953,12 @@ function ra(e, n) {
 	].filter(Boolean).join(" · ")), v = J(() => `${n.person.name}, level ${C(f).level}. This week ${C(h).map((e) => `${e.label.toLowerCase()} ${e.n} of ${e.of}`).join(", ")}. ${C(p).goal_pending ? "New goals pending. " : ""}${C(p).bonus ? "Weekly bonus earned. " : ""}${C(g) ? C(g).replace("👟 ", "") + ". " : ""}Streak ${n.person.streak} weeks.`);
 	var b = na();
 	let x;
-	var S = P(b), w = P(S), E = P(w);
+	var S = F(b), w = F(S), E = F(w);
 	let D;
-	var k = U(E, !0), A = Z(E, 2), j = P(A), M = U(j, !0), ee = Z(j, 2), F = U(ee, !0);
+	var k = U(E, !0), A = Z(E, 2), j = F(A), M = U(j, !0), P = Z(j, 2), ee = U(P, !0);
 	W(A);
 	var I = Z(A, 2), ne = (e) => {
-		var n = Ji(), r = t(n), i = P(r);
+		var n = Ji(), r = t(n), i = F(r);
 		{
 			let e = J(() => Ze(C(p)));
 			Ki(i, {
@@ -1977,7 +1992,7 @@ function ra(e, n) {
 		n.onopen && e(R);
 	}), W(w);
 	var ae = Z(w, 2), oe = (e) => {
-		var n = ea(), r = t(n), i = P(r), a = P(i);
+		var n = ea(), r = t(n), i = F(r), a = F(i);
 		{
 			let e = J(() => Ze(C(p))), t = J(() => nt.wide ? 112 : 88);
 			Ki(a, {
@@ -1998,11 +2013,11 @@ function ra(e, n) {
 		}), W(i);
 		var c = Z(i, 2);
 		q(c, 21, () => C(h), (e) => e.kind, (e, t) => {
-			var n = Qi(), r = P(n), i = P(r);
+			var n = Qi(), r = F(n), i = F(r);
 			let a;
 			var o = Z(i, 1, !0);
 			W(r);
-			var s = Z(r, 2), c = P(s, !0), l = Z(c), u = U(l);
+			var s = Z(r, 2), c = F(s, !0), l = Z(c), u = U(l);
 			W(s), W(n), B(() => {
 				a = d(i, "", a, { background: `var(--${C(t).kind ?? ""})` }), y(o, C(t).label), y(c, C(t).n), y(u, `/${C(t).of ?? ""}`);
 			}), T(e, n);
@@ -2014,7 +2029,7 @@ function ra(e, n) {
 		N(l, (e) => {
 			C(g) && e(u);
 		});
-		var m = Z(l, 2), _ = P(m), v = P(_);
+		var m = Z(l, 2), _ = F(m), v = F(_);
 		let b;
 		W(_);
 		var x = Z(_, 2), S = U(x);
@@ -2040,7 +2055,7 @@ function ra(e, n) {
 		}), Q(S, "aria-hidden", n.onopen ? "true" : void 0), D = d(E, "", D, {
 			"--a1": C(c),
 			"--a2": C(u)
-		}), y(k, e), y(M, n.person.name), y(F, C(_));
+		}), y(k, e), y(M, n.person.name), y(ee, C(_));
 	}, [() => n.person.name.slice(0, 1)]), T(e, b), X();
 }
 R(["click"]);
@@ -2117,11 +2132,11 @@ function oa(e, n) {
 	});
 	var j = { close: D }, M = aa();
 	h("keydown", fe, (e) => e.key === "Escape" && !document.querySelector("dialog[open]") && D());
-	var ee = t(M);
-	let F, I;
-	var te = Z(ee, 2);
+	var P = t(M);
+	let ee, I;
+	var te = Z(P, 2);
 	let ne, L;
-	var re = P(te), ie = Z(P(re), 2), R = P(ie), ae = (e) => {
+	var re = F(te), ie = Z(F(re), 2), R = F(ie), ae = (e) => {
 		var t = ia();
 		z("click", t, function(...e) {
 			n.onback?.apply(this, e);
@@ -2132,14 +2147,14 @@ function oa(e, n) {
 	});
 	var oe = Z(R, 2);
 	je(oe, (e) => g = e, () => g), W(ie), W(re);
-	var se = Z(re, 2), ce = P(se);
+	var se = Z(re, 2), ce = F(se);
 	return r(ce, () => n.children), W(se), W(te), je(te, (e) => m = e, () => m), B((e) => {
-		F = l(ee, 1, "scrim svelte-185xwm9", null, F, { fade: o }), I = d(ee, "", I, { opacity: e }), ne = l(te, 1, "sheet svelte-185xwm9", null, ne, { fade: o }), Q(te, "aria-label", n.label), L = d(te, "", L, {
+		ee = l(P, 1, "scrim svelte-185xwm9", null, ee, { fade: o }), I = d(P, "", I, { opacity: e }), ne = l(te, 1, "sheet svelte-185xwm9", null, ne, { fade: o }), Q(te, "aria-label", n.label), L = d(te, "", L, {
 			opacity: C(y),
 			transform: `translate3d(0, ${C(c) ?? ""}px, 0) scale(${C(b) ?? ""})`,
 			"transform-origin": C(p)
 		});
-	}, [() => C(y) * Math.min(1, Math.max(0, 1 - C(c) / C(u)))]), z("click", ee, D), z("pointerdown", re, O), z("pointermove", re, k), z("pointerup", re, A), h("pointercancel", re, A), z("click", oe, D), ke(te, "offsetHeight", (e) => Y(u, e)), T(e, M), X(j);
+	}, [() => C(y) * Math.min(1, Math.max(0, 1 - C(c) / C(u)))]), z("click", P, D), z("pointerdown", re, O), z("pointermove", re, k), z("pointerup", re, A), h("pointercancel", re, A), z("click", oe, D), ke(te, "offsetHeight", (e) => Y(u, e)), T(e, M), X(j);
 }
 R([
 	"click",
@@ -2153,14 +2168,14 @@ function da(e, n) {
 	H(n, !0);
 	let r = J(() => n.scoredAt ? Ne(n.scoredAt, n.now) : null);
 	var i = ua(), a = t(i), o = (e) => {
-		var t = sa(), r = Z(P(t));
+		var t = sa(), r = Z(F(t));
 		W(t), B(() => y(r, ` fitbridge keeps the last valid one. ${n.configError ?? ""}`)), T(e, t);
 	};
 	N(a, (e) => {
 		n.configError && e(o);
 	});
 	var s = Z(a, 2), c = (e) => {
-		var t = ca(), r = Z(P(t));
+		var t = ca(), r = Z(F(t));
 		W(t), B(() => y(r, ` fitbridge keeps the last valid ones. ${n.settingsError ?? ""}`)), T(e, t);
 	};
 	N(s, (e) => {
@@ -2190,7 +2205,7 @@ function ha(e, n) {
 	Xe();
 	var i = ma();
 	let a;
-	var o = P(i), s = (e) => {
+	var o = F(i), s = (e) => {
 		var n = pa(), i = t(n), a = U(i, !0), o = Z(i, 2), s = (e) => {
 			var t = fa();
 			z("click", t, r), T(e, t);
@@ -2225,7 +2240,7 @@ function ba(e, t) {
 			k: "Distance"
 		}
 	]);
-	var a = ya(), o = Z(P(a), 2), s = (e) => {
+	var a = ya(), o = Z(F(a), 2), s = (e) => {
 		var t = ga(), r = U(t, !0);
 		B(() => y(r, C(n))), T(e, t);
 	};
@@ -2245,7 +2260,7 @@ function ba(e, t) {
 	});
 	var d = Z(c, 2);
 	q(d, 21, () => C(i), (e) => e.k, (e, t) => {
-		var n = va(), r = P(n), i = U(r, !0), a = Z(r), o = P(a, !0), s = Z(o), c = U(s, !0);
+		var n = va(), r = F(n), i = U(r, !0), a = Z(r), o = F(a, !0), s = Z(o), c = U(s, !0);
 		W(a), W(n), B(() => {
 			y(i, C(t).k), y(o, C(t).v), y(c, C(t).unit);
 		}), T(e, n);
@@ -2300,10 +2315,10 @@ function Oa(e, n) {
 		xt.n && v();
 	});
 	let x = J(() => ot(C(p)?.people ?? {}, bt.entry)), S = J(() => Object.keys(C(x))), w = J(() => E(C(p)?.viewer ?? {}, C(x))), D = J(() => C(x)[C(w).self ?? C(S)[0]]?.week), O = (e) => !!C(p)?.viewer?.can_edit?.includes(e), k = J(() => !!C(w).self && pt(C(x)[C(w).self], g[C(w).self])), A = J(() => !!C(c) && Object.hasOwn(C(x), C(c).id) || !!C(u) && !!C(p));
-	var j = Da(), M = t(j), ee = P(M);
+	var j = Da(), M = t(j), P = F(M);
 	{
 		let e = J(() => C(D) ? ze(C(D)) : ""), t = J(() => C(p) ? (e) => Y(u, { from: e.currentTarget }, !0) : void 0);
-		zi(ee, {
+		zi(P, {
 			title: "Training",
 			brand: !0,
 			get subtitle() {
@@ -2318,7 +2333,7 @@ function Oa(e, n) {
 			}
 		});
 	}
-	var F = Z(ee, 2), I = P(F), te = (e) => {
+	var ee = Z(P, 2), I = F(ee), te = (e) => {
 		var n = Sa(), r = Z(t(n), 2), i = (e) => {
 			var t = xa(), n = U(t, !0);
 			B(() => y(n, C(m).status === 503 ? "Waiting for fitbridge" : "Couldn't reach Home Assistant")), T(e, t);
@@ -2467,7 +2482,7 @@ function Oa(e, n) {
 	};
 	N(I, (e) => {
 		C(p) ? e(ne, -1) : e(te);
-	}), W(F), W(M);
+	}), W(ee), W(M);
 	var L = Z(M, 2), re = (e) => {
 		je(oa(e, {
 			label: "Goals",
