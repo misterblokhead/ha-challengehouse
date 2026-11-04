@@ -1,5 +1,9 @@
 # ChallengeHouse
 
+[![Validate](https://github.com/misterblokhead/ha-challengehouse/actions/workflows/validate.yml/badge.svg)](https://github.com/misterblokhead/ha-challengehouse/actions/workflows/validate.yml)
+[![CodeQL](https://github.com/misterblokhead/ha-challengehouse/actions/workflows/codeql.yml/badge.svg)](https://github.com/misterblokhead/ha-challengehouse/actions/workflows/codeql.yml)
+[![Release](https://img.shields.io/github/v/release/misterblokhead/ha-challengehouse)](https://github.com/misterblokhead/ha-challengehouse/releases)
+
 A fitness game for a household, inside Home Assistant.
 
 ChallengeHouse (integration domain `fitbridge`) collects everyone's workouts and turns them into a game: XP and levels,
@@ -175,11 +179,51 @@ Researched, not built. Notes for anyone who wants to add one:
 - **Events** for automations: `event.fit_badge_unlocked`, `event.fit_workout_scored` and `event.fit_record_set`.
 - **Actions:** `fitbridge.log_workout`, `fitbridge.remove_workout` and `fitbridge.restore_workout`.
 
-## Privacy
+## What this touches
 
-Everything stays in Home Assistant: workouts are stored in `/config/fitbridge/` (part of Home Assistant's backups), and
-the only outside service the integration talks to is the openGym instance you pair it with (if any). The route maps load
-their tiles through Home Assistant's own map tile proxy, so the page never contacts a map server itself.
+Everything stays in Home Assistant. In detail, from the code:
+
+**Network.** The integration makes outbound calls to one place only: the openGym you pair it with, if any (the address
+you type, or the openGym app inside Home Assistant). It calls `/api/pair/redeem` once to pair, then the openGym admin API
+(list users, read a user's sessions, create and revoke invites) and openGym's public start page and exercise list. Nothing else: no
+telemetry, no analytics, no update checks. The route maps load their tiles through Home Assistant's own map tile proxy
+(`/api/map_tiles/`), so the page never contacts a map server itself.
+
+**Inbound.** One webhook per person (`POST` only, reachable from outside your network so phones can upload away from
+home). The webhook ID in the URL is the only secret: anyone who has a person's URL can post workouts for that person, so
+treat it like a password; Configure can replace it. Uploads are size-capped, ZIPs are checked before unpacking, and only
+`.json` and `.gpx` files inside are read.
+
+**Credentials.** No Home Assistant token. Pairing with openGym stores an openGym admin token in the config entry; it is
+renewed on use and sent only to that openGym.
+
+**Supervisor (only when you choose "Install openGym in Home Assistant").** It adds the app repository
+`https://github.com/misterblokhead/ha-opengym` to the Supervisor, installs and starts the openGym app, and sets its options
+(address, invite-only). Without that choice it never calls the Supervisor.
+
+**Home Assistant data it reads.** Home Assistant users (to pick who plays and who is who), each person's step sensor,
+the events in `calendar.training_pause` (through `calendar.get_events`), and whether an external URL is set.
+
+**What it writes.**
+- Files in `/config/fitbridge/`: `fitbridge.db` (SQLite, the workouts and scores), `scoring.toml` (the rules, written
+  once, never overwritten) and `archive/` (each upload and GPX file as received). These are part of Home Assistant's
+  backups.
+- The config entry: people, webhook IDs, watch folders and the openGym address and token.
+- Entities: the sensors and events listed under [What you get](#what-you-get), plus repair issues when something needs
+  you.
+- The `fitbridge.*` actions above, the ChallengeHouse panel and its API at `/api/fitbridge/ui/` (Home Assistant login
+  required).
+- Watch folders (optional): every minute it reads `*.gpx` files from the folder you set. It never changes or deletes
+  them.
+
+It runs no shell commands, and has no `eval` or `exec`.
+
+## How this is made
+
+I build ChallengeHouse with [Claude Code](https://claude.com/claude-code), Anthropic's AI coding tool. I read and test
+the changes before they go into a release, and I run it every day in my own home. The repository has unit tests for the
+integration and the page; GitHub runs the HACS and hassfest checks and CodeQL on every push.
+[TODO maintainer: confirm this wording, and whether you also run the unit tests before each release.]
 
 ## Development
 
