@@ -11,7 +11,7 @@ jobs:
   pytest:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
           # the pytest-homeassistant-custom-component pinned in tests/requirements.txt (and its Home Assistant) needs 3.14
