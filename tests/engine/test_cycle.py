@@ -2,6 +2,7 @@
 import json
 import os
 import tempfile
+import threading
 import time
 import unittest
 from datetime import datetime, timedelta, timezone
@@ -324,6 +325,26 @@ class ScoringCycleTests(unittest.TestCase):
     def test_holder_uses_overlay(self):
         holder = cycle.ConfigHolder(self.toml_path, overlay(("person1",)))
         self.assertEqual(holder.get()[0]["people"].keys(), {"person1"})
+
+    def test_holder_get_waits_for_a_load_in_another_thread(self):
+        """Setup's get() and the first cycle's run in two executor threads: the second must not see mtime set and no config."""
+        loading, release, results = threading.Event(), threading.Event(), []
+
+        def slow_load(*args):
+            loading.set()
+            release.wait(5)
+            return load_config(*args)
+        with mock.patch.object(cycle.scoring_config, "load_config", side_effect=slow_load):
+            first = threading.Thread(target=self.holder.get)
+            first.start()
+            self.assertTrue(loading.wait(5))
+            second = threading.Thread(target=lambda: results.append(self.holder.get()[0]))
+            second.start()
+            second.join(0.2)
+            release.set()
+            first.join(5)
+            second.join(5)
+        self.assertIsNotNone(results[0])
 
     def test_broken_toml_keeps_last_good(self):
         self.holder.get()

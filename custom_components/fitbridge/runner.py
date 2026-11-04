@@ -91,7 +91,7 @@ class Runner:
     async def async_people(self) -> dict:
         """The people (the entry's options, or scoring.toml's until they are migrated; the last good config): webhooks, watch
         folders and openGym users go by them."""
-        config, _ = await self.hass.async_add_executor_job(self.holder.get)  # racing a cycle's get() only loads it twice
+        config, _ = await self.hass.async_add_executor_job(self.holder.get)  # a cycle's get() meanwhile: the holder's lock lets this one wait for it
         return config["people"] if config else {}
 
     async def async_plans(self) -> dict:
