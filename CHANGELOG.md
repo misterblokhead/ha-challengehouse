@@ -5,6 +5,28 @@ All notable changes to ChallengeHouse. Sections follow
 follow [Semantic Versioning](https://semver.org/). Versions before 0.9.0 were
 tagged after the fact, on the commit that set each version.
 
+## [0.10.0](https://github.com/misterblokhead/ha-challengehouse/releases/tag/v0.10.0)
+
+### Features
+
+* **webhooks:** optional "Require a token": each person's webhook then only accepts uploads with `Authorization: Bearer <token>`; the token is on the Connect card and new URLs make new tokens ([e78f311](https://github.com/misterblokhead/ha-challengehouse/commit/e78f311))
+* **webhooks:** optional "Only accept uploads from the local network": the webhooks are registered local-only; phones away from home cannot upload while it is on ([e78f311](https://github.com/misterblokhead/ha-challengehouse/commit/e78f311))
+
+### Bug Fixes
+
+* **config:** setup and the first scoring cycle could both load scoring.toml in different threads and one got no rules, so after a reload no webhooks were made or nothing was scored ([c847252](https://github.com/misterblokhead/ha-challengehouse/commit/c847252))
+* **webhooks:** "Make new webhook URLs" left the webhooks unregistered when no other option changed ([e78f311](https://github.com/misterblokhead/ha-challengehouse/commit/e78f311))
+
+### Continuous Integration
+
+* unit tests on every push and pull request ([de3ffa1](https://github.com/misterblokhead/ha-challengehouse/commit/de3ffa1)), with pinned test requirements ([5a2a6c4](https://github.com/misterblokhead/ha-challengehouse/commit/5a2a6c4)) and stable fixtures ([e6fac07](https://github.com/misterblokhead/ha-challengehouse/commit/e6fac07))
+* release workflow: a `v*` tag creates the GitHub release from this file ([01dbd3c](https://github.com/misterblokhead/ha-challengehouse/commit/01dbd3c))
+
+### Documentation
+
+* README: the openGym app install is opt-in, and how to decline it ([7e034b0](https://github.com/misterblokhead/ha-challengehouse/commit/7e034b0))
+* README and `phone/`: webhook security, with the token header for iPhone and Android ([e78f311](https://github.com/misterblokhead/ha-challengehouse/commit/e78f311))
+
 ## [0.9.0](https://github.com/misterblokhead/ha-challengehouse/releases/tag/v0.9.0)
 
 ### ⚠ Behaviour changes
