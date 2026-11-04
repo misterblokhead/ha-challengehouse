@@ -1,8 +1,10 @@
 """Webhooks per person and watch folders (synthetic data only)."""
 import json
+import sys
 from datetime import timedelta
 from pathlib import Path
-from unittest.mock import AsyncMock, patch
+from types import ModuleType
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 from engine.test_ingest import P0, P1, TRACK, counts, gpx_with_points, hex_workout, hex_zip
@@ -166,10 +168,13 @@ async def test_urls_are_homeassistants_own_never_a_cloudhook(hass, setup):
     hook = list((await setup()).data[WEBHOOKS].values())[0]
     assert webhooks.async_url(hass, hook).endswith(f":8123/api/webhook/{hook}")  # no external URL: the internal one
     hass.config.components.add("cloud")  # Nabu Casa subscribed: its relay carries bodies as text, a ZIP would break
-    with patch("homeassistant.components.cloud.async_active_subscription", return_value=True), \
-            patch("homeassistant.components.cloud.async_remote_ui_url", return_value="https://abc.ui.example.test"), \
-            patch("homeassistant.components.cloud.async_get_or_create_cloudhook",
-                  AsyncMock(return_value="https://hooks.example.test/abc")):
+    # a stand-in for the cloud component: importing the real one needs its own requirements (camera, conversation, ...)
+    cloud = ModuleType("homeassistant.components.cloud")
+    cloud.CloudNotAvailable = type("CloudNotAvailable", (Exception,), {})
+    cloud.async_active_subscription = Mock(return_value=True)
+    cloud.async_remote_ui_url = Mock(return_value="https://abc.ui.example.test")
+    cloud.async_get_or_create_cloudhook = AsyncMock(return_value="https://hooks.example.test/abc")
+    with patch.dict(sys.modules, {"homeassistant.components.cloud": cloud}):
         # remote UI only: its address (a TLS passthrough, bodies intact), never the internal one
         assert webhooks.async_url(hass, hook) == f"https://abc.ui.example.test/api/webhook/{hook}"
         hass.config.external_url = "https://ha.example.test"

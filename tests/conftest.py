@@ -33,6 +33,7 @@ async def entry(enable_custom_integrations, hass):
     assert await hass.config_entries.async_setup(e.entry_id)
     await hass.async_block_till_done(wait_background_tasks=True)
     yield e
+    await hass.async_block_till_done(wait_background_tasks=True)  # a reload an options flow scheduled must end first
     await hass.config_entries.async_unload(e.entry_id)
 
 
@@ -59,5 +60,6 @@ async def setup(hass, enable_custom_integrations):
         await hass.async_block_till_done(wait_background_tasks=True)
         return e
     yield _setup
+    await hass.async_block_till_done(wait_background_tasks=True)  # a reload an options flow scheduled must end first
     for e in entries:
         await hass.config_entries.async_unload(e.entry_id)
