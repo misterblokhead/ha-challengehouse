@@ -198,9 +198,14 @@ treat it like a password; Configure can replace it. Uploads are size-capped, ZIP
 **Credentials.** No Home Assistant token. Pairing with openGym stores an openGym admin token in the config entry; it is
 renewed on use and sent only to that openGym.
 
-**Supervisor (only when you choose "Install openGym in Home Assistant").** It adds the app repository
-`https://github.com/misterblokhead/ha-opengym` to the Supervisor, installs and starts the openGym app, and sets its options
-(address, invite-only). Without that choice it never calls the Supervisor.
+**Supervisor (opt-in, only when you choose "Install openGym in Home Assistant").** Setup and Configure -> Pair with
+openGym offer this choice only when Home Assistant has the Supervisor; nothing is installed automatically. If you choose
+it and confirm the address, it adds the app repository `https://github.com/misterblokhead/ha-opengym` to the Supervisor
+(unless it is already there), installs and starts the openGym app from it, which is a separate app (its own container,
+built on your machine), and sets its options (address, invite-only, watchdog, a sidebar entry). To decline, choose
+**Skip** in setup or pair an openGym you run yourself; in Configure, pick the pairing option or close the dialog. Without
+that choice it never calls the Supervisor. Removing ChallengeHouse leaves the app and the repository in place; remove them
+under Settings -> Apps if you no longer want them.
 
 **Home Assistant data it reads.** Home Assistant users (to pick who plays and who is who), each person's step sensor,
 the events in `calendar.training_pause` (through `calendar.get_events`), and whether an external URL is set.
