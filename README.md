@@ -1,6 +1,7 @@
 # ChallengeHouse
 
 [![Validate](https://github.com/misterblokhead/ha-challengehouse/actions/workflows/validate.yml/badge.svg)](https://github.com/misterblokhead/ha-challengehouse/actions/workflows/validate.yml)
+[![Tests](https://github.com/misterblokhead/ha-challengehouse/actions/workflows/tests.yml/badge.svg)](https://github.com/misterblokhead/ha-challengehouse/actions/workflows/tests.yml)
 [![CodeQL](https://github.com/misterblokhead/ha-challengehouse/actions/workflows/codeql.yml/badge.svg)](https://github.com/misterblokhead/ha-challengehouse/actions/workflows/codeql.yml)
 [![Release](https://img.shields.io/github/v/release/misterblokhead/ha-challengehouse)](https://github.com/misterblokhead/ha-challengehouse/releases)
 
@@ -220,15 +221,15 @@ It runs no shell commands, and has no `eval` or `exec`.
 
 ## How this is made
 
-I build ChallengeHouse with [Claude Code](https://claude.com/claude-code), Anthropic's AI coding tool. I read and test
-the changes before they go into a release, and I run it every day in my own home. The repository has unit tests for the
-integration and the page; GitHub runs the HACS and hassfest checks and CodeQL on every push.
-[TODO maintainer: confirm this wording, and whether you also run the unit tests before each release.]
+I build ChallengeHouse with [Claude Code](https://claude.com/claude-code), Anthropic's AI coding tool. I read the
+changes, and I run it every day in my own home. On every push GitHub runs the unit tests, the HACS and hassfest checks and
+CodeQL; a change goes into a release only after those have passed.
 
 ## Development
 
 - Tests: `python -m pytest tests -q` with `tests/requirements.txt` installed (pytest-homeassistant-custom-component; Linux
-  or WSL). The page's logic: `cd web && npm test`.
+  or WSL, Python 3.14) plus the `home-assistant-frontend` version that Home Assistant's frontend pins; the
+  [Tests workflow](.github/workflows/tests.yml) shows the exact steps. The page's logic: `cd web && npm test`.
 - The page lives in `web/` (Svelte + Vite). After a change, run `cd web && npm ci && npm run build` and commit the rebuilt
   `custom_components/fitbridge/frontend/` with it; Home Assistant serves the built files, there is no build step on
   install.
