@@ -5,7 +5,11 @@
 [![CodeQL](https://github.com/misterblokhead/ha-challengehouse/actions/workflows/codeql.yml/badge.svg)](https://github.com/misterblokhead/ha-challengehouse/actions/workflows/codeql.yml)
 [![Release](https://img.shields.io/github/v/release/misterblokhead/ha-challengehouse)](https://github.com/misterblokhead/ha-challengehouse/releases)
 
-A fitness game for a household, inside Home Assistant.
+Workout gamification for Home Assistant: household fitness challenges with XP, streaks, badges and workout details.
+
+Workouts come from the phones you already have: Health Exporter exports from an iPhone or Apple Watch, GPX files from
+OpenTracks (or any app that saves GPX) on Android, a watch folder of GPX files, workouts logged by hand, and gym sessions
+from a self-hosted [openGym](#opengym-gym-sessions) if you use one.
 
 ChallengeHouse (integration domain `fitbridge`) collects everyone's workouts and turns them into a game: XP and levels,
 weekly goals, week streaks, badges, personal records and a Couch to 5K plan. Two people can play as a couple or group,
@@ -266,5 +270,7 @@ CodeQL; a change goes into a release only after those have passed.
   section to `CHANGELOG.md`, commit, then `git tag vX.Y.Z` and `git push origin vX.Y.Z`. The
   [Release workflow](.github/workflows/release.yml) checks that the tag matches the manifest and creates the GitHub
   release with that CHANGELOG section as its notes; HACS picks it up from there.
+
+ChallengeHouse is free. If it is useful to you, you can support its development through [GitHub Sponsors](https://github.com/sponsors/misterblokhead).
 
 Licence: MIT, see [LICENSE](LICENSE).
