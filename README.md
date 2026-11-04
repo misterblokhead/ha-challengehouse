@@ -232,9 +232,9 @@ CodeQL; a change goes into a release only after those have passed.
 
 ## Development
 
-- Tests: `python -m pytest tests -q` with `tests/requirements.txt` installed (pytest-homeassistant-custom-component; Linux
-  or WSL, Python 3.14) plus the `home-assistant-frontend` version that Home Assistant's frontend pins; the
-  [Tests workflow](.github/workflows/tests.yml) shows the exact steps. The page's logic: `cd web && npm test`.
+- Tests: `python -m pytest tests -q` with `tests/requirements.txt` installed (pinned versions of
+  pytest-homeassistant-custom-component and home-assistant-frontend; Linux or WSL, Python 3.14). When you bump the first,
+  bump the second to the version its Home Assistant's frontend requires. The page's logic: `cd web && npm test`.
 - The page lives in `web/` (Svelte + Vite). After a change, run `cd web && npm ci && npm run build` and commit the rebuilt
   `custom_components/fitbridge/frontend/` with it; Home Assistant serves the built files, there is no build step on
   install.
