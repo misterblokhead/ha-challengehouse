@@ -258,6 +258,14 @@ I build ChallengeHouse with [Claude Code](https://claude.com/claude-code), Anthr
 changes, and I run it every day in my own home. On every push GitHub runs the unit tests, the HACS and hassfest checks and
 CodeQL; a change goes into a release only after those have passed.
 
+## Project status
+
+ChallengeHouse is young: the first release was in October 2026 and it is still changing quickly. Releases and the [CHANGELOG](CHANGELOG.md) are the readable history.
+
+- **In use:** it runs in the author's own Home Assistant.
+- **Newer and less tested:** the webhook token and local-network-only options (0.10.0). The Android header step has not been tried on more than one phone.
+- **Maintained by one person.** Bugs and questions: [open an issue](https://github.com/misterblokhead/ha-challengehouse/issues). Security reports: see [SECURITY.md](SECURITY.md).
+
 ## Development
 
 - Tests: `python -m pytest tests -q` with `tests/requirements.txt` installed (pinned versions of
