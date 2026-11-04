@@ -8,3 +8,13 @@ updates:
     directory: /web
     schedule:
       interval: weekly
+  - package-ecosystem: pip
+    directory: /tests
+    schedule:
+      interval: weekly
+    groups:
+      # one PR: the frontend package has to match the Home Assistant that pytest-homeassistant-custom-component pins
+      home-assistant:
+        patterns:
+          - pytest-homeassistant-custom-component
+          - home-assistant-frontend
