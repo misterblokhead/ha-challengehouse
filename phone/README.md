@@ -12,11 +12,14 @@ and tries again if the upload fails.
 3. Copy the flow file to the phone and import it in Automate.
 4. Open the flow, tap the HTTP request block and paste your webhook URL as its URL: the one from the ChallengeHouse
    page in the sidebar, under "Connect your phone".
-5. Start the flow and allow the permissions Automate asks for.
+5. When ChallengeHouse requires a token (Configure -> Webhooks and watch folders -> Require a token), set the same
+   block's Request headers to `{"Authorization": "Bearer <token>"}`, with the token from "Connect your phone".
+6. Start the flow and allow the permissions Automate asks for.
 
 The flow file holds nothing personal: its URL is empty until you paste yours.
 
 ## iPhone
 
 No file is needed. The ChallengeHouse page in the sidebar shows the steps (Health Exporter & Shortcuts and two personal
-automations), under "Connect your phone".
+automations), under "Connect your phone". When ChallengeHouse requires a token, add a header to the shortcut's Get
+Contents of URL action: key `Authorization`, value `Bearer <token>`.

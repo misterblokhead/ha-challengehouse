@@ -2906,18 +2906,28 @@ var io = (e) => `${e.w} ${e.unit} × ${e.r}`, ao = [
 			"In the flow, open the HTTP request block and paste your address as its URL, then start the flow."
 		]
 	}
-}, ho = (e) => mo[e] ?? {
-	title: "Which phone do you have?",
-	steps: []
+}, ho = {
+	iphone: "In Get Contents of URL add a header: key Authorization, value Bearer, a space, then your token.",
+	android: "In the HTTP request block set Request headers to {\"Authorization\": \"Bearer TOKEN\"}, with your token in place of TOKEN."
 };
-function go(e) {
+function go(e, t = !1) {
+	let n = mo[e];
+	return n ? t ? {
+		...n,
+		steps: [...n.steps, ho[e]]
+	} : n : {
+		title: "Which phone do you have?",
+		steps: []
+	};
+}
+function _o(e) {
 	return e?.invite ? {
 		before: `${e.in_ha ? `Open openGym from the Home Assistant sidebar in Chrome, not in the Home Assistant app (${e.url}). Choose` : `Open openGym at ${e.url}, choose`} Create new profile, enter code `,
 		code: e.invite,
 		after: ", then Add to Home Screen. Does openGym show someone else? Sign out there first."
 	} : null;
 }
-function _o(e, t, n = null) {
+function vo(e, t, n = null) {
 	if (e.last_received == null) return {
 		state: "waiting",
 		text: n?.feed?.length ? "No upload since this update" : "Waiting for the first workout"
@@ -2929,24 +2939,24 @@ function _o(e, t, n = null) {
 	};
 }
 // src/lib/details.js
-var vo = (e) => String(e).padStart(2, "0"), yo = (e) => /T(\d+:\d+)/.exec(e ?? "")?.[1] ?? "";
-function bo(e) {
+var yo = (e) => String(e).padStart(2, "0"), bo = (e) => /T(\d+:\d+)/.exec(e ?? "")?.[1] ?? "";
+function xo(e) {
 	let t = Math.round(e), n = Math.floor(t / 3600), r = Math.floor(t % 3600 / 60);
-	return n ? `${n}:${vo(r)}:${vo(t % 60)}` : `${r}:${vo(t % 60)}`;
+	return n ? `${n}:${yo(r)}:${yo(t % 60)}` : `${r}:${yo(t % 60)}`;
 }
-var xo = (e) => e.summary.kind === "run" || e.summary.kind === "walk", So = (e) => !!e.route?.length && !xo(e), Co = (e) => e ? 3600 / e : null, wo = (e) => ({
+var So = (e) => e.summary.kind === "run" || e.summary.kind === "walk", Co = (e) => !!e.route?.length && !So(e), wo = (e) => e ? 3600 / e : null, To = (e) => ({
 	title: e.name,
 	date: ha(e.start, !1),
-	time: e.end ? `${yo(e.start)}–${yo(e.end)}` : yo(e.start),
+	time: e.end ? `${bo(e.start)}–${bo(e.end)}` : bo(e.start),
 	duration: ga(e.minutes),
 	plan: e.plan ?? null
 });
-function To(e) {
-	let t = e.summary, n = t.km > 0 ? t.km : null, r = n && xo(e) ? Math.round(t.minutes * 60 / n) : null;
+function Eo(e) {
+	let t = e.summary, n = t.km > 0 ? t.km : null, r = n && So(e) ? Math.round(t.minutes * 60 / n) : null;
 	return [
 		["Distance", n && `${n.toFixed(1)} km`],
-		["Pace", r && `${bo(r)} /km`],
-		["Speed", n && So(e) && `${(n / (t.minutes / 60)).toFixed(1)} km/h`],
+		["Pace", r && `${xo(r)} /km`],
+		["Speed", n && Co(e) && `${(n / (t.minutes / 60)).toFixed(1)} km/h`],
 		["Elevation gain", e.gain_m != null && `${Math.round(e.gain_m)} m`],
 		["Avg heart rate", t.avg_hr != null && `${Math.round(t.avg_hr)} bpm`],
 		["Max heart rate", t.max_hr != null && `${Math.round(t.max_hr)} bpm`],
@@ -2954,27 +2964,27 @@ function To(e) {
 		["Shoe", t.kind === "run" && t.shoe?.name]
 	].filter(([, e]) => e);
 }
-function Eo(e) {
-	let t = So(e);
+function Do(e) {
+	let t = Co(e);
 	return e.splits.map((e, n) => ({
 		km: e.km === 1 ? String(n + 1) : `${e.km} km`,
-		time: bo(e.s),
-		pace: e.pace ? t ? Co(e.pace).toFixed(1) : bo(e.pace) : "—",
+		time: xo(e.s),
+		pace: e.pace ? t ? wo(e.pace).toFixed(1) : xo(e.pace) : "—",
 		hr: e.hr == null ? "—" : String(e.hr),
 		climb: e.climb == null ? "—" : `${Math.round(e.climb)} m`
 	}));
 }
-function Do(e, t) {
+function Oo(e, t) {
 	if (!e) return null;
 	let n = e.reduce((e, t) => e + t, 0), r = (e) => Math.round(e * t);
 	return e.map((e, t) => ({
 		zone: `Z${t + 1}`,
 		bpm: t === 4 ? `${r(.9)}+` : `${r(.5 + t / 10)}–${r(.6 + t / 10)}`,
-		time: bo(e),
+		time: xo(e),
 		pct: n ? Math.round(e / n * 100) : 0
 	}));
 }
-var Oo = (e) => e && {
+var ko = (e) => e && {
 	exercises: e.exercises.map((e) => ({
 		name: e.name,
 		set: io(e),
@@ -2982,21 +2992,21 @@ var Oo = (e) => e && {
 	})),
 	volume: `${Math.round(e.vol_kg).toLocaleString("en-US")} kg`
 };
-function ko(e) {
+function Ao(e) {
 	if (!e.series) return null;
 	let { t, pace: n, hr: r, ele: i } = e.series;
 	return {
 		x: t,
 		list: [
-			So(e) ? {
+			Co(e) ? {
 				label: "Speed km/h",
-				values: n.map(Co),
+				values: n.map(wo),
 				color: "--gym"
 			} : {
 				label: "Pace /km",
 				values: n,
 				color: "--run",
-				fmt: bo
+				fmt: xo
 			},
 			{
 				label: "Heart rate",
@@ -3011,7 +3021,7 @@ function ko(e) {
 		].filter((e) => e.values.some((e) => e != null))
 	};
 }
-function Ao(e, t, n) {
+function jo(e, t, n) {
 	return e?.can_edit?.includes(t) ? {
 		remove: ba(n).removable,
 		shoe: n.kind === "run"
@@ -3020,14 +3030,14 @@ function Ao(e, t, n) {
 		shoe: !1
 	};
 }
-var jo = (e) => ({
+var Mo = (e) => ({
 	file_missing: "Route file not found",
 	file_unreadable: "Route file unreadable"
-})[e] ?? null, Mo = rn({
+})[e] ?? null, No = rn({
 	wide: !1,
 	reducedMotion: !1
-}), No = matchMedia("(min-width: 768px)"), Po = matchMedia("(prefers-reduced-motion: reduce)"), Fo = () => {
-	Mo.wide = No.matches, Mo.reducedMotion = Po.matches;
+}), Po = matchMedia("(min-width: 768px)"), Fo = matchMedia("(prefers-reduced-motion: reduce)"), Io = () => {
+	No.wide = Po.matches, No.reducedMotion = Fo.matches;
 };
-No.addEventListener("change", Fo), Po.addEventListener("change", Fo), Fo();
-export { Ua as $, mn as $t, go as A, ii as At, lo as B, Ar as Bt, ja as C, xi as Ct, Ya as D, mi as Dt, $a as E, gi as Et, to as F, Br as Ft, Ea as G, yr as Gt, Oa as H, jr as Ht, Xa as I, zr as It, aa as J, ur as Jt, uo as K, Q as Kt, xa as L, Nr as Lt, Ia as M, Jr as Mt, ua as N, qr as Nt, so as O, ci as Ot, io as P, Gr as Pt, Na as Q, pn as Qt, Ca as R, Mr as Rt, ia as S, ki as St, ra as T, yi as Tt, Ma as U, xr as Ut, Ra as V, Pr as Vt, ka as W, br as Wt, Fa as X, En as Xt, za as Y, Nn as Yt, Pa as Z, sn as Zt, Ja as _, r as _n, Li as _t, To as a, en as an, sa as at, _o as b, Oi as bt, jo as c, tt as cn, no as ct, Eo as d, je as dn, Zi as dt, hn as en, Wa as et, Do as f, Ae as fn, Xi as ft, Da as g, i as gn, Hi as gt, Va as h, n as hn, Wi as ht, Ao as i, Jt as in, fa as it, Za as j, Qr as jt, co as k, ai as kt, xo as l, Qe as ln, da as lt, Ka as m, b as mn, Gi as mt, ko as n, rn as nn, Ha as nt, Oo as o, St as on, ro as ot, Ga as p, g as pn, Ki as pt, la as q, sr as qt, bo as r, F as rn, La as rt, wo as s, nt as sn, ca as st, Mo as t, gn as tn, Ba as tt, So as u, Xe as un, eo as ut, po as v, t as vn, Ii as vt, ba as w, bi as wt, ho as x, Ai as xt, fo as y, Pi as yt, Sa as z, Or as zt };
+Po.addEventListener("change", Io), Fo.addEventListener("change", Io), Io();
+export { Ua as $, mn as $t, _o as A, ii as At, lo as B, Ar as Bt, ja as C, xi as Ct, Ya as D, mi as Dt, $a as E, gi as Et, to as F, Br as Ft, Ea as G, yr as Gt, Oa as H, jr as Ht, Xa as I, zr as It, aa as J, ur as Jt, uo as K, Q as Kt, xa as L, Nr as Lt, Ia as M, Jr as Mt, ua as N, qr as Nt, so as O, ci as Ot, io as P, Gr as Pt, Na as Q, pn as Qt, Ca as R, Mr as Rt, ia as S, ki as St, ra as T, yi as Tt, Ma as U, xr as Ut, Ra as V, Pr as Vt, ka as W, br as Wt, Fa as X, En as Xt, za as Y, Nn as Yt, Pa as Z, sn as Zt, Ja as _, r as _n, Li as _t, Eo as a, en as an, sa as at, vo as b, Oi as bt, Mo as c, tt as cn, no as ct, Do as d, je as dn, Zi as dt, hn as en, Wa as et, Oo as f, Ae as fn, Xi as ft, Da as g, i as gn, Hi as gt, Va as h, n as hn, Wi as ht, jo as i, Jt as in, fa as it, Za as j, Qr as jt, co as k, ai as kt, So as l, Qe as ln, da as lt, Ka as m, b as mn, Gi as mt, Ao as n, rn as nn, Ha as nt, ko as o, St as on, ro as ot, Ga as p, g as pn, Ki as pt, la as q, sr as qt, xo as r, F as rn, La as rt, To as s, nt as sn, ca as st, No as t, gn as tn, Ba as tt, Co as u, Xe as un, eo as ut, po as v, t as vn, Ii as vt, ba as w, bi as wt, go as x, Ai as xt, fo as y, Pi as yt, Sa as z, Or as zt };

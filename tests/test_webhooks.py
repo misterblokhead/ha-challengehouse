@@ -16,7 +16,7 @@ from pytest_homeassistant_custom_component.common import async_fire_time_changed
 
 from custom_components.fitbridge import runner as runner_mod
 from custom_components.fitbridge import webhooks
-from custom_components.fitbridge.const import DOMAIN, OPT_FOLDERS, WEBHOOKS
+from custom_components.fitbridge.const import DOMAIN, OPT_FOLDERS, OPT_LOCAL_ONLY, OPT_REQUIRE_TOKEN, WEBHOOK_TOKENS, WEBHOOKS
 from custom_components.fitbridge.engine.cycle import score_cycle
 
 MB16 = 16 * 1024 * 1024
@@ -34,8 +34,8 @@ async def client(hass, hass_client_no_auth):
     return await hass_client_no_auth()
 
 
-async def _post(hass, client, hook, body, status=200):
-    resp = await client.post(f"/api/webhook/{hook}", data=body)
+async def _post(hass, client, hook, body, status=200, headers=None):
+    resp = await client.post(f"/api/webhook/{hook}", data=body, headers=headers)
     assert resp.status == status
     await hass.async_block_till_done(wait_background_tasks=True)
     return await resp.json() if resp.content_type == "application/json" else None
@@ -58,6 +58,30 @@ async def test_each_person_gets_a_kept_webhook_and_bodies_land_as_their_rows(has
     await hass.config_entries.async_reload(e.entry_id)
     await hass.async_block_till_done(wait_background_tasks=True)
     assert e.data[WEBHOOKS] == hooks  # the phones keep their URL
+    assert not e.data.get(WEBHOOK_TOKENS) and not any(h.local_only for h in hass.data["webhook"].values())  # both options off
+
+
+async def test_with_the_token_option_only_the_persons_bearer_token_gets_in(hass, setup, client, caplog):
+    e = await setup({OPT_REQUIRE_TOKEN: True})
+    hooks, tokens = e.data[WEBHOOKS], e.data[WEBHOOK_TOKENS]
+    p0, p1 = list(hooks)
+    assert tokens.keys() == hooks.keys() and tokens[p0] != tokens[p1] and len(tokens[p0]) >= 43
+    body = gpx_with_points()
+    for headers in (None, {"Authorization": "Bearer wrong"}, {"Authorization": f"Bearer {tokens[p1]}"},
+                    {"Authorization": tokens[p0]}, {"Authorization": "Bearer ü"}):
+        await _post(hass, client, hooks[p0], body, 401, headers)
+    await _post(hass, client, hooks[p0], b"x" * (MB16 + 1), 401)  # checked before the body is read
+    assert _counts(hass) == {}
+    assert await _post(hass, client, hooks[p0], body, headers={"Authorization": f"Bearer {tokens[p0]}"}) == {"new": True}
+    await hass.config_entries.async_reload(e.entry_id)
+    await hass.async_block_till_done(wait_background_tasks=True)
+    assert e.data[WEBHOOK_TOKENS] == tokens  # kept, like the URLs
+    assert not any(t in caplog.text for t in tokens.values())
+
+
+async def test_the_local_only_option_registers_the_webhooks_local_only(hass, setup):
+    hooks = (await setup({OPT_LOCAL_ONLY: True})).data[WEBHOOKS]
+    assert all(hass.data["webhook"][h].local_only for h in hooks.values())
 
 
 async def test_the_same_upload_twice_is_one_row_and_one_score(hass, setup, client, cycles):

@@ -183,7 +183,9 @@
         "title": "Webhooks and watch folders",
         "description": "Each person's phone posts workouts to their own webhook: a Health Exporter export (ZIP or JSON) or an OpenTracks GPX file as the request body.\n\n{urls}\n\nOptionally, give a person a folder (for example under /share or /media) that is scanned for GPX files every minute. Leave it empty for none.",
         "data": {
-          "new_urls": "Make new webhook URLs (the current ones stop working; open this step again to see the new ones)"
+          "require_token": "Require a token: phones must send it as an Authorization: Bearer header (each person's token is on the ChallengeHouse page, under Connect your phone)",
+          "local_only": "Only accept uploads from the local network (phones away from home cannot upload while this is on)",
+          "new_urls": "Make new webhook URLs and tokens (the current ones stop working; open this step again to see the new URLs)"
         }
       },
       "gym_people": {

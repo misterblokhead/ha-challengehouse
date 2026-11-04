@@ -63,8 +63,9 @@ works; Nabu Casa cloudhooks are not used because their relay breaks ZIP uploads.
   phone. Adding the second person asks whether the two play as a group. People are never deleted; their history stays.
 - **Who is who and step sensors:** which person each Home Assistant user is ("Nobody" gives a read-only view) and each
   person's step sensor.
-- **Webhooks and watch folders:** show or replace a person's webhook URL, and set a folder the integration scans for new
-  files.
+- **Webhooks and watch folders:** show or replace a person's webhook URL (and token), set a folder the integration scans
+  for new files, and the two webhook switches: **Require a token** and **Only accept uploads from the local network**
+  (see [Webhook security](#webhook-security)).
 - **Pair with openGym** (with the Supervisor it offers to install openGym in Home Assistant, or to pair one you run
   yourself) and **openGym users and invites:** see below.
 
@@ -154,6 +155,28 @@ The Connect card shows these steps for each person's phone; the short version:
 - **Pause days:** events in `calendar.training_pause` pause a person's week. The event title is the person's name, or for
   group members also "both" or the group's name.
 
+### Webhook security
+
+Both switches are in Configure -> Webhooks and watch folders, and both are off by default, so phones that already upload
+keep working.
+
+- **Require a token.** Each person gets a random token, and their webhook then only accepts uploads that send the header
+  `Authorization: Bearer <token>`; anything else gets 401 before the upload is read. The token is shown under "Connect
+  your phone" next to the URL, and "Make new webhook URLs and tokens" replaces both. After switching it on, add the header
+  on each phone:
+  - **iPhone (Shortcuts):** in the Get Contents of URL action, under Headers, add key `Authorization` with value
+    `Bearer <token>`.
+  - **Android (Automate):** in the flow's HTTP request block, set Request headers to
+    `{"Authorization": "Bearer <token>"}` (see [`phone/`](phone)).
+- **Only accept uploads from the local network.** The webhooks are registered as local-only. Home Assistant then checks
+  the address the request comes from: loopback, link-local and private ranges (10.x, 172.16-31.x, 192.168.x, `fd00::/8`)
+  count as local; Nabu Casa cloud connections and everything else do not. Its limits: **phones away from home cannot
+  upload while it is on**, and neither can phones on Tailscale (100.64.0.0/10 is not a private range). A refused upload
+  still gets `200 OK` from Home Assistant (only a warning in its log), so the phone does not retry and the workout is
+  lost until it is sent again from home. Behind a reverse proxy (including the Tailscale app's `serve`), Home Assistant
+  sees the proxy's own local address unless it trusts that proxy's `X-Forwarded-For` header; without that trust,
+  internet traffic through the proxy counts as local and the switch protects nothing.
+
 ### Other sources (not supported yet)
 
 Researched, not built. Notes for anyone who wants to add one:
@@ -191,9 +214,10 @@ telemetry, no analytics, no update checks. The route maps load their tiles throu
 (`/api/map_tiles/`), so the page never contacts a map server itself.
 
 **Inbound.** One webhook per person (`POST` only, reachable from outside your network so phones can upload away from
-home). The webhook ID in the URL is the only secret: anyone who has a person's URL can post workouts for that person, so
-treat it like a password; Configure can replace it. Uploads are size-capped, ZIPs are checked before unpacking, and only
-`.json` and `.gpx` files inside are read.
+home). By default the webhook ID in the URL is the only secret: anyone who has a person's URL can post workouts for that
+person, so treat it like a password; Configure can replace it. Two switches, both off by default, tighten this (see
+[Webhook security](#webhook-security)): a per-person token the phone must send, and local-network-only webhooks. Uploads
+are size-capped, ZIPs are checked before unpacking, and only `.json` and `.gpx` files inside are read.
 
 **Credentials.** No Home Assistant token. Pairing with openGym stores an openGym admin token in the config entry; it is
 renewed on use and sent only to that openGym.

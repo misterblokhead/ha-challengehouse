@@ -390,7 +390,16 @@ const STEPS = {
     ],
   },
 };
-export const connectSteps = (phone) => STEPS[phone] ?? { title: "Which phone do you have?", steps: [] };
+// With a token the webhook wants it as a header: one more step, where that phone's app sets headers.
+const TOKEN_STEP = {
+  iphone: "In Get Contents of URL add a header: key Authorization, value Bearer, a space, then your token.",
+  android: "In the HTTP request block set Request headers to {\"Authorization\": \"Bearer TOKEN\"}, with your token in place of TOKEN.",
+};
+export function connectSteps(phone, token = false) {
+  const guide = STEPS[phone];
+  if (!guide) return { title: "Which phone do you have?", steps: [] };
+  return token ? { ...guide, steps: [...guide.steps, TOKEN_STEP[phone]] } : guide;
+}
 
 // The openGym invite sentence as parts, so the page can set the code in bold without HTML. An app inside Home Assistant is opened
 // from its sidebar in a browser (the Home Assistant app can't make a home-screen shortcut); otherwise from its own address.

@@ -7,23 +7,24 @@
   let { info, now, person = null, collapsed = false } = $props();
   let picked = $state(null); // a choice made here when the integration has no phone for this person; it is not saved
   const phone = $derived(info.phone ?? picked);
-  const guide = $derived(connectSteps(phone));
+  const guide = $derived(connectSteps(phone, !!info.token));
   const status = $derived(connectStatus(info, now, person));
   const gym = $derived(gymCaption(info.opengym));
   let field = $state();
+  let tokenField = $state();
 
   // Selected first, so it is ready to copy by hand when neither copy works (no Clipboard API on plain http; iOS wants a selection).
-  async function copy() {
-    field.focus();
-    field.setSelectionRange(0, field.value.length);
+  async function copy(input, what) {
+    input.focus();
+    input.setSelectionRange(0, input.value.length);
     let copied = false;
     try {
-      await navigator.clipboard.writeText(info.url);
+      await navigator.clipboard.writeText(input.value);
       copied = true;
     } catch {
       try { copied = document.execCommand("copy"); } catch { /* none left: the selection stays */ }
     }
-    say(copied ? "Copied" : "Select and copy the address");
+    say(copied ? "Copied" : `Select and copy the ${what}`);
   }
 </script>
 
@@ -32,7 +33,14 @@
   {#if info.url}
     <div class="url">
       <input bind:this={field} readonly value={info.url} aria-label="Your address" onfocus={(e) => e.currentTarget.select()} />
-      <button type="button" class="btn press" onclick={copy} aria-label="Copy address">Copy</button>
+      <button type="button" class="btn press" onclick={() => copy(field, "address")} aria-label="Copy address">Copy</button>
+    </div>
+  {/if}
+  {#if info.token}
+    <p class="caption">Your token (a password: the phone sends it as the header Authorization: Bearer and the token)</p>
+    <div class="url">
+      <input bind:this={tokenField} readonly value={info.token} aria-label="Your token" onfocus={(e) => e.currentTarget.select()} />
+      <button type="button" class="btn press" onclick={() => copy(tokenField, "token")} aria-label="Copy token">Copy</button>
     </div>
   {/if}
   {#if !info.external}<p class="warn">This address only works at home.</p>{/if}
