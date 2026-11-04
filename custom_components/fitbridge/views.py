@@ -11,7 +11,7 @@ from homeassistant.util import dt as dt_util
 from . import people, plans
 from . import settings
 from . import webhooks
-from .const import DOMAIN, OPT_INVITES, OPT_OPENGYM_LINK, OPT_OPENGYM_URL, OPT_PEOPLE, OPT_PHONES, OPT_START, OPT_STEPS, OPT_VIEWERS, WEBHOOKS
+from .const import DOMAIN, OPT_INVITES, OPT_OPENGYM_LINK, OPT_OPENGYM_URL, OPT_PEOPLE, OPT_PHONES, OPT_REQUIRE_TOKEN, OPT_START, OPT_STEPS, OPT_VIEWERS, WEBHOOK_TOKENS, WEBHOOKS
 from .core import can_connect, can_edit, find_workout, older_feed, shape, viewer_person
 from .engine import shoes as shoe_engine
 from .steps import parse, week
@@ -148,7 +148,7 @@ class UiView(HomeAssistantView):
         return self.json({p: r["shoes"] for p, r in shaped["people"].items()} if path == "shoes" else shaped)
 
     async def _connect(self, request: web.Request, data) -> web.Response:
-        """A person's webhook URL, phone, last upload and openGym address and invite for the Connect card: the person's own
+        """A person's webhook URL (and token, when the webhooks want one), phone, last upload and openGym address and invite for the Connect card: the person's own
         (or an admin's)."""
         person, user, hass = request.query.get("person"), request["hass_user"], request.app[KEY_HASS]
         if person not in data.scores["people"]:
@@ -161,6 +161,7 @@ class UiView(HomeAssistantView):
         gym = link or options.get(OPT_OPENGYM_URL)
         return self.json({
             "url": webhooks.async_url(hass, hook) if hook else None, "external": webhooks.async_external(hass),
+            "token": data.entry.data.get(WEBHOOK_TOKENS, {}).get(person) if options.get(OPT_REQUIRE_TOKEN) else None,
             "phone": options.get(OPT_PHONES, {}).get(person),
             "last_received": await hass.async_add_executor_job(data.runner.last_received, person),
             "opengym": {"url": gym, "invite": options.get(OPT_INVITES, {}).get(person), "in_ha": bool(link)} if gym else None})

@@ -1,6 +1,7 @@
 """The scoring cycle: sources (openGym, pauses, steps, settings) -> score -> what to announce."""
 import json
 import logging
+import threading
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
@@ -72,6 +73,7 @@ class ConfigHolder:
 
     def __init__(self, path: Path, overlay: dict | None = None):
         self.path, self.overlay, self.mtime, self.config, self.error = path, overlay, None, None, None
+        self._lock = threading.Lock()  # get() runs in executor threads: one sets mtime before its config is there
 
     def set_overlay(self, overlay: dict | None) -> None:
         """A new overlay: the next get() loads the config again with it."""
@@ -80,6 +82,10 @@ class ConfigHolder:
 
     def get(self):
         """(last good config or None, current error or None)."""
+        with self._lock:
+            return self._get()
+
+    def _get(self):
         try:
             mtime = self.path.stat().st_mtime
         except OSError as e:

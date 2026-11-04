@@ -25,15 +25,18 @@ from .const import (
     OPT_FOLDERS,
     OPT_GROUP,
     OPT_INVITES,
+    OPT_LOCAL_ONLY,
     OPT_OPENGYM_LINK,
     OPT_OPENGYM_UIDS,
     OPT_OPENGYM_URL,
     OPT_PEOPLE,
     OPT_PHONES,
+    OPT_REQUIRE_TOKEN,
     OPT_START,
     OPT_STEPS,
     OPT_VIEWERS,
     PHONES,
+    WEBHOOK_TOKENS,
     WEBHOOKS,
 )
 
@@ -494,15 +497,22 @@ class FitbridgeOptionsFlow(_InstallSteps, config_entries.OptionsFlowWithReload):
             missing = await self.hass.async_add_executor_job(
                 lambda: [p for p, f in folders.items() if not (Path(f).is_absolute() and Path(f).is_dir())])
             if not missing:
-                if user_input.get(NEW_URLS):  # the old ids stop now; the reload below makes new ones
+                if user_input.get(NEW_URLS):  # the old ids and tokens stop now; new ones are made and registered at once,
+                    # as options that did not change bring no reload
                     webhooks.async_unregister(self.hass, self.config_entry)
-                    self.hass.config_entries.async_update_entry(self.config_entry, data={**self.config_entry.data, WEBHOOKS: {}})
-                return self.async_create_entry(data={**self.config_entry.options, OPT_FOLDERS: folders})
+                    self.hass.config_entries.async_update_entry(
+                        self.config_entry, data={**self.config_entry.data, WEBHOOKS: {}, WEBHOOK_TOKENS: {}})
+                    webhooks.async_setup(self.hass, self.config_entry, names)
+                return self.async_create_entry(data={**self.config_entry.options, OPT_FOLDERS: folders,
+                                                     OPT_REQUIRE_TOKEN: user_input.get(OPT_REQUIRE_TOKEN, False),
+                                                     OPT_LOCAL_ONLY: user_input.get(OPT_LOCAL_ONLY, False)})
             errors = {labels[p]: "folder_missing" for p in missing}
         hooks = self.config_entry.data.get(WEBHOOKS, {})
         urls = [f"- {label}: {webhooks.async_url(self.hass, hooks[p])}" for p, label in labels.items() if p in hooks]
         old = self.config_entry.options.get(OPT_FOLDERS, {})
         schema = vol.Schema({**{vol.Optional(label): TextSelector() for label in labels.values()},
+                             vol.Optional(OPT_REQUIRE_TOKEN, default=self.config_entry.options.get(OPT_REQUIRE_TOKEN, False)): bool,
+                             vol.Optional(OPT_LOCAL_ONLY, default=self.config_entry.options.get(OPT_LOCAL_ONLY, False)): bool,
                              vol.Optional(NEW_URLS, default=False): bool})
         return self.async_show_form(
             step_id="inputs", errors=errors, description_placeholders={"urls": "\n".join(urls)},

@@ -1,5 +1,7 @@
 """One webhook per person in scoring.toml: Health Exporter exports (ZIP or JSON) and OpenTracks GPX files in."""
+import hmac
 import logging
+import secrets
 
 from aiohttp import web
 from homeassistant.components import webhook
@@ -7,7 +9,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.network import NoURLAvailableError, get_url
 
-from .const import DOMAIN, WEBHOOKS
+from .const import DOMAIN, OPT_LOCAL_ONLY, OPT_REQUIRE_TOKEN, WEBHOOK_TOKENS, WEBHOOKS
 from .engine.ingest import Unreadable
 from .views import _read_limited
 
@@ -40,14 +42,19 @@ def async_external(hass: HomeAssistant) -> bool:
 def async_setup(hass: HomeAssistant, entry: ConfigEntry, people) -> None:
     """Registers a webhook for each person in people and each one made before. Ids are made once and kept in the entry,
     so a phone keeps its URL; one made before stays registered while scoring.toml is broken (HA answers 200 for an
-    unregistered id, so the phone would never retry) or no longer names that person (its rows are not scored)."""
+    unregistered id, so the phone would never retry) or no longer names that person (its rows are not scored).
+    With the token option each webhook also gets a token, made once and kept like its id; the options apply at registration,
+    so a change of them reloads the entry."""
     ids = dict(entry.data.get(WEBHOOKS, {}))
-    if missing := [p for p in people if p not in ids]:
-        ids |= {p: webhook.async_generate_id() for p in missing}
-        hass.config_entries.async_update_entry(entry, data={**entry.data, WEBHOOKS: ids})
+    ids |= {p: webhook.async_generate_id() for p in people if p not in ids}
+    tokens = dict(entry.data.get(WEBHOOK_TOKENS, {}))
+    if require := entry.options.get(OPT_REQUIRE_TOKEN, False):
+        tokens |= {p: secrets.token_urlsafe(32) for p in ids if p not in tokens}
+    if ids != entry.data.get(WEBHOOKS, {}) or tokens != entry.data.get(WEBHOOK_TOKENS, {}):
+        hass.config_entries.async_update_entry(entry, data={**entry.data, WEBHOOKS: ids, WEBHOOK_TOKENS: tokens})
     for person, webhook_id in ids.items():
-        webhook.async_register(hass, DOMAIN, f"Fitness {person}", webhook_id, _handler(person),
-                               local_only=False, allowed_methods=("POST",))
+        webhook.async_register(hass, DOMAIN, f"Fitness {person}", webhook_id, _handler(person, tokens[person] if require else None),
+                               local_only=entry.options.get(OPT_LOCAL_ONLY, False), allowed_methods=("POST",))
 
 
 @callback
@@ -56,8 +63,16 @@ def async_unregister(hass: HomeAssistant, entry: ConfigEntry) -> None:
         webhook.async_unregister(hass, webhook_id)  # one never registered is ignored
 
 
-def _handler(person: str):
+def _authorized(request: web.Request, token: str) -> bool:
+    """Authorization: Bearer <token>, compared in constant time; the header is never logged."""
+    scheme, _, value = request.headers.get("Authorization", "").partition(" ")
+    return scheme.lower() == "bearer" and hmac.compare_digest(value.strip().encode(), token.encode())
+
+
+def _handler(person: str, token: str | None):
     async def handle(hass: HomeAssistant, webhook_id: str, request: web.Request) -> web.Response:
+        if token is not None and not _authorized(request, token):  # before the body is read
+            return web.Response(status=401)
         # chunked uploads have no content_length: counted while read
         if (getattr(request, "content_length", None) or 0) > MAX_BODY or (body := await _read_limited(request.content, MAX_BODY)) is None:
             return web.Response(status=413)

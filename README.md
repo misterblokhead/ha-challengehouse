@@ -1,6 +1,15 @@
 # ChallengeHouse
 
-A fitness game for a household, inside Home Assistant.
+[![Validate](https://github.com/misterblokhead/ha-challengehouse/actions/workflows/validate.yml/badge.svg)](https://github.com/misterblokhead/ha-challengehouse/actions/workflows/validate.yml)
+[![Tests](https://github.com/misterblokhead/ha-challengehouse/actions/workflows/tests.yml/badge.svg)](https://github.com/misterblokhead/ha-challengehouse/actions/workflows/tests.yml)
+[![CodeQL](https://github.com/misterblokhead/ha-challengehouse/actions/workflows/codeql.yml/badge.svg)](https://github.com/misterblokhead/ha-challengehouse/actions/workflows/codeql.yml)
+[![Release](https://img.shields.io/github/v/release/misterblokhead/ha-challengehouse)](https://github.com/misterblokhead/ha-challengehouse/releases)
+
+Workout gamification for Home Assistant: household fitness challenges with XP, streaks, badges and workout details.
+
+Workouts come from the phones you already have: Health Exporter exports from an iPhone or Apple Watch, GPX files from
+OpenTracks (or any app that saves GPX) on Android, a watch folder of GPX files, workouts logged by hand, and gym sessions
+from a self-hosted [openGym](#opengym-gym-sessions) if you use one.
 
 ChallengeHouse (integration domain `fitbridge`) collects everyone's workouts and turns them into a game: XP and levels,
 weekly goals, week streaks, badges, personal records and a Couch to 5K plan. Two people can play as a couple or group,
@@ -58,8 +67,9 @@ works; Nabu Casa cloudhooks are not used because their relay breaks ZIP uploads.
   phone. Adding the second person asks whether the two play as a group. People are never deleted; their history stays.
 - **Who is who and step sensors:** which person each Home Assistant user is ("Nobody" gives a read-only view) and each
   person's step sensor.
-- **Webhooks and watch folders:** show or replace a person's webhook URL, and set a folder the integration scans for new
-  files.
+- **Webhooks and watch folders:** show or replace a person's webhook URL (and token), set a folder the integration scans
+  for new files, and the two webhook switches: **Require a token** and **Only accept uploads from the local network**
+  (see [Webhook security](#webhook-security)).
 - **Pair with openGym** (with the Supervisor it offers to install openGym in Home Assistant, or to pair one you run
   yourself) and **openGym users and invites:** see below.
 
@@ -149,6 +159,28 @@ The Connect card shows these steps for each person's phone; the short version:
 - **Pause days:** events in `calendar.training_pause` pause a person's week. The event title is the person's name, or for
   group members also "both" or the group's name.
 
+### Webhook security
+
+Both switches are in Configure -> Webhooks and watch folders, and both are off by default, so phones that already upload
+keep working.
+
+- **Require a token.** Each person gets a random token, and their webhook then only accepts uploads that send the header
+  `Authorization: Bearer <token>`; anything else gets 401 before the upload is read. The token is shown under "Connect
+  your phone" next to the URL, and "Make new webhook URLs and tokens" replaces both. After switching it on, add the header
+  on each phone:
+  - **iPhone (Shortcuts):** in the Get Contents of URL action, under Headers, add key `Authorization` with value
+    `Bearer <token>`.
+  - **Android (Automate):** in the flow's HTTP request block, set Request headers to
+    `{"Authorization": "Bearer <token>"}` (see [`phone/`](phone)).
+- **Only accept uploads from the local network.** The webhooks are registered as local-only. Home Assistant then checks
+  the address the request comes from: loopback, link-local and private ranges (10.x, 172.16-31.x, 192.168.x, `fd00::/8`)
+  count as local; Nabu Casa cloud connections and everything else do not. Its limits: **phones away from home cannot
+  upload while it is on**, and neither can phones on Tailscale (100.64.0.0/10 is not a private range). A refused upload
+  still gets `200 OK` from Home Assistant (only a warning in its log), so the phone does not retry and the workout is
+  lost until it is sent again from home. Behind a reverse proxy (including the Tailscale app's `serve`), Home Assistant
+  sees the proxy's own local address unless it trusts that proxy's `X-Forwarded-For` header; without that trust,
+  internet traffic through the proxy counts as local and the switch protects nothing.
+
 ### Other sources (not supported yet)
 
 Researched, not built. Notes for anyone who wants to add one:
@@ -175,18 +207,70 @@ Researched, not built. Notes for anyone who wants to add one:
 - **Events** for automations: `event.fit_badge_unlocked`, `event.fit_workout_scored` and `event.fit_record_set`.
 - **Actions:** `fitbridge.log_workout`, `fitbridge.remove_workout` and `fitbridge.restore_workout`.
 
-## Privacy
+## What this touches
 
-Everything stays in Home Assistant: workouts are stored in `/config/fitbridge/` (part of Home Assistant's backups), and
-the only outside service the integration talks to is the openGym instance you pair it with (if any). The route maps load
-their tiles through Home Assistant's own map tile proxy, so the page never contacts a map server itself.
+Everything stays in Home Assistant. In detail, from the code:
+
+**Network.** The integration makes outbound calls to one place only: the openGym you pair it with, if any (the address
+you type, or the openGym app inside Home Assistant). It calls `/api/pair/redeem` once to pair, then the openGym admin API
+(list users, read a user's sessions, create and revoke invites) and openGym's public start page and exercise list. Nothing else: no
+telemetry, no analytics, no update checks. The route maps load their tiles through Home Assistant's own map tile proxy
+(`/api/map_tiles/`), so the page never contacts a map server itself.
+
+**Inbound.** One webhook per person (`POST` only, reachable from outside your network so phones can upload away from
+home). By default the webhook ID in the URL is the only secret: anyone who has a person's URL can post workouts for that
+person, so treat it like a password; Configure can replace it. Two switches, both off by default, tighten this (see
+[Webhook security](#webhook-security)): a per-person token the phone must send, and local-network-only webhooks. Uploads
+are size-capped, ZIPs are checked before unpacking, and only `.json` and `.gpx` files inside are read.
+
+**Credentials.** No Home Assistant token. Pairing with openGym stores an openGym admin token in the config entry; it is
+renewed on use and sent only to that openGym.
+
+**Supervisor (opt-in, only when you choose "Install openGym in Home Assistant").** Setup and Configure -> Pair with
+openGym offer this choice only when Home Assistant has the Supervisor; nothing is installed automatically. If you choose
+it and confirm the address, it adds the app repository `https://github.com/misterblokhead/ha-opengym` to the Supervisor
+(unless it is already there), installs and starts the openGym app from it, which is a separate app (its own container,
+built on your machine), and sets its options (address, invite-only, watchdog, a sidebar entry). To decline, choose
+**Skip** in setup or pair an openGym you run yourself; in Configure, pick the pairing option or close the dialog. Without
+that choice it never calls the Supervisor. Removing ChallengeHouse leaves the app and the repository in place; remove them
+under Settings -> Apps if you no longer want them.
+
+**Home Assistant data it reads.** Home Assistant users (to pick who plays and who is who), each person's step sensor,
+the events in `calendar.training_pause` (through `calendar.get_events`), and whether an external URL is set.
+
+**What it writes.**
+- Files in `/config/fitbridge/`: `fitbridge.db` (SQLite, the workouts and scores), `scoring.toml` (the rules, written
+  once, never overwritten) and `archive/` (each upload and GPX file as received). These are part of Home Assistant's
+  backups.
+- The config entry: people, webhook IDs, watch folders and the openGym address and token.
+- Entities: the sensors and events listed under [What you get](#what-you-get), plus repair issues when something needs
+  you.
+- The `fitbridge.*` actions above, the ChallengeHouse panel and its API at `/api/fitbridge/ui/` (Home Assistant login
+  required).
+- Watch folders (optional): every minute it reads `*.gpx` files from the folder you set. It never changes or deletes
+  them.
+
+It runs no shell commands, and has no `eval` or `exec`.
+
+## How this is made
+
+I build ChallengeHouse with [Claude Code](https://claude.com/claude-code), Anthropic's AI coding tool. I read the
+changes, and I run it every day in my own home. On every push GitHub runs the unit tests, the HACS and hassfest checks and
+CodeQL; a change goes into a release only after those have passed.
 
 ## Development
 
-- Tests: `python -m pytest tests -q` with `tests/requirements.txt` installed (pytest-homeassistant-custom-component; Linux
-  or WSL). The page's logic: `cd web && npm test`.
+- Tests: `python -m pytest tests -q` with `tests/requirements.txt` installed (pinned versions of
+  pytest-homeassistant-custom-component and home-assistant-frontend; Linux or WSL, Python 3.14). When you bump the first,
+  bump the second to the version its Home Assistant's frontend requires. The page's logic: `cd web && npm test`.
 - The page lives in `web/` (Svelte + Vite). After a change, run `cd web && npm ci && npm run build` and commit the rebuilt
   `custom_components/fitbridge/frontend/` with it; Home Assistant serves the built files, there is no build step on
   install.
+- Releases: bump `version` in `custom_components/fitbridge/manifest.json`, add a `## [X.Y.Z](...releases/tag/vX.Y.Z)`
+  section to `CHANGELOG.md`, commit, then `git tag vX.Y.Z` and `git push origin vX.Y.Z`. The
+  [Release workflow](.github/workflows/release.yml) checks that the tag matches the manifest and creates the GitHub
+  release with that CHANGELOG section as its notes; HACS picks it up from there.
+
+ChallengeHouse is free. If it is useful to you, you can support its development through [GitHub Sponsors](https://github.com/sponsors/misterblokhead).
 
 Licence: MIT, see [LICENSE](LICENSE).

@@ -19,9 +19,11 @@ from custom_components.fitbridge.const import (
     OPT_OPENGYM_URL,
     OPT_PEOPLE,
     OPT_PHONES,
+    OPT_REQUIRE_TOKEN,
     OPT_START,
     OPT_STEPS,
     OPT_VIEWERS,
+    WEBHOOK_TOKENS,
     WEBHOOKS,
 )
 from custom_components.fitbridge.runner import received_key
@@ -684,8 +686,18 @@ async def test_connect_for_self(hass, entry, client, send):
     resp = await (await client("alex")).get(f"{UI}/connect", params={"person": "p1"})
     assert resp.status == 200
     assert await resp.json() == {
-        "url": "https://ha.example.test/api/webhook/hook1", "external": True, "phone": "iphone",
+        "url": "https://ha.example.test/api/webhook/hook1", "external": True, "token": None, "phone": "iphone",
         "last_received": "2026-10-28T12:00:00+00:00", "opengym": {"url": "https://gym.example.test", "invite": "code1", "in_ha": False}}
+
+
+async def test_connect_shows_the_token_only_while_the_webhooks_want_one(hass, entry, client, send):
+    await send(SCORES)
+    hass.config_entries.async_update_entry(entry, data={WEBHOOKS: {"p1": "hook1"}, WEBHOOK_TOKENS: {"p1": "tok1"}},
+                                           options={**entry.options, OPT_REQUIRE_TOKEN: True})
+    c = await client("alex")
+    assert (await (await c.get(f"{UI}/connect", params={"person": "p1"})).json())["token"] == "tok1"
+    hass.config_entries.async_update_entry(entry, options={**entry.options, OPT_REQUIRE_TOKEN: False})
+    assert (await (await c.get(f"{UI}/connect", params={"person": "p1"})).json())["token"] is None
 
 
 async def test_connect_shows_the_link_for_an_app_opengym(hass, entry, client, send):

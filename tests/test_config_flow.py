@@ -21,14 +21,17 @@ from custom_components.fitbridge.const import (
     OPT_FOLDERS,
     OPT_GROUP,
     OPT_INVITES,
+    OPT_LOCAL_ONLY,
     OPT_OPENGYM_LINK,
     OPT_OPENGYM_UIDS,
     OPT_OPENGYM_URL,
     OPT_PEOPLE,
     OPT_PHONES,
+    OPT_REQUIRE_TOKEN,
     OPT_START,
     OPT_STEPS,
     OPT_VIEWERS,
+    WEBHOOK_TOKENS,
     WEBHOOKS,
 )
 
@@ -280,14 +283,15 @@ async def test_inputs_show_each_persons_url_and_take_existing_folders_only(hass,
     assert result["type"] is FlowResultType.FORM and result["step_id"] == "inputs"
     urls = result["description_placeholders"]["urls"]
     assert all(f"https://ha.example.test/api/webhook/{hook}" in urls for hook in e.data[WEBHOOKS].values())
-    first, second, new_urls = (str(k) for k in result["data_schema"].schema)
-    assert new_urls == "new_urls"
+    first, second, *switches = (str(k) for k in result["data_schema"].schema)
+    assert switches == ["require_token", "local_only", "new_urls"]
     for bad in (str(tmp_path / "gone"), "share/relative"):
         result = await hass.config_entries.options.async_configure(result["flow_id"], {first: bad})
         assert result["type"] is FlowResultType.FORM and result["errors"] == {first: "folder_missing"}
     result = await hass.config_entries.options.async_configure(result["flow_id"], {first: str(tmp_path), second: " "})
     assert result["type"] is FlowResultType.CREATE_ENTRY
-    assert e.options == {**PEOPLE_OPTIONS, OPT_VIEWERS: {"u1": P0}, OPT_FOLDERS: {P0: str(tmp_path)}}
+    assert e.options == {**PEOPLE_OPTIONS, OPT_VIEWERS: {"u1": P0}, OPT_FOLDERS: {P0: str(tmp_path)},
+                         OPT_REQUIRE_TOKEN: False, OPT_LOCAL_ONLY: False}
     await hass.async_block_till_done(wait_background_tasks=True)
     assert hass.data[DOMAIN].runner.folders == {P0: tmp_path}  # reloaded with it
 
@@ -302,6 +306,22 @@ async def test_inputs_make_new_webhook_urls_and_retire_the_old_ones(hass, setup)
     new = e.data[WEBHOOKS]
     assert new.keys() == old.keys() and not set(new.values()) & set(old.values())
     assert not set(old.values()) & set(hass.data["webhook"]) and set(new.values()) <= set(hass.data["webhook"])
+
+
+async def test_switching_the_token_on_makes_tokens_and_new_urls_make_new_ones(hass, setup):
+    e = await setup({})
+    result = await _open(hass, e, "inputs")
+    result = await hass.config_entries.options.async_configure(result["flow_id"], {"require_token": True, "local_only": True})
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    await hass.async_block_till_done(wait_background_tasks=True)  # the reload registers the webhooks again
+    old, hooks = dict(e.data[WEBHOOK_TOKENS]), e.data[WEBHOOKS]
+    assert old.keys() == hooks.keys() and all(hass.data["webhook"][h].local_only for h in hooks.values())
+    result = await _open(hass, e, "inputs")
+    result = await hass.config_entries.options.async_configure(result["flow_id"], {"require_token": True, "local_only": True, "new_urls": True})
+    await hass.async_block_till_done(wait_background_tasks=True)  # options unchanged: no reload, the flow registers them
+    new = e.data[WEBHOOK_TOKENS]
+    assert new.keys() == old.keys() and not set(new.values()) & set(old.values())
+    assert set(e.data[WEBHOOKS].values()) <= set(hass.data["webhook"]) and not set(hooks.values()) & set(hass.data["webhook"])
 
 
 async def test_opengym_pairing_stores_the_token_and_clears_the_issue(hass, setup, aioclient_mock, caplog):

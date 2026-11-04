@@ -566,6 +566,13 @@ test("connectSteps: per phone; none yet asks for a choice", () => {
   assert.deepEqual(connectSteps(null), { title: "Which phone do you have?", steps: [] });
 });
 
+test("connectSteps: a token adds the header step for that phone", () => {
+  assert.equal(connectSteps("iphone", true).steps.length, connectSteps("iphone").steps.length + 1);
+  assert.match(connectSteps("iphone", true).steps.at(-1), /Authorization/);
+  assert.match(connectSteps("android", true).steps.at(-1), /Request headers/);
+  assert.deepEqual(connectSteps(null, true), { title: "Which phone do you have?", steps: [] });
+});
+
 test("connectStatus: waiting, or connected with the local time of the last workout (the day when not today)", () => {
   const at = new Date(2026, 9, 29, 7, 5), now = new Date(2026, 9, 29, 20, 0);
   assert.deepEqual(connectStatus({ last_received: null }, now), { state: "waiting", text: "Waiting for the first workout" });
