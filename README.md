@@ -238,5 +238,9 @@ CodeQL; a change goes into a release only after those have passed.
 - The page lives in `web/` (Svelte + Vite). After a change, run `cd web && npm ci && npm run build` and commit the rebuilt
   `custom_components/fitbridge/frontend/` with it; Home Assistant serves the built files, there is no build step on
   install.
+- Releases: bump `version` in `custom_components/fitbridge/manifest.json`, add a `## [X.Y.Z](...releases/tag/vX.Y.Z)`
+  section to `CHANGELOG.md`, commit, then `git tag vX.Y.Z` and `git push origin vX.Y.Z`. The
+  [Release workflow](.github/workflows/release.yml) checks that the tag matches the manifest and creates the GitHub
+  release with that CHANGELOG section as its notes; HACS picks it up from there.
 
 Licence: MIT, see [LICENSE](LICENSE).
