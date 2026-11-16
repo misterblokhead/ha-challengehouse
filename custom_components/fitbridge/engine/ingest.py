@@ -47,6 +47,15 @@ def parse_gpx(data: bytes) -> dict:
     trk_type = root.find(f"{GPX_NS}trk/{GPX_NS}type")
     times = [p[2] for p in pts if p[2]]
     start, end = (times[0], times[-1]) if times else (None, None)
+    # battery saver drops GPS fixes: OpenTracks' own elapsed time still covers the whole recording, so the start moves back
+    elapsed = next((el.text for el in root.iter() if el.tag.endswith("}TotalElapsedTime") and el.text), None)
+    try:
+        elapsed = float(elapsed) if elapsed else None
+    except ValueError:
+        elapsed = None
+    span = seconds_between(start, end)
+    if span is not None and finite(elapsed) and elapsed > span:
+        start = (datetime.fromisoformat(end) - timedelta(seconds=elapsed)).isoformat()
     return {
         "trackid": trackid,
         "activity_type": trk_type.text.strip() if trk_type is not None and trk_type.text else None,

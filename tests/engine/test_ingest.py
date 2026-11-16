@@ -89,6 +89,19 @@ class ParseTests(unittest.TestCase):
         self.assertEqual(info["duration_s"], 20)
         self.assertGreater(info["distance_m"], 1000)  # 0.01 deg lat steps ~1.1 km each
 
+    def test_gpx_elapsed_time_covers_lost_gps(self):
+        # battery saver: OpenTracks recorded 30 min but GPS points span only 20 s; start moves back, end stays
+        stats = (b"<extensions><opentracks:trackid>" + TRACK.encode() + b"</opentracks:trackid>"
+                 b'<gpxtrkx:TrackStatsExtension xmlns:gpxtrkx="http://www.garmin.com/xmlschemas/TrackStatsExtension/v1">'
+                 b"<gpxtrkx:TotalElapsedTime>1800</gpxtrkx:TotalElapsedTime></gpxtrkx:TrackStatsExtension></extensions>")
+        data = gpx_with_points().replace(b"<extensions><opentracks:trackid>" + TRACK.encode() + b"</opentracks:trackid></extensions>", stats)
+        self.assertIn(b"TotalElapsedTime", data)
+        info = ingest.parse_gpx(data)
+        self.assertEqual(info["duration_s"], 1800)
+        self.assertEqual((info["start"], info["end"]), ("2026-10-25T09:30:20+00:00", "2026-10-25T10:00:20Z"))
+        # shorter elapsed time (or none) keeps the points' span
+        self.assertEqual(ingest.parse_gpx(data.replace(b">1800<", b">5<"))["duration_s"], 20)
+
     def test_hex_zip_maps_fields(self):
         dist = {"HKQuantityTypeIdentifierDistanceWalkingRunning": {"sum": 3.2, "unit": "km"}}
         workouts, gpx = ingest.parse_hex_export(hex_zip([hex_workout("A"), hex_workout("B", "running", **dist)],
