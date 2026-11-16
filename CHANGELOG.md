@@ -5,6 +5,12 @@ All notable changes to ChallengeHouse. Sections follow
 follow [Semantic Versioning](https://semver.org/). Versions before 0.9.0 were
 tagged after the fact, on the commit that set each version.
 
+## [0.10.1](https://github.com/misterblokhead/ha-challengehouse/releases/tag/v0.10.1)
+
+### Bug Fixes
+
+* **ingest:** an OpenTracks run that lost GPS fixes (battery saver) keeps its full recorded length, using OpenTracks' own elapsed time, so it can still complete its plan day ([7838621](https://github.com/misterblokhead/ha-challengehouse/commit/7838621))
+
 ## [0.10.0](https://github.com/misterblokhead/ha-challengehouse/releases/tag/v0.10.0)
 
 ### Features
